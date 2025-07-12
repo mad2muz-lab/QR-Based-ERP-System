@@ -1,0 +1,98 @@
+City,Latitude,Longitude,Province
+Riyadh,24.7136,46.6753,Riyadh
+Jeddah,21.4858,39.1925,Makkah
+Mecca,21.3891,39.8579,Makkah
+Medina,24.5247,39.5692,Madinah
+Dammam,26.4207,50.0888,Eastern Province
+Khobar,26.2794,50.2083,Eastern Province
+Dhahran,26.2886,50.1134,Eastern Province
+Jubail,27.004,49.6465,Eastern Province
+Hofuf,25.3839,49.6058,Eastern Province
+Taif,21.4373,40.5127,Makkah
+Buraidah,26.3259,43.974,Qassim
+Unaizah,26.0753,43.9917,Qassim
+Abha,18.2465,42.5117,Asir
+Khamis Mushait,18.3029,42.7369,Asir
+Najran,17.5654,44.2289,Najran
+Jizan,16.8891,42.5511,Jizan
+Sakaka,29.9697,40.2064,Al Jawf
+Tabuk,28.3838,36.555,Tabuk
+Arar,30.9753,41.0381,Northern Borders
+Hail,27.5114,41.7208,Hail
+Al Bahah,20.0129,41.4677,Al Bahah
+Al Qurayyat,31.3314,37.3428,Al Jawf
+Yanbu,24.0889,38.1494,Madinah
+Rabigh,22.7986,39.0346,Makkah
+Al Lith,20.1301,40.2669,Makkah
+Al Qunfudhah,19.1256,41.0787,Makkah
+Baljurashi,19.8811,41.5606,Al Bahah
+Mahd adh Dhahab,23.4893,40.8721,Madinah
+Dumat Al-Jandal,29.8106,39.8679,Al Jawf
+Wadi ad-Dawasir,20.4446,44.8374,Riyadh
+Al Majma'ah,25.9104,45.3591,Riyadh
+Al Zulfi,26.305,44.823,Riyadh
+Shaqraa,25.2581,45.2463,Riyadh
+Al-Kharj,24.1555,47.312,Riyadh
+Al Ghat,26.0367,44.9475,Riyadh
+Al Wajh,26.2455,36.4526,Tabuk
+Turaif,31.6725,38.6636,Northern Borders
+Al Ula,26.6181,37.9326,Madinah
+Hafr Al-Batin,28.438,45.969,Eastern Province
+Qaisumah,28.3032,46.1257,Eastern Province
+Ras Tanura,26.6406,50.1582,Eastern Province
+Qatif,26.5651,49.9962,Eastern Province
+Al Khafji,28.4393,48.4912,Eastern Province
+Rafha,29.6203,43.4931,Northern Borders
+Al Bukayriyah,26.1446,43.6577,Qassim
+Al-Hawiyah,21.5026,40.5516,Makkah
+Al Bad,28.6903,35.3005,Tabuk
+Umluj,25.0213,37.2685,Tabuk
+Thuwal,22.2656,39.1036,Makkah
+Ras Al Khair,27.5307,49.1509,Eastern Province
+Salwa,24.6827,50.7105,Eastern Province
+Haradh,23.5275,48.4937,Eastern Province
+Shaibah,21.0821,49.3927,Eastern Province
+Al Aflaj,22.0396,46.7276,Riyadh
+Al Duwadimi,24.5121,44.3853,Riyadh
+Al-'Uyayna,24.8833,46.4,Riyadh
+Al Muzahmiyya,24.4717,46.2614,Riyadh
+As Sulayyil,20.4601,45.5772,Riyadh
+Ad Dilam,23.9914,47.1618,Riyadh
+Bisha,19.9875,42.5896,Asir
+Tannumah,19.9781,42.0599,Asir
+Al Nammas,19.1171,42.1183,Asir
+Rijal Alma,18.0644,42.7321,Asir
+Ahad Rafidah,18.2275,42.8057,Asir
+Samtah,16.5962,42.9449,Jizan
+Sabya,17.1475,42.6265,Jizan
+Abu Arish,16.9688,42.8034,Jizan
+Al Ardah,16.8427,42.5259,Jizan
+Al Dayer,17.3112,43.1154,Jizan
+Baish,17.4514,42.5587,Jizan
+Al Khurmah,21.9361,42.0398,Makkah
+Ranyah,21.2469,42.8546,Makkah
+Turubah,21.2104,41.6319,Makkah
+Al Muwayh,22.4357,41.7603,Makkah
+Al Jumum,21.6273,39.6954,Makkah
+Khulays,22.1708,39.4372,Makkah
+Dhurma,24.5046,46.3371,Riyadh
+Al Hariq,23.1231,46.6552,Riyadh
+Tayma,27.6139,38.6071,Tabuk
+Sharurah,17.4753,47.1039,Najran
+Al Mahd,23.4813,41.7629,Madinah
+Al Mahayel,18.5476,42.0597,Asir
+Riyadh Al Khabra,26.0506,43.5165,Qassim
+Al Namas,19.112,42.12,Asir
+Al Qassim,26.2,43.9667,Qassim
+Farasan,16.6966,42.1182,Jizan
+Al Lith Industrial City,20.1335,40.2672,Makkah
+Tanuma,19.9785,42.0532,Asir
+Badr,23.7806,38.7908,Madinah
+Al Mahmal,21.8379,39.7202,Makkah
+Al Aqiq,20.2731,41.6333,Al Bahah
+Al Jafr,25.4202,49.7182,Eastern Province
+Abqaiq,25.9344,49.6686,Eastern Province
+Thadiq,25.2913,45.9612,Riyadh
+Al Mandaq,20.0733,41.2756,Al Bahah
+Al Majardah,19.1419,41.9158,Asir
+Uqair,25.6372,50.2005,Eastern Province
