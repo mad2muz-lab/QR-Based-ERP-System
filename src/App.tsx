@@ -14,6 +14,7 @@ import AdminPanel from './components/admin/AdminPanel';
 import LoginForm from './components/auth/LoginForm';
 import ChangePasswordModal from './components/auth/ChangePasswordModal';
 import SyncStatusIndicator from './components/common/SyncStatusIndicator';
+import UnauthorizedAccess from './components/common/UnauthorizedAccess';
 import { AuthManager } from './utils/authUtils';
 import { DataStorage } from './utils/dataStorage';
 import { User } from './types';
@@ -91,7 +92,7 @@ function App() {
   const handlePasswordChange = () => {
     setShowPasswordModal(false);
     // Refresh user data
-    const updatedUser = AuthManager.getCurrentUser();
+    const updatedUser = AuthManager.getCurrentUserSync();
     if (updatedUser) {
       updatedUser.isFirstLogin = false;
       setCurrentUser(updatedUser);
@@ -106,12 +107,12 @@ function App() {
     
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard currentView={currentView} />;
       case 'scan':
         return <QRScanner />;
       case 'register':
         return canAccessRegistration ? 
-          <RegistrationForm currentUser={currentUser} /> : 
+          <RegistrationForm currentUser={currentUser || undefined} /> : 
           <UnauthorizedAccess requiredRole="manager" />;
       case 'map':
         return canAccessMap ? 
@@ -123,7 +124,7 @@ function App() {
           <UnauthorizedAccess requiredRole="admin" />;
       case 'admin':
         return canAccessAdmin ? 
-          <AdminPanel currentUser={currentUser} /> : 
+          <AdminPanel currentUser={currentUser || undefined} /> : 
           <UnauthorizedAccess requiredRole="admin" />;
       default:
         return <Dashboard />;

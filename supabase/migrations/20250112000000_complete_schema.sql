@@ -78,54 +78,24 @@ ALTER TABLE sites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE time_logs ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for employees
-CREATE POLICY "Authenticated users can read employees"
-  ON employees FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated users can insert employees"
-  ON employees FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Authenticated users can update employees"
-  ON employees FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "Authenticated users can delete employees"
-  ON employees FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Allow all operations on employees"
+  ON employees FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
 -- Create RLS policies for equipment
-CREATE POLICY "Authenticated users can read equipment"
-  ON equipment FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated users can insert equipment"
-  ON equipment FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Authenticated users can update equipment"
-  ON equipment FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "Authenticated users can delete equipment"
-  ON equipment FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Allow all operations on equipment"
+  ON equipment FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
 -- Create RLS policies for materials
-CREATE POLICY "Authenticated users can read materials"
-  ON materials FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated users can insert materials"
-  ON materials FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Authenticated users can update materials"
-  ON materials FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "Authenticated users can delete materials"
-  ON materials FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Allow all operations on materials"
+  ON materials FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
 -- Create RLS policies for sites
-CREATE POLICY "Authenticated users can read sites"
-  ON sites FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated users can insert sites"
-  ON sites FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Authenticated users can update sites"
-  ON sites FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "Authenticated users can delete sites"
-  ON sites FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Allow all operations on sites"
+  ON sites FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
 -- Create RLS policies for time_logs
-CREATE POLICY "Authenticated users can read time_logs"
-  ON time_logs FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated users can insert time_logs"
-  ON time_logs FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Authenticated users can update time_logs"
-  ON time_logs FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "Authenticated users can delete time_logs"
-  ON time_logs FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Allow all operations on time_logs"
+  ON time_logs FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_employees_qr_code ON employees(qr_code);

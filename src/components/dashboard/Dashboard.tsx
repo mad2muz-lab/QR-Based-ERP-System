@@ -1,18 +1,115 @@
-import React from 'react';
-import { Users, Wrench, Package, Clock, TrendingUp, AlertTriangle, Building, BarChart3, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Wrench, Package, Clock, TrendingUp, AlertTriangle, Building, BarChart3, FileText, RefreshCw, Wifi, WifiOff, CheckCircle, Database } from 'lucide-react';
 import StatsCard from './StatsCard';
 import ReportsPanel from '../scanner/ReportsPanel';
 import { DataStorage } from '../../utils/dataStorage';
+import { SupabaseDataService } from '../../utils/supabaseDataService';
+import { AuthManager } from '../../utils/authUtils';
+import { offlineSyncManager, SyncStatus } from '../../utils/offlineSync';
+import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  currentView?: string;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
   const [activeTab, setActiveTab] = React.useState<'overview' | 'reports'>('overview');
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(offlineSyncManager.getStatus());
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
+
+  // Load data based on current mode
+  const loadData = async () => {
+    setIsLoadingData(true);
+    try {
+      const useSupabase = AuthManager.useSupabase();
+      setDataSource(useSupabase ? 'supabase' : 'local');
+      
+      if (useSupabase) {
+        // Load from Supabase
+        const [empData, eqData, matData, siteData, logData] = await Promise.all([
+          SupabaseDataService.getEmployees(),
+          SupabaseDataService.getEquipment(),
+          SupabaseDataService.getMaterials(),
+          SupabaseDataService.getSites(),
+          SupabaseDataService.getTimeLogs()
+        ]);
+        
+        setEmployees(empData);
+        setEquipment(eqData);
+        setMaterials(matData);
+        setSites(siteData);
+        setTimeLogs(logData);
+      } else {
+        // Load from local storage
+        setEmployees(DataStorage.loadEmployees());
+        setEquipment(DataStorage.loadEquipment());
+        setMaterials(DataStorage.loadMaterials());
+        setSites(DataStorage.loadSites());
+        setTimeLogs(DataStorage.loadTimeLogs());
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleStatusChange = (status: SyncStatus) => {
+      setSyncStatus(status);
+      setIsSyncing(status.isSyncing);
+    };
+
+    offlineSyncManager.addSyncListener(handleStatusChange);
+    
+    // Load initial data
+    loadData();
+
+    return () => {
+      offlineSyncManager.removeSyncListener(handleStatusChange);
+    };
+  }, []);
+
+  // Refresh data whenever user navigates back to dashboard
+  useEffect(() => {
+    if (currentView === 'dashboard') {
+      loadData();
+    }
+  }, [currentView]);
+
+  const handleSyncNow = async () => {
+    if (syncStatus.isOnline && !syncStatus.isSyncing) {
+      setIsSyncing(true);
+      try {
+        await offlineSyncManager.forcSync();
+      } catch (error) {
+        console.error('Sync failed:', error);
+      }
+    }
+  };
+
+  const getSyncButtonText = () => {
+    if (!syncStatus.isOnline) return 'Offline';
+    if (syncStatus.isSyncing) return 'Syncing...';
+    if (syncStatus.pendingOperations > 0) return `Sync Now (${syncStatus.pendingOperations})`;
+    return 'Sync Now';
+  };
+
+  const getSyncButtonIcon = () => {
+    if (!syncStatus.isOnline) return WifiOff;
+    if (syncStatus.isSyncing) return RefreshCw;
+    if (syncStatus.pendingOperations === 0) return CheckCircle;
+    return RefreshCw;
+  };
   
-  // Load data from CSV storage
-  const employees = DataStorage.loadEmployees();
-  const equipment = DataStorage.loadEquipment();
-  const materials = DataStorage.loadMaterials();
-  const sites = DataStorage.loadSites();
-  const timeLogs = DataStorage.loadTimeLogs();
+  // Data is now loaded via useEffect and stored in state
 
   // Calculate real-time statistics
   const activeEmployees = employees.filter(e => e.status === 'active').length;
@@ -96,6 +193,114 @@ export const Dashboard: React.FC = () => {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Sync Status and Button */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
+              !syncStatus.isOnline ? 'bg-red-100 text-red-800' :
+              syncStatus.isSyncing ? 'bg-blue-100 text-blue-800' :
+              syncStatus.pendingOperations > 0 ? 'bg-yellow-100 text-yellow-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {!syncStatus.isOnline ? (
+                <WifiOff className="w-4 h-4" />
+              ) : syncStatus.isSyncing ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : syncStatus.pendingOperations > 0 ? (
+                <Clock className="w-4 h-4" />
+              ) : (
+                <CheckCircle className="w-4 h-4" />
+              )}
+              <span className="text-sm font-medium">
+                {!syncStatus.isOnline ? 'Offline' :
+                 syncStatus.isSyncing ? 'Syncing data...' :
+                 syncStatus.pendingOperations > 0 ? `${syncStatus.pendingOperations} items pending sync` :
+                 'All data synced'}
+              </span>
+            </div>
+            {syncStatus.lastSyncTime && (
+              <span className="text-sm text-gray-500">
+                Last sync: {new Date(syncStatus.lastSyncTime).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleSyncNow}
+            disabled={!syncStatus.isOnline || syncStatus.isSyncing}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+              !syncStatus.isOnline || syncStatus.isSyncing
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : syncStatus.pendingOperations > 0
+                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+          >
+            {React.createElement(getSyncButtonIcon(), {
+              className: `w-4 h-4 ${syncStatus.isSyncing ? 'animate-spin' : ''}`
+            })}
+            <span>{getSyncButtonText()}</span>
+          </button>
+        </div>
+        {syncStatus.errors.length > 0 && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center space-x-2 text-red-800">
+              <AlertTriangle className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                {syncStatus.errors.length} sync error{syncStatus.errors.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-red-600">
+              Click the sync button to retry failed operations
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Data Source Indicator */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
+              dataSource === 'supabase' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+            }`}>
+              <Database className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                Data Source: {dataSource === 'supabase' ? 'Supabase Database' : 'Local Storage'}
+              </span>
+            </div>
+            {isLoadingData && (
+              <div className="flex items-center space-x-2 text-blue-600">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Loading data...</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={loadData}
+              disabled={isLoadingData}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                isLoadingData
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+              <span>Refresh Data</span>
+            </button>
+            <a
+              href="/enable-supabase.html"
+              target="_blank"
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition-all duration-200"
+            >
+              <Database className="w-4 h-4" />
+              <span>Switch Mode</span>
+            </a>
+          </div>
         </div>
       </div>
 

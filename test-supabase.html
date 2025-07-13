@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Connection Test</title>
+</head>
+<body>
+    <h1>Supabase Database Test</h1>
+    <div id="results"></div>
+    
+    <script type="module">
+        import { supabase } from './src/utils/supabaseClient.js';
+        
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message) {
+            console.log(message);
+            resultsDiv.innerHTML += '<p>' + message + '</p>';
+        }
+        
+        async function testDatabase() {
+            log('Testing Supabase connection...');
+            
+            if (!supabase) {
+                log('❌ Supabase not configured!');
+                return;
+            }
+            
+            try {
+                // Test basic connection
+                log('\n1. Testing basic connection...');
+                const { data: users, error: usersError } = await supabase.from('users').select('count', { count: 'exact', head: true });
+                if (usersError) {
+                    log('Users table connection: ' + usersError.message);
+                } else {
+                    log('✓ Connected to Supabase successfully');
+                }
+                
+                // Check if separate log tables exist
+                log('\n2. Checking separate log tables...');
+                
+                // Test employee_logs table
+                const { data: empLogs, error: empError } = await supabase.from('employee_logs').select('count', { count: 'exact', head: true });
+                if (empError) {
+                    log('❌ employee_logs table: ' + empError.message);
+                } else {
+                    log('✓ employee_logs table exists');
+                }
+                
+                // Test equipment_logs table
+                const { data: eqLogs, error: eqError } = await supabase.from('equipment_logs').select('count', { count: 'exact', head: true });
+                if (eqError) {
+                    log('❌ equipment_logs table: ' + eqError.message);
+                } else {
+                    log('✓ equipment_logs table exists');
+                }
+                
+                // Test material_logs table
+                const { data: matLogs, error: matError } = await supabase.from('material_logs').select('count', { count: 'exact', head: true });
+                if (matError) {
+                    log('❌ material_logs table: ' + matError.message);
+                } else {
+                    log('✓ material_logs table exists');
+                }
+                
+                // Test existing tables
+                log('\n3. Checking existing tables...');
+                const { data: employees, error: empTableError } = await supabase.from('employees').select('count', { count: 'exact', head: true });
+                if (empTableError) {
+                    log('❌ employees table: ' + empTableError.message);
+                } else {
+                    log('✓ employees table exists');
+                }
+                
+                const { data: equipment, error: eqTableError } = await supabase.from('equipment').select('count', { count: 'exact', head: true });
+                if (eqTableError) {
+                    log('❌ equipment table: ' + eqTableError.message);
+                } else {
+                    log('✓ equipment table exists');
+                }
+                
+                const { data: materials, error: matTableError } = await supabase.from('materials').select('count', { count: 'exact', head: true });
+                if (matTableError) {
+                    log('❌ materials table: ' + matTableError.message);
+                } else {
+                    log('✓ materials table exists');
+                }
+                
+                const { data: timeLogs, error: timeLogsError } = await supabase.from('time_logs').select('count', { count: 'exact', head: true });
+                if (timeLogsError) {
+                    log('❌ time_logs table: ' + timeLogsError.message);
+                } else {
+                    log('✓ time_logs table exists');
+                }
+                
+            } catch (error) {
+                log('Error testing database: ' + error.message);
+            }
+        }
+        
+        testDatabase();
+    </script>
+</body>
+</html>

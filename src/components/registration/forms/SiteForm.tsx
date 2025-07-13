@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building } from 'lucide-react';
 import { Site } from '../../../types';
 import { siteTypes } from '../../../data/materialTypes';
@@ -70,11 +70,12 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
     
     const siteData = {
       ...formData,
-      type: showCustomType ? formData.customType : formData.type
+      type: showCustomType ? formData.customType : formData.type,
+      lastUpdated: new Date().toISOString()
     };
     
-    // Remove customType from the final data
-    const { customType, ...finalData } = siteData;
+    // Remove customType and selectedLocation from the final data
+    const { customType, selectedLocation, ...finalData } = siteData;
     
     console.log("Submitting site with coordinates:", JSON.stringify(finalData.coordinates));
     onSubmit(finalData);
@@ -84,8 +85,9 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
       name: '',
       type: '',
       customType: '',
-      province: '',
+      selectedLocation: '',
       coordinates: [0, 0],
+      province: '',
       address: '',
       manager: ''
     });

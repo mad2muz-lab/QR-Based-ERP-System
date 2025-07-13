@@ -19,6 +19,7 @@ import { Employee, Equipment, Material, Site } from '../../types';
 import { generateQRCode } from '../../utils/qrCodeUtils';
 import QRCodeDisplay from './QRCodeDisplay';
 import { AuthManager } from '../../utils/authUtils';
+import { SupabaseDataService } from '../../utils/supabaseDataService';
 
 interface UnifiedListViewProps {
   type: 'employees' | 'equipment' | 'materials' | 'sites' | 'departments';
@@ -26,6 +27,7 @@ interface UnifiedListViewProps {
   onDelete: (id: string) => void;
   onImport?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onExport?: () => void;
+  refreshTrigger?: number; // Add this to trigger refresh from parent
 }
 
 const UnifiedListView: React.FC<UnifiedListViewProps> = ({ 
@@ -33,7 +35,8 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
   onEdit, 
   onDelete,
   onImport,
-  onExport
+  onExport,
+  refreshTrigger
 }) => {
   const [items, setItems] = useState<any[]>([]);
   const [filteredItems, setFilteredItems] = useState<any[]>([]);
@@ -55,32 +58,81 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'developer';
 
   useEffect(() => {
-    loadData();
-  }, [type]);
+    const fetchData = async () => {
+      await loadData();
+    };
+    fetchData();
+  }, [type, refreshTrigger]);
 
   useEffect(() => {
     filterAndSortItems();
   }, [items, searchTerm, sortField, sortDirection, statusFilter, typeFilter, departmentFilter, siteFilter]);
 
-  const loadData = () => {
+  const loadData = async () => {
     let loadedItems: any[] = [];
+    const useSupabase = AuthManager.useSupabase();
     
-    switch (type) {
-      case 'employees':
-        loadedItems = DataStorage.loadEmployees();
-        break;
-      case 'equipment':
-        loadedItems = DataStorage.loadEquipment();
-        break;
-      case 'materials':
-        loadedItems = DataStorage.loadMaterials();
-        break;
-      case 'sites':
-        loadedItems = DataStorage.loadSites();
-        break;
-      case 'departments':
-        loadedItems = DataStorage.loadDepartments();
-        break;
+    try {
+      if (useSupabase) {
+        // Load from Supabase
+        switch (type) {
+          case 'employees':
+            loadedItems = await SupabaseDataService.getEmployees();
+            break;
+          case 'equipment':
+            loadedItems = await SupabaseDataService.getEquipment();
+            break;
+          case 'materials':
+            loadedItems = await SupabaseDataService.getMaterials();
+            break;
+          case 'sites':
+            loadedItems = await SupabaseDataService.getSites();
+            break;
+          case 'departments':
+            // Note: departments might not be implemented in SupabaseDataService yet
+            loadedItems = DataStorage.loadDepartments();
+            break;
+        }
+      } else {
+        // Load from local storage
+        switch (type) {
+          case 'employees':
+            loadedItems = DataStorage.loadEmployees();
+            break;
+          case 'equipment':
+            loadedItems = DataStorage.loadEquipment();
+            break;
+          case 'materials':
+            loadedItems = DataStorage.loadMaterials();
+            break;
+          case 'sites':
+            loadedItems = DataStorage.loadSites();
+            break;
+          case 'departments':
+            loadedItems = DataStorage.loadDepartments();
+            break;
+        }
+      }
+    } catch (error) {
+      console.error(`Error loading ${type}:`, error);
+      // Fallback to local storage on error
+      switch (type) {
+        case 'employees':
+          loadedItems = DataStorage.loadEmployees();
+          break;
+        case 'equipment':
+          loadedItems = DataStorage.loadEquipment();
+          break;
+        case 'materials':
+          loadedItems = DataStorage.loadMaterials();
+          break;
+        case 'sites':
+          loadedItems = DataStorage.loadSites();
+          break;
+        case 'departments':
+          loadedItems = DataStorage.loadDepartments();
+          break;
+      }
     }
     
     setItems(loadedItems);

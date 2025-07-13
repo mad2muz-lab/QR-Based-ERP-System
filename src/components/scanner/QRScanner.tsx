@@ -8,6 +8,7 @@ import { DataStorage } from '../../utils/dataStorage';
 import { getShiftStatus } from '../../utils/timeUtils';
 import { useHardwareScanner } from '../../hooks/useHardwareScanner';
 import { OfflineDataManager } from '../../utils/offlineDataManager';
+import { logManager } from '../../utils/logManager';
 import UnifiedScanResult from './UnifiedScanResult';
 
 const QRScanner: React.FC = () => {
@@ -359,31 +360,78 @@ const QRScanner: React.FC = () => {
       }
     }
 
-    // Create new log entry
-    const newLog: any = {
-      id: `log-${Date.now()}`,
-      entityId: scanResult.entity.id,
-      entityType: scanResult.type,
-      action: actionId,
-      timestamp,
-      site: scanResult.entity.site || 'Unknown',
-      notes,
-      quantity
-    };
-
     try {
-      // Use offline data manager for proper sync queuing
-      await OfflineDataManager.createTimeLog(newLog);
+      let operationId: string;
       
-      // Update materials if needed
-      if (actionId === 'material-in' || actionId === 'material-out') {
-        const materialIndex = materials.findIndex(m => m.id === scanResult.entity.id);
-        if (materialIndex !== -1) {
-          await OfflineDataManager.updateMaterial(materials[materialIndex]);
-        }
+      // Use the new LogManager to create entity-specific logs
+      switch (scanResult.type) {
+        case 'employee':
+          if (actionId === 'clock-in' || actionId === 'clock-out') {
+            operationId = await logManager.createEmployeeLog(
+              scanResult.entity,
+              actionId as 'clock-in' | 'clock-out',
+              scanResult.entity.site || 'Unknown',
+              notes
+            );
+          } else {
+            throw new Error(`Invalid action for employee: ${actionId}`);
+          }
+          break;
+          
+        case 'equipment':
+          if (actionId === 'start-use' || actionId === 'stop-use') {
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              actionId as 'start-use' | 'stop-use',
+              scanResult.entity.site || 'Unknown',
+              scanResult.entity.status || 'active',
+              notes
+            );
+          } else {
+            throw new Error(`Invalid action for equipment: ${actionId}`);
+          }
+          break;
+          
+        case 'material':
+          if (actionId === 'material-in' || actionId === 'material-out') {
+            if (!quantity) {
+              throw new Error('Quantity is required for material operations');
+            }
+            operationId = await logManager.createMaterialLog(
+              scanResult.entity,
+              actionId as 'material-in' | 'material-out',
+              quantity,
+              scanResult.entity.site || 'Unknown',
+              scanResult.entity.status || 'available',
+              notes
+            );
+            
+            // Update material quantity in local storage
+            const materialIndex = materials.findIndex(m => m.id === scanResult.entity.id);
+            if (materialIndex !== -1) {
+              await OfflineDataManager.updateMaterial(materials[materialIndex]);
+            }
+          } else {
+            throw new Error(`Invalid action for material: ${actionId}`);
+          }
+          break;
+          
+        case 'site':
+          // For site check-ins, use the legacy method for now
+          operationId = await logManager.createTimeLog(
+            scanResult.entity.id,
+            'employee', // Assuming site check-ins are employee-related
+            actionId,
+            scanResult.entity.name || 'Unknown',
+            notes
+          );
+          break;
+          
+        default:
+          throw new Error(`Unsupported entity type: ${scanResult.type}`);
       }
       
-      console.log('Action logged and queued for sync:', newLog);
+      console.log(`${scanResult.type} log created with operation ID:`, operationId);
       
       // Show success message
       setError(`✅ ${actionId.replace('-', ' ').toUpperCase()} recorded successfully!`);

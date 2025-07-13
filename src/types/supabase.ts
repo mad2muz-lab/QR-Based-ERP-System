@@ -41,6 +41,138 @@ export interface Database {
           last_login?: string | null
         }
       }
+      employee_logs: {
+        Row: {
+          id: string
+          employee_id: string
+          employee_name: string
+          department: string
+          site: string
+          action: 'clock-in' | 'clock-out'
+          date: string
+          time: string
+          timestamp: string
+          notes: string | null
+          location: string | null
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          employee_name: string
+          department: string
+          site: string
+          action: 'clock-in' | 'clock-out'
+          date?: string
+          time?: string
+          timestamp?: string
+          notes?: string | null
+          location?: string | null
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          employee_name?: string
+          department?: string
+          site?: string
+          action?: 'clock-in' | 'clock-out'
+          date?: string
+          time?: string
+          timestamp?: string
+          notes?: string | null
+          location?: string | null
+        }
+      }
+      equipment_logs: {
+        Row: {
+          id: string
+          equipment_id: string
+          equipment_name: string
+          equipment_type: string
+          action: 'start-use' | 'stop-use'
+          date: string
+          time: string
+          timestamp: string
+          site: string
+          status: string
+          notes: string | null
+          location: string | null
+        }
+        Insert: {
+          id?: string
+          equipment_id: string
+          equipment_name: string
+          equipment_type: string
+          action: 'start-use' | 'stop-use'
+          date?: string
+          time?: string
+          timestamp?: string
+          site: string
+          status: string
+          notes?: string | null
+          location?: string | null
+        }
+        Update: {
+          id?: string
+          equipment_id?: string
+          equipment_name?: string
+          equipment_type?: string
+          action?: 'start-use' | 'stop-use'
+          date?: string
+          time?: string
+          timestamp?: string
+          site?: string
+          status?: string
+          notes?: string | null
+          location?: string | null
+        }
+      }
+      material_logs: {
+        Row: {
+          id: string
+          material_id: string
+          material_name: string
+          material_type: string
+          action: 'material-in' | 'material-out'
+          quantity: number
+          date: string
+          time: string
+          timestamp: string
+          site: string
+          status: string
+          notes: string | null
+          location: string | null
+        }
+        Insert: {
+          id?: string
+          material_id: string
+          material_name: string
+          material_type: string
+          action: 'material-in' | 'material-out'
+          quantity: number
+          date?: string
+          time?: string
+          timestamp?: string
+          site: string
+          status: string
+          notes?: string | null
+          location?: string | null
+        }
+        Update: {
+          id?: string
+          material_id?: string
+          material_name?: string
+          material_type?: string
+          action?: 'material-in' | 'material-out'
+          quantity?: number
+          date?: string
+          time?: string
+          timestamp?: string
+          site?: string
+          status?: string
+          notes?: string | null
+          location?: string | null
+        }
+      }
       // Add other tables (employees, equipment, materials, sites, etc.) here
     }
   }

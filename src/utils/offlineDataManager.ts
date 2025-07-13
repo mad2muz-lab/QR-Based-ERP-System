@@ -1,7 +1,7 @@
 // Offline Data Manager
 // Handles local data operations and queuing for sync
 
-import { Employee, Equipment, Material, Site, TimeLog } from '../types';
+import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog } from '../types';
 import { DataStorage } from './dataStorage';
 import { offlineSyncManager } from './offlineSync';
 
@@ -230,6 +230,9 @@ export class OfflineDataManager {
   }
 
   // Time Log Operations (High Priority)
+  /**
+   * @deprecated Use createEmployeeLog, createEquipmentLog, or createMaterialLog instead
+   */
   static async createTimeLog(timeLog: TimeLog): Promise<string> {
     try {
       const timeLogs = DataStorage.loadTimeLogs();
@@ -247,6 +250,72 @@ export class OfflineDataManager {
       return operationId;
     } catch (error) {
       console.error('Failed to create time log:', error);
+      throw error;
+    }
+  }
+
+  // Employee Log Operations
+  static async createEmployeeLog(employeeLog: EmployeeLog): Promise<string> {
+    try {
+      const employeeLogs = DataStorage.loadEmployeeLogs();
+      employeeLogs.push(employeeLog);
+      DataStorage.saveEmployeeLogs(employeeLogs);
+
+      const operationId = offlineSyncManager.queueOperation({
+        type: 'create',
+        entityType: 'employeeLog',
+        entityId: employeeLog.id,
+        data: employeeLog,
+        priority: 'high'
+      });
+
+      return operationId;
+    } catch (error) {
+      console.error('Failed to create employee log:', error);
+      throw error;
+    }
+  }
+
+  // Equipment Log Operations
+  static async createEquipmentLog(equipmentLog: EquipmentLog): Promise<string> {
+    try {
+      const equipmentLogs = DataStorage.loadEquipmentLogs();
+      equipmentLogs.push(equipmentLog);
+      DataStorage.saveEquipmentLogs(equipmentLogs);
+
+      const operationId = offlineSyncManager.queueOperation({
+        type: 'create',
+        entityType: 'equipmentLog',
+        entityId: equipmentLog.id,
+        data: equipmentLog,
+        priority: 'high'
+      });
+
+      return operationId;
+    } catch (error) {
+      console.error('Failed to create equipment log:', error);
+      throw error;
+    }
+  }
+
+  // Material Log Operations
+  static async createMaterialLog(materialLog: MaterialLog): Promise<string> {
+    try {
+      const materialLogs = DataStorage.loadMaterialLogs();
+      materialLogs.push(materialLog);
+      DataStorage.saveMaterialLogs(materialLogs);
+
+      const operationId = offlineSyncManager.queueOperation({
+        type: 'create',
+        entityType: 'materialLog',
+        entityId: materialLog.id,
+        data: materialLog,
+        priority: 'high'
+      });
+
+      return operationId;
+    } catch (error) {
+      console.error('Failed to create material log:', error);
       throw error;
     }
   }

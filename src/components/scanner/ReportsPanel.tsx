@@ -5,11 +5,50 @@ import { formatDuration, calculateWorkingHours, isOvertime } from '../../utils/t
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 
 const ReportsPanel: React.FC = () => {
-  // Load data from storage instead of mock data
-  const timeLogs = DataStorage.loadTimeLogs();
+  // Load data from storage - using new separate log tables
+  const { employeeLogs, equipmentLogs, materialLogs } = DataStorage.loadAllLogs();
+  const timeLogs = DataStorage.loadTimeLogs(); // Keep for backward compatibility
   const employees = DataStorage.loadEmployees();
   const equipment = DataStorage.loadEquipment();
   const materials = DataStorage.loadMaterials();
+  
+  // Combine all logs into a unified format for filtering
+  const allLogs = [
+    ...employeeLogs.map(log => ({
+      id: log.id,
+      entityId: log.employeeId,
+      entityType: 'employee' as const,
+      action: log.action,
+      timestamp: log.timestamp,
+      site: log.site,
+      notes: log.notes,
+      location: log.location,
+      quantity: undefined as number | undefined
+    })),
+    ...equipmentLogs.map(log => ({
+      id: log.id,
+      entityId: log.equipmentId,
+      entityType: 'equipment' as const,
+      action: log.action,
+      timestamp: log.timestamp,
+      site: log.site,
+      notes: log.notes,
+      location: log.location,
+      quantity: undefined as number | undefined
+    })),
+    ...materialLogs.map(log => ({
+      id: log.id,
+      entityId: log.materialId,
+      entityType: 'material' as const,
+      action: log.action,
+      timestamp: log.timestamp,
+      site: log.site,
+      notes: log.notes,
+      location: log.location,
+      quantity: log.quantity
+    })),
+    ...timeLogs // Include legacy logs for backward compatibility
+  ];
   
   const [reportType, setReportType] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [entityType, setEntityType] = useState<'employee' | 'equipment' | 'material' | 'all'>('all');
@@ -40,7 +79,7 @@ const ReportsPanel: React.FC = () => {
   const filterLogs = () => {
     const { start, end } = getDateRange();
     
-    return timeLogs.filter(log => {
+    return allLogs.filter(log => {
       const logDate = parseISO(String(log.timestamp));
       const isInDateRange = isWithinInterval(logDate, { start, end });
       const matchesEntityType = entityType === 'all' || log.entityType === entityType;

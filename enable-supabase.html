@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Enable Supabase Mode</title>
+</head>
+<body>
+    <h1>Enable Supabase Data Source</h1>
+    <button id="enableBtn">Enable Supabase Mode</button>
+    <button id="disableBtn">Disable Supabase Mode</button>
+    <div id="status"></div>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        
+        function updateStatus() {
+            const useSupabase = localStorage.getItem('qr_system_use_supabase');
+            statusDiv.innerHTML = `<p>Current mode: ${useSupabase === 'true' ? 'Supabase' : 'Local Storage'}</p>`;
+        }
+        
+        document.getElementById('enableBtn').addEventListener('click', () => {
+            localStorage.setItem('qr_system_use_supabase', 'true');
+            statusDiv.innerHTML = '<p style="color: green;">✓ Supabase mode enabled! Refresh the main app to see changes.</p>';
+            updateStatus();
+        });
+        
+        document.getElementById('disableBtn').addEventListener('click', () => {
+            localStorage.setItem('qr_system_use_supabase', 'false');
+            statusDiv.innerHTML = '<p style="color: orange;">Local storage mode enabled! Refresh the main app to see changes.</p>';
+            updateStatus();
+        });
+        
+        // Show current status on load
+        updateStatus();
+    </script>
+</body>
+</html>

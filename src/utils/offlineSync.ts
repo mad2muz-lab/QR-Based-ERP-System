@@ -1,10 +1,12 @@
 // Offline Synchronization System
 // Handles network connectivity, data queuing, and sync operations
 
+import { supabase } from './supabaseClient';
+
 export interface SyncOperation {
   id: string;
   type: 'create' | 'update' | 'delete';
-  entityType: 'employee' | 'equipment' | 'material' | 'site' | 'timeLog';
+  entityType: 'employee' | 'equipment' | 'material' | 'site' | 'timeLog' | 'employeeLog' | 'equipmentLog' | 'materialLog';
   entityId: string;
   data: any;
   timestamp: string;
@@ -45,10 +47,12 @@ export class OfflineSyncManager {
   private maxRetries: number = 3;
   private syncInterval: NodeJS.Timeout | null = null;
   private batteryOptimization: boolean = true;
+  private idMappings: Map<string, string> = new Map(); // customId -> databaseUuid
 
   private constructor() {
     this.initializeNetworkListeners();
     this.loadPendingOperations();
+    this.loadIdMappings();
     this.startPeriodicSync();
   }
 
@@ -193,24 +197,244 @@ export class OfflineSyncManager {
     }
   }
 
-  private async syncOperation(operation: SyncOperation): Promise<void> {
-    // Simulate API call - replace with actual server communication
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // Simulate network conditions
-        const shouldFail = Math.random() < 0.1; // 10% failure rate for testing
-        
-        if (shouldFail) {
-          reject(new Error('Network timeout'));
-        } else {
-          console.log(`Synced operation: ${operation.type} ${operation.entityType} ${operation.entityId}`);
-          resolve();
-        }
-      }, 500 + Math.random() * 1000); // Simulate network latency
-    });
+  // ID Mapping Management
+  private loadIdMappings(): void {
+    try {
+      const mappings = localStorage.getItem('qr_system_id_mappings');
+      if (mappings) {
+        const parsed = JSON.parse(mappings);
+        this.idMappings = new Map(Object.entries(parsed));
+      }
+    } catch (error) {
+      console.error('Failed to load ID mappings:', error);
+      this.idMappings = new Map();
+    }
   }
 
-  // Conflict Resolution
+  private saveIdMappings(): void {
+    try {
+      const mappingsObj = Object.fromEntries(this.idMappings);
+      localStorage.setItem('qr_system_id_mappings', JSON.stringify(mappingsObj));
+    } catch (error) {
+      console.error('Failed to save ID mappings:', error);
+    }
+  }
+
+  private addIdMapping(customId: string, databaseUuid: string): void {
+    this.idMappings.set(customId, databaseUuid);
+    this.saveIdMappings();
+  }
+
+  private getUuidForCustomId(customId: string): string | null {
+    return this.idMappings.get(customId) || null;
+  }
+
+  private async syncOperation(operation: SyncOperation): Promise<void> {
+    if (!supabase) {
+      throw new Error('Supabase not configured');
+    }
+  
+    const { type, entityType, entityId, data } = operation;
+    
+    // Map entity types to correct table names
+    const getTableName = (entityType: string): string => {
+      switch (entityType) {
+        case 'employee': return 'employees';
+        case 'equipment': return 'equipment';
+        case 'material': return 'materials';
+        case 'site': return 'sites';
+        case 'timeLog': return 'time_logs';
+        case 'employeeLog': return 'employee_logs';
+        case 'equipmentLog': return 'equipment_logs';
+        case 'materialLog': return 'material_logs';
+        default: return entityType + 's';
+      }
+    };
+    
+    const tableName = getTableName(entityType);
+    
+    // Transform data to match database schema
+    const transformDataForDB = (data: any, entityType: string, operationType: string) => {
+      if (!data) return data;
+      
+      const transformed = { ...data };
+      
+      // Handle ID resolution for different operation types
+      if (operationType === 'create') {
+        // For create operations, remove the custom ID and let database generate UUID
+        delete transformed.id;
+      } else if (operationType === 'update' && transformed.id) {
+        // For update operations, resolve custom ID to database UUID
+        const databaseUuid = this.getUuidForCustomId(transformed.id);
+        if (databaseUuid) {
+          transformed.id = databaseUuid;
+        } else {
+          throw new Error(`No database UUID found for custom ID: ${transformed.id}`);
+        }
+      }
+      
+      // Remove form-specific fields that don't exist in database
+      if (transformed.selectedLocation !== undefined) {
+        delete transformed.selectedLocation;
+      }
+      if (transformed.customType !== undefined) {
+        delete transformed.customType;
+      }
+      if (transformed.accessLevel !== undefined) {
+        delete transformed.accessLevel;
+      }
+      
+      // Convert camelCase to snake_case for database fields
+      if (transformed.bloodGroup !== undefined) {
+        transformed.blood_group = transformed.bloodGroup;
+        delete transformed.bloodGroup;
+      }
+      if (transformed.createdAt !== undefined) {
+        transformed.created_at = transformed.createdAt;
+        delete transformed.createdAt;
+      }
+      if (transformed.lastUpdated !== undefined) {
+        transformed.last_updated = transformed.lastUpdated;
+        delete transformed.lastUpdated;
+      }
+      if (transformed.qrCode !== undefined) {
+        transformed.qr_code = transformed.qrCode;
+        delete transformed.qrCode;
+      }
+      if (transformed.serialNumber !== undefined) {
+        transformed.serial_number = transformed.serialNumber;
+        delete transformed.serialNumber;
+      }
+      if (transformed.entityId !== undefined) {
+        // Resolve custom entity ID to database UUID for foreign key reference
+        const entityUuid = this.getUuidForCustomId(transformed.entityId);
+        if (entityUuid) {
+          transformed.entity_id = entityUuid;
+        } else {
+          // If no mapping found, use the original value (might be already a UUID)
+          transformed.entity_id = transformed.entityId;
+        }
+        delete transformed.entityId;
+      }
+      if (transformed.entityType !== undefined) {
+        transformed.entity_type = transformed.entityType;
+        delete transformed.entityType;
+      }
+      
+      // Handle coordinates conversion for sites (array to POINT format)
+      if (entityType === 'site' && transformed.coordinates && Array.isArray(transformed.coordinates)) {
+        // Convert [longitude, latitude] array to PostgreSQL POINT format
+        transformed.coordinates = `(${transformed.coordinates[0]},${transformed.coordinates[1]})`;
+      }
+      
+      // Handle specific field transformations for log entity types
+      if (entityType === 'employeeLog' || entityType === 'equipmentLog' || entityType === 'materialLog') {
+        // Convert camelCase to snake_case for log-specific fields
+        if (transformed.employeeId !== undefined) {
+          const employeeUuid = this.getUuidForCustomId(transformed.employeeId);
+          transformed.employee_id = employeeUuid || transformed.employeeId;
+          delete transformed.employeeId;
+        }
+        if (transformed.employeeName !== undefined) {
+          transformed.employee_name = transformed.employeeName;
+          delete transformed.employeeName;
+        }
+        if (transformed.equipmentId !== undefined) {
+          const equipmentUuid = this.getUuidForCustomId(transformed.equipmentId);
+          transformed.equipment_id = equipmentUuid || transformed.equipmentId;
+          delete transformed.equipmentId;
+        }
+        if (transformed.equipmentName !== undefined) {
+          transformed.equipment_name = transformed.equipmentName;
+          delete transformed.equipmentName;
+        }
+        if (transformed.equipmentType !== undefined) {
+          transformed.equipment_type = transformed.equipmentType;
+          delete transformed.equipmentType;
+        }
+        if (transformed.materialId !== undefined) {
+          const materialUuid = this.getUuidForCustomId(transformed.materialId);
+          transformed.material_id = materialUuid || transformed.materialId;
+          delete transformed.materialId;
+        }
+        if (transformed.materialName !== undefined) {
+          transformed.material_name = transformed.materialName;
+          delete transformed.materialName;
+        }
+        if (transformed.materialType !== undefined) {
+          transformed.material_type = transformed.materialType;
+          delete transformed.materialType;
+        }
+        
+        // Handle location conversion for logs
+        if (transformed.location && Array.isArray(transformed.location)) {
+          transformed.location = `(${transformed.location[0]},${transformed.location[1]})`;
+        }
+      }
+      
+      return transformed;
+    };
+    
+    const dbData = transformDataForDB(data, entityType, type);
+    
+    try {
+      switch (type) {
+        case 'create':
+          const { data: insertedData, error: createError } = await supabase
+            .from(tableName)
+            .insert(dbData)
+            .select('id')
+            .single();
+          if (createError) throw createError;
+          
+          // Store ID mapping between custom ID and database UUID
+          if (insertedData && insertedData.id && data.id) {
+            this.addIdMapping(data.id, insertedData.id);
+          }
+          break;
+          
+        case 'update':
+          // Resolve custom ID to database UUID for the where clause
+          const updateUuid = this.getUuidForCustomId(entityId) || entityId;
+          const { error: updateError } = await supabase
+            .from(tableName)
+            .update(dbData)
+            .eq('id', updateUuid);
+          if (updateError) throw updateError;
+          break;
+          
+        case 'delete':
+          // Resolve custom ID to database UUID for the where clause
+          const deleteUuid = this.getUuidForCustomId(entityId) || entityId;
+          const { error: deleteError } = await supabase
+            .from(tableName)
+            .delete()
+            .eq('id', deleteUuid);
+          if (deleteError) throw deleteError;
+          
+          // Remove ID mapping after successful deletion
+          if (this.idMappings.has(entityId)) {
+            this.idMappings.delete(entityId);
+            this.saveIdMappings();
+          }
+          break;
+      }
+      
+      console.log(`Successfully synced operation: ${operation.type} ${operation.entityType} ${operation.entityId}`);
+    } catch (error: any) {
+      console.error(`Failed to sync operation: ${operation.type} ${operation.entityType} ${operation.entityId}`);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        tableName,
+        data: dbData
+      });
+      throw error;
+    }
+  }
+    // Conflict Resolution
   async resolveConflict(
     localData: any, 
     serverData: any, 

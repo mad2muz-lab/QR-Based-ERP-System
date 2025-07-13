@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Wrench, Package, Building, Download, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { Users, Wrench, Package, Building, Download, Upload, CheckCircle, AlertCircle, RefreshCw, Database, Wifi } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
 import { generateEntityId } from '../../utils/qrCodeUtils';
 import { Employee, Equipment, Material, Site, User } from '../../types';
 import { AuthManager } from '../../utils/authUtils';
+import { SupabaseDataService } from '../../utils/supabaseDataService';
+import { SupabaseRegistrationService } from '../../utils/supabaseRegistrationService';
 import UnifiedListView from './UnifiedListView';
 import { CSVAppendManager } from '../../utils/csvAppendUtils';
 import QRCodeDisplay from './QRCodeDisplay';
 import UnauthorizedAccess from '../common/UnauthorizedAccess';
+import { offlineSyncManager } from '../../utils/offlineSync';
 
 // Import modular components
 import EmployeeForm from './forms/EmployeeForm';
@@ -54,7 +57,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
     return <UnauthorizedAccess requiredRole="manager" />;
   }
 
-  const [activeTab, setActiveTab] = useState<'employees' | 'equipment' | 'materials' | 'sites'>('employees');
+  // Fix the activeTab type to include 'departments'
+  const [activeTab, setActiveTab] = useState<'employees' | 'equipment' | 'materials' | 'sites' | 'departments'>('employees');
   const [activeView, setActiveView] = useState<'form' | 'list'>('form');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -65,11 +69,21 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
+  
+  // Data source management
+  const [isLoading, setIsLoading] = useState(false);
+  const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local');
+  const [useSupabase, setUseSupabase] = useState(AuthManager.useSupabase());
   const [showDepartmentManager, setShowDepartmentManager] = useState(false);
   const [viewMode, setViewMode] = useState<'form' | 'list' | 'unified'>('form');
   const [showQRCode, setShowQRCode] = useState(false);
   const [newEntity, setNewEntity] = useState<{type: string; data: any} | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  
+  // Add this missing formData state
+  const [formData, setFormData] = useState<any>({});
+  
+  // Add refresh trigger for UnifiedListView
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Function to toggle between form and list views
   const toggleView = () => {
@@ -86,11 +100,54 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
     loadData();
   }, []);
 
-  const loadData = () => {
-    setEmployees(DataStorage.loadEmployees());
-    setEquipment(DataStorage.loadEquipment());
-    setMaterials(DataStorage.loadMaterials());
-    setSites(DataStorage.loadSites());
+  useEffect(() => {
+    const currentUseSupabase = AuthManager.useSupabase();
+    setUseSupabase(currentUseSupabase);
+    setDataSource(currentUseSupabase ? 'supabase' : 'local');
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      if (useSupabase) {
+        // Load from Supabase
+        const [employeesData, equipmentData, materialsData, sitesData] = await Promise.all([
+          SupabaseDataService.getEmployees(),
+          SupabaseDataService.getEquipment(),
+          SupabaseDataService.getMaterials(),
+          SupabaseDataService.getSites()
+        ]);
+        
+        setEmployees(employeesData);
+        setEquipment(equipmentData);
+        setMaterials(materialsData);
+        setSites(sitesData);
+        setDataSource('supabase');
+      } else {
+        // Load from local storage
+        setEmployees(DataStorage.loadEmployees());
+        setEquipment(DataStorage.loadEquipment());
+        setMaterials(DataStorage.loadMaterials());
+        setSites(DataStorage.loadSites());
+        setDataSource('local');
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      showMessage('error', 'Failed to load data. Please try again.');
+      // Fallback to local storage
+      setEmployees(DataStorage.loadEmployees());
+      setEquipment(DataStorage.loadEquipment());
+      setMaterials(DataStorage.loadMaterials());
+      setSites(DataStorage.loadSites());
+      setDataSource('local');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshData = () => {
+    loadData();
   };
 
   const showMessage = (type: 'success' | 'error', text: string) => {
@@ -99,111 +156,465 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
   };
 
   // Employee handlers
-  const handleEmployeeSubmit = (employeeData: Omit<Employee, 'id' | 'createdAt' | 'qrCode'>) => {
-    // Generate QR code using the manual employee ID
-    const newEmployee: Employee = {
-      ...employeeData,
-      id: employeeData.id || generateEntityId('employee'),
-      qrCode: employeeData.id || generateEntityId('employee'), // Use the manual ID as QR code
-      createdAt: new Date().toISOString(),
-      lastUpdated: new Date().toISOString(),
-      accessLevel: 'basic'
-    };
-
-    const updatedEmployees = [...employees, newEmployee];
-    setEmployees(updatedEmployees);
-    DataStorage.saveEmployees(updatedEmployees);
+  const handleEmployeeSubmit = async (employeeData: Omit<Employee, 'id' | 'createdAt' | 'qrCode'>) => {
+    setIsLoading(true);
     
-    // Show QR code for the new employee
-    setNewEntity({type: 'employee', data: newEmployee});
-    setShowQRCode(true);
-    
-    showMessage('success', `Employee ${newEmployee.name} registered successfully!`);
+    try {
+      if (editingEmployee) {
+        // Update existing employee
+        const updatedEmployee: Employee = {
+          ...editingEmployee,
+          ...employeeData,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        if (useSupabase) {
+          // Update in Supabase
+          const result = await SupabaseRegistrationService.updateEmployee(updatedEmployee);
+          if (result.success && result.data) {
+            const updatedEmployees = employees.map(emp => 
+              emp.id === editingEmployee.id ? result.data! : emp
+            );
+            setEmployees(updatedEmployees);
+            // Also save locally for offline access
+            DataStorage.saveEmployees(updatedEmployees);
+            showMessage('success', `Employee ${result.data.name} updated successfully in Supabase!`);
+            setRefreshTrigger(prev => prev + 1); // Trigger refresh
+          } else {
+            throw new Error(result.error || 'Failed to update employee');
+          }
+        } else {
+          // Update locally
+          const updatedEmployees = employees.map(emp => 
+            emp.id === editingEmployee.id ? updatedEmployee : emp
+          );
+          setEmployees(updatedEmployees);
+          DataStorage.saveEmployees(updatedEmployees);
+          
+          // Queue sync operation for Supabase
+          offlineSyncManager.queueOperation({
+            type: 'update',
+            entityType: 'employee',
+            entityId: updatedEmployee.id,
+            data: updatedEmployee,
+            priority: 'high'
+          });
+          
+          showMessage('success', `Employee ${updatedEmployee.name} updated successfully!`);
+          setRefreshTrigger(prev => prev + 1); // Trigger refresh
+        }
+        
+        setEditingEmployee(null);
+      } else {
+        // Create new employee
+        if (useSupabase) {
+          // For Supabase, don't generate ID - let PostgreSQL generate UUID
+          const newEmployee: Employee = {
+            ...employeeData,
+            id: '', // Will be generated by PostgreSQL
+            qrCode: '', // Will be set after creation
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          };
+          
+          // Create in Supabase
+          const result = await SupabaseRegistrationService.createEmployee(newEmployee);
+          if (result.success && result.data) {
+            const updatedEmployees = [...employees, result.data];
+            setEmployees(updatedEmployees);
+            // Also save locally for offline access
+            DataStorage.saveEmployees(updatedEmployees);
+            
+            // Show QR code for the new employee
+            setNewEntity({type: 'employee', data: result.data});
+            setShowQRCode(true);
+            
+            showMessage('success', `Employee ${result.data.name} registered successfully in Supabase!`);
+            setRefreshTrigger(prev => prev + 1); // Trigger refresh
+          } else {
+            throw new Error(result.error || 'Failed to create employee');
+          }
+        } else {
+          // For offline mode, generate custom string ID
+          const employeeId = generateEntityId('employee');
+          const newEmployee: Employee = {
+            ...employeeData,
+            id: employeeId,
+            qrCode: employeeId,
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          };
+          
+          // Create locally
+          const updatedEmployees = [...employees, newEmployee];
+          setEmployees(updatedEmployees);
+          DataStorage.saveEmployees(updatedEmployees);
+          
+          // Queue sync operation for Supabase
+          offlineSyncManager.queueOperation({
+            type: 'create',
+            entityType: 'employee',
+            entityId: newEmployee.id,
+            data: newEmployee,
+            priority: 'high'
+          });
+          
+          // Show QR code for the new employee
+          setNewEntity({type: 'employee', data: newEmployee});
+          setShowQRCode(true);
+          
+          showMessage('success', `Employee ${newEmployee.name} registered successfully!`);
+          setRefreshTrigger(prev => prev + 1); // Trigger refresh
+        }
+      }
+    } catch (error) {
+      console.error('Error saving employee:', error);
+      showMessage('error', `Failed to save employee: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEmployeeEdit = (employee: Employee) => {
     setEditingEmployee(employee);
-    setFormData({
-      ...employee,
-      customType: '',
-      type: employee.type || ''
-    });
     setActiveView('form');
   };
 
-  const handleEmployeeDelete = (id: string) => {
+  const handleEmployeeDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this employee?')) {
-      const updatedEmployees = employees.filter(emp => emp.id !== id);
-      setEmployees(updatedEmployees);
-      DataStorage.saveEmployees(updatedEmployees);
-      showMessage('success', 'Employee deleted successfully!');
+      setIsLoading(true);
+      
+      try {
+        const employeeToDelete = employees.find(emp => emp.id === id);
+        
+        if (useSupabase) {
+          // Delete from Supabase
+          const result = await SupabaseRegistrationService.deleteEmployee(id);
+          if (result.success) {
+            const updatedEmployees = employees.filter(emp => emp.id !== id);
+            setEmployees(updatedEmployees);
+            // Also update local storage
+            DataStorage.saveEmployees(updatedEmployees);
+            showMessage('success', 'Employee deleted successfully from Supabase!');
+          } else {
+            throw new Error(result.error || 'Failed to delete employee');
+          }
+        } else {
+          // Delete locally
+          const updatedEmployees = employees.filter(emp => emp.id !== id);
+          setEmployees(updatedEmployees);
+          DataStorage.saveEmployees(updatedEmployees);
+          
+          // Queue sync operation for Supabase
+          if (employeeToDelete) {
+            offlineSyncManager.queueOperation({
+              type: 'delete',
+              entityType: 'employee',
+              entityId: id,
+              data: employeeToDelete,
+              priority: 'high'
+            });
+          }
+          
+          showMessage('success', 'Employee deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+        showMessage('error', `Failed to delete employee: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   // Equipment handlers
-  const handleEquipmentSubmit = (equipmentData: Omit<Equipment, 'id' | 'createdAt' | 'qrCode'>) => {
-    // Generate ID if not provided
-    const equipmentId = equipmentData.id || DataStorage.generateEquipmentId();
+  const handleEquipmentSubmit = async (equipmentData: Omit<Equipment, 'id' | 'createdAt' | 'qrCode'>) => {
+    setIsLoading(true);
     
-    const newEquipment: Equipment = {
-      ...equipmentData,
-      id: equipmentId,
-      qrCode: equipmentId,
-      createdAt: new Date().toISOString(),
-      lastUpdated: new Date().toISOString()
-    };
-
-    const updatedEquipment = [...equipment, newEquipment];
-    setEquipment(updatedEquipment);
-    DataStorage.saveEquipment(updatedEquipment);
-    
-    // Show QR code for the new equipment
-    setNewEntity({type: 'equipment', data: newEquipment});
-    setShowQRCode(true);
-    
-    showMessage('success', `Equipment ${newEquipment.name} registered successfully!`);
+    try {
+      if (editingEquipment) {
+        // Update existing equipment
+        const updatedEquipment: Equipment = {
+          ...editingEquipment,
+          ...equipmentData,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        if (useSupabase) {
+          // Update in Supabase
+          const result = await SupabaseRegistrationService.updateEquipment(updatedEquipment);
+          if (result.success && result.data) {
+            const updatedEquipmentList = equipment.map(eq => 
+              eq.id === editingEquipment.id ? result.data! : eq
+            );
+            setEquipment(updatedEquipmentList);
+            // Also save locally for offline access
+            DataStorage.saveEquipment(updatedEquipmentList);
+            showMessage('success', `Equipment ${result.data.name} updated successfully in Supabase!`);
+            setRefreshTrigger(prev => prev + 1); // Trigger refresh
+          } else {
+            throw new Error(result.error || 'Failed to update equipment');
+          }
+        } else {
+          // Update locally
+          const updatedEquipmentList = equipment.map(eq => 
+            eq.id === editingEquipment.id ? updatedEquipment : eq
+          );
+          setEquipment(updatedEquipmentList);
+          DataStorage.saveEquipment(updatedEquipmentList);
+          
+          // Queue sync operation for Supabase
+          offlineSyncManager.queueOperation({
+            type: 'update',
+            entityType: 'equipment',
+            entityId: updatedEquipment.id,
+            data: updatedEquipment,
+            priority: 'high'
+          });
+          
+          showMessage('success', `Equipment ${updatedEquipment.name} updated successfully!`);
+          setRefreshTrigger(prev => prev + 1); // Trigger refresh
+        }
+        
+        setEditingEquipment(null);
+      } else {
+        // Create new equipment
+        if (useSupabase) {
+          // For Supabase, don't generate ID - let PostgreSQL generate UUID
+          const newEquipment: Equipment = {
+            ...equipmentData,
+            id: '', // Will be generated by PostgreSQL
+            qrCode: '', // Will be set after creation
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          };
+          
+          // Create in Supabase
+          const result = await SupabaseRegistrationService.createEquipment(newEquipment);
+          if (result.success && result.data) {
+            const updatedEquipment = [...equipment, result.data];
+            setEquipment(updatedEquipment);
+            // Also save locally for offline access
+            DataStorage.saveEquipment(updatedEquipment);
+            
+            // Show QR code for the new equipment
+            setNewEntity({type: 'equipment', data: result.data});
+            setShowQRCode(true);
+            
+            showMessage('success', `Equipment ${result.data.name} registered successfully in Supabase!`);
+            setRefreshTrigger(prev => prev + 1); // Trigger refresh
+          } else {
+            throw new Error(result.error || 'Failed to create equipment');
+          }
+        } else {
+          // For offline mode, generate custom string ID
+          const equipmentId = DataStorage.generateEquipmentId();
+          const newEquipment: Equipment = {
+            ...equipmentData,
+            id: equipmentId,
+            qrCode: equipmentId,
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          };
+          
+          // Create locally
+          const updatedEquipment = [...equipment, newEquipment];
+          setEquipment(updatedEquipment);
+          DataStorage.saveEquipment(updatedEquipment);
+          
+          // Queue sync operation for Supabase
+          offlineSyncManager.queueOperation({
+            type: 'create',
+            entityType: 'equipment',
+            entityId: newEquipment.id,
+            data: newEquipment,
+            priority: 'high'
+          });
+          
+          // Show QR code for the new equipment
+          setNewEntity({type: 'equipment', data: newEquipment});
+          setShowQRCode(true);
+          
+          showMessage('success', `Equipment ${newEquipment.name} registered successfully!`);
+          setRefreshTrigger(prev => prev + 1); // Trigger refresh
+        }
+      }
+    } catch (error) {
+      console.error('Error saving equipment:', error);
+      showMessage('error', `Failed to save equipment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEquipmentEdit = (eq: Equipment) => {
     setEditingEquipment(eq);
-    setFormData({
-      ...eq,
-      customType: '',
-      type: eq.type || ''
-    });
     setActiveView('form');
   };
 
-  const handleEquipmentDelete = (id: string) => {
+  const handleEquipmentDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this equipment?')) {
-      const updatedEquipment = equipment.filter(eq => eq.id !== id);
-      setEquipment(updatedEquipment);
-      DataStorage.saveEquipment(updatedEquipment);
-      showMessage('success', 'Equipment deleted successfully!');
+      setIsLoading(true);
+      try {
+        const equipmentToDelete = equipment.find(eq => eq.id === id);
+        
+        if (useSupabase) {
+          // Delete from Supabase first
+          const result = await SupabaseRegistrationService.deleteEquipment(id);
+          if (result.success) {
+            // Update local state and storage
+            const updatedEquipment = equipment.filter(eq => eq.id !== id);
+            setEquipment(updatedEquipment);
+            DataStorage.saveEquipment(updatedEquipment);
+            showMessage('success', 'Equipment deleted successfully!');
+          } else {
+            showMessage('error', `Failed to delete equipment: ${result.error}`);
+          }
+        } else {
+          // Local deletion and queue for sync
+          const updatedEquipment = equipment.filter(eq => eq.id !== id);
+          setEquipment(updatedEquipment);
+          DataStorage.saveEquipment(updatedEquipment);
+          
+          // Queue sync operation for Supabase
+          if (equipmentToDelete) {
+            offlineSyncManager.queueOperation({
+              type: 'delete',
+              entityType: 'equipment',
+              entityId: id,
+              data: equipmentToDelete,
+              priority: 'high'
+            });
+          }
+          
+          showMessage('success', 'Equipment deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Error deleting equipment:', error);
+        showMessage('error', `Failed to delete equipment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   // Material handlers
-  const handleMaterialSubmit = (materialData: Omit<Material, 'id' | 'createdAt' | 'qrCode'>) => {
-    const materialId = materialData.id || DataStorage.generateMaterialId();
-    
-    const newMaterial: Material = {
-      ...materialData,
-      id: materialId,
-      qrCode: materialId,
-      createdAt: new Date().toISOString(),
-      lastUpdated: new Date().toISOString()
-    };
+  const handleMaterialSubmit = async (materialData: Omit<Material, 'id' | 'createdAt' | 'qrCode'>) => {
+    setIsLoading(true);
+    try {
+      if (editingMaterial) {
+        // Update existing material
+        const updatedMaterial: Material = {
+          ...editingMaterial,
+          ...materialData,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        if (useSupabase) {
+          // Update in Supabase first
+          const result = await SupabaseRegistrationService.updateMaterial(updatedMaterial);
+          if (result.success && result.data) {
+            // Update local state and storage
+            const updatedMaterials = materials.map(mat => 
+              mat.id === editingMaterial.id ? result.data! : mat
+            );
+            setMaterials(updatedMaterials);
+            DataStorage.saveMaterials(updatedMaterials);
+            showMessage('success', `Material ${result.data.name} updated successfully!`);
+            setRefreshTrigger(prev => prev + 1); // Trigger refresh
+            setEditingMaterial(null);
+          } else {
+            showMessage('error', `Failed to update material: ${result.error}`);
+          }
+        } else {
+          // Local update and queue for sync
+          const updatedMaterials = materials.map(mat => 
+            mat.id === editingMaterial.id ? updatedMaterial : mat
+          );
+          setMaterials(updatedMaterials);
+          DataStorage.saveMaterials(updatedMaterials);
+          
+          // Queue sync operation for Supabase
+          offlineSyncManager.queueOperation({
+            type: 'update',
+            entityType: 'material',
+            entityId: updatedMaterial.id,
+            data: updatedMaterial,
+            priority: 'high'
+          });
+          
+          showMessage('success', `Material ${updatedMaterial.name} updated successfully!`);
+          setRefreshTrigger(prev => prev + 1); // Trigger refresh
+          setEditingMaterial(null);
+        }
+      } else {
+        // Create new material
+        if (useSupabase) {
+          // For Supabase, don't generate ID - let PostgreSQL generate UUID
+          const newMaterial: Material = {
+            ...materialData,
+            id: '', // Will be generated by PostgreSQL
+            qrCode: '', // Will be set after creation
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          };
 
-    const updatedMaterials = [...materials, newMaterial];
-    setMaterials(updatedMaterials);
-    DataStorage.saveMaterials(updatedMaterials);
-    
-    // Show QR code for the new material
-    setNewEntity({type: 'material', data: newMaterial});
-    setShowQRCode(true);
-    
-    showMessage('success', `Material ${newMaterial.name} registered successfully!`);
+          // Create in Supabase first
+          const result = await SupabaseRegistrationService.createMaterial(newMaterial);
+          if (result.success && result.data) {
+            // Update local state and storage
+            const updatedMaterials = [...materials, result.data];
+            setMaterials(updatedMaterials);
+            DataStorage.saveMaterials(updatedMaterials);
+            
+            // Show QR code for the new material
+            setNewEntity({type: 'material', data: result.data});
+            setShowQRCode(true);
+            
+            showMessage('success', `Material ${result.data.name} registered successfully!`);
+            setRefreshTrigger(prev => prev + 1); // Trigger refresh
+          } else {
+            showMessage('error', `Failed to create material: ${result.error}`);
+          }
+        } else {
+          // For offline mode, generate custom string ID
+          const materialId = DataStorage.generateMaterialId();
+          const newMaterial: Material = {
+            ...materialData,
+            id: materialId,
+            qrCode: materialId,
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          };
+          
+          // Local creation and queue for sync
+          const updatedMaterials = [...materials, newMaterial];
+          setMaterials(updatedMaterials);
+          DataStorage.saveMaterials(updatedMaterials);
+          
+          // Queue sync operation for Supabase
+          offlineSyncManager.queueOperation({
+            type: 'create',
+            entityType: 'material',
+            entityId: newMaterial.id,
+            data: newMaterial,
+            priority: 'high'
+          });
+          
+          // Show QR code for the new material
+          setNewEntity({type: 'material', data: newMaterial});
+          setShowQRCode(true);
+          
+          showMessage('success', `Material ${newMaterial.name} registered successfully!`);
+          setRefreshTrigger(prev => prev + 1); // Trigger refresh
+        }
+      }
+    } catch (error) {
+      console.error('Error saving material:', error);
+      showMessage('error', `Failed to save material: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleMaterialEdit = (material: Material) => {
@@ -211,34 +622,164 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
     setActiveView('form');
   };
 
-  const handleMaterialDelete = (id: string) => {
+  const handleMaterialDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this material?')) {
-      const updatedMaterials = materials.filter(mat => mat.id !== id);
-      setMaterials(updatedMaterials);
-      DataStorage.saveMaterials(updatedMaterials);
-      showMessage('success', 'Material deleted successfully!');
+      setIsLoading(true);
+      try {
+        const materialToDelete = materials.find(mat => mat.id === id);
+        
+        if (useSupabase) {
+          // Delete from Supabase first
+          const result = await SupabaseRegistrationService.deleteMaterial(id);
+          if (result.success) {
+            // Update local state and storage
+            const updatedMaterials = materials.filter(mat => mat.id !== id);
+            setMaterials(updatedMaterials);
+            DataStorage.saveMaterials(updatedMaterials);
+            showMessage('success', 'Material deleted successfully!');
+          } else {
+            showMessage('error', `Failed to delete material: ${result.error}`);
+          }
+        } else {
+          // Local deletion and queue for sync
+          const updatedMaterials = materials.filter(mat => mat.id !== id);
+          setMaterials(updatedMaterials);
+          DataStorage.saveMaterials(updatedMaterials);
+          
+          // Queue sync operation for Supabase
+          if (materialToDelete) {
+            offlineSyncManager.queueOperation({
+              type: 'delete',
+              entityType: 'material',
+              entityId: id,
+              data: materialToDelete,
+              priority: 'high'
+            });
+          }
+          
+          showMessage('success', 'Material deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Error deleting material:', error);
+        showMessage('error', `Failed to delete material: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   // Site handlers
-  const handleSiteSubmit = (siteData: Omit<Site, 'id' | 'lastUpdated'>) => {
-    const siteId = siteData.id || DataStorage.generateSiteId();
-    
-    const newSite: Site = {
-      ...siteData,
-      id: siteId,
-      lastUpdated: new Date().toISOString()
-    };
-
-    const updatedSites = [...sites, newSite];
-    setSites(updatedSites);
-    DataStorage.saveSites(updatedSites);
-    
-    // Show QR code for the new site
-    setNewEntity({type: 'site', data: newSite});
-    setShowQRCode(true);
-    
-    showMessage('success', `Site ${newSite.name} registered successfully!`);
+  const handleSiteSubmit = async (siteData: Omit<Site, 'id' | 'lastUpdated'>) => {
+    setIsLoading(true);
+    try {
+      if (editingSite) {
+        // Update existing site
+        const updatedSite: Site = {
+          ...editingSite,
+          ...siteData,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        if (useSupabase) {
+          // Update in Supabase first
+          const result = await SupabaseRegistrationService.updateSite(updatedSite);
+          if (result.success && result.data) {
+            // Update local state and storage
+            const updatedSites = sites.map(site => 
+              site.id === editingSite.id ? result.data! : site
+            );
+            setSites(updatedSites);
+            DataStorage.saveSites(updatedSites);
+            showMessage('success', `Site ${result.data.name} updated successfully!`);
+            setRefreshTrigger(prev => prev + 1); // Trigger refresh
+            setEditingSite(null);
+          } else {
+            showMessage('error', `Failed to update site: ${result.error}`);
+          }
+        } else {
+          // Local update and queue for sync
+          const updatedSites = sites.map(site => 
+            site.id === editingSite.id ? updatedSite : site
+          );
+          setSites(updatedSites);
+          DataStorage.saveSites(updatedSites);
+          
+          // Queue sync operation for Supabase
+          offlineSyncManager.queueOperation({
+            type: 'update',
+            entityType: 'site',
+            entityId: updatedSite.id,
+            data: updatedSite,
+            priority: 'high'
+          });
+          
+          showMessage('success', `Site ${updatedSite.name} updated successfully!`);
+          setRefreshTrigger(prev => prev + 1); // Trigger refresh
+          setEditingSite(null);
+        }
+      } else {
+        // Create new site
+        if (useSupabase) {
+          // For Supabase, let PostgreSQL generate UUID - don't include ID
+          const newSiteData = {
+            ...siteData,
+            lastUpdated: new Date().toISOString()
+          };
+          
+          // Create in Supabase first
+          const result = await SupabaseRegistrationService.createSite(newSiteData as Site);
+          if (result.success && result.data) {
+            // Update local state and storage
+            const updatedSites = [...sites, result.data];
+            setSites(updatedSites);
+            DataStorage.saveSites(updatedSites);
+            
+            // Show QR code for the new site
+            setNewEntity({type: 'site', data: result.data});
+            setShowQRCode(true);
+            
+            showMessage('success', `Site ${result.data.name} registered successfully!`);
+            setRefreshTrigger(prev => prev + 1); // Trigger refresh
+          } else {
+            showMessage('error', `Failed to create site: ${result.error}`);
+          }
+        } else {
+          // For offline mode, generate custom string ID
+          const siteId = DataStorage.generateSiteId();
+          const newSite: Site = {
+            ...siteData,
+            id: siteId,
+            lastUpdated: new Date().toISOString()
+          };
+          
+          // Local creation and queue for sync
+          const updatedSites = [...sites, newSite];
+          setSites(updatedSites);
+          DataStorage.saveSites(updatedSites);
+          
+          // Queue sync operation for Supabase
+          offlineSyncManager.queueOperation({
+            type: 'create',
+            entityType: 'site',
+            entityId: newSite.id,
+            data: newSite,
+            priority: 'high'
+          });
+          
+          // Show QR code for the new site
+          setNewEntity({type: 'site', data: newSite});
+          setShowQRCode(true);
+          
+          showMessage('success', `Site ${newSite.name} registered successfully!`);
+          setRefreshTrigger(prev => prev + 1); // Trigger refresh
+        }
+      }
+    } catch (error) {
+      console.error('Error saving site:', error);
+      showMessage('error', `Failed to save site: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSiteEdit = (site: Site) => {
@@ -246,12 +787,49 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
     setActiveView('form');
   };
 
-  const handleSiteDelete = (id: string) => {
+  const handleSiteDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this site?')) {
-      const updatedSites = sites.filter(site => site.id !== id);
-      setSites(updatedSites);
-      DataStorage.saveSites(updatedSites);
-      showMessage('success', 'Site deleted successfully!');
+      setIsLoading(true);
+      try {
+        const siteToDelete = sites.find(site => site.id === id);
+        
+        if (useSupabase) {
+          // Delete from Supabase first
+          const result = await SupabaseRegistrationService.deleteSite(id);
+          if (result.success) {
+            // Update local state and storage
+            const updatedSites = sites.filter(site => site.id !== id);
+            setSites(updatedSites);
+            DataStorage.saveSites(updatedSites);
+            showMessage('success', 'Site deleted successfully!');
+          } else {
+            showMessage('error', `Failed to delete site: ${result.error}`);
+          }
+        } else {
+          // Local deletion and queue for sync
+          const updatedSites = sites.filter(site => site.id !== id);
+          setSites(updatedSites);
+          DataStorage.saveSites(updatedSites);
+          
+          // Queue sync operation for Supabase
+          if (siteToDelete) {
+            offlineSyncManager.queueOperation({
+              type: 'delete',
+              entityType: 'site',
+              entityId: id,
+              data: siteToDelete,
+              priority: 'high'
+            });
+          }
+          
+          showMessage('success', 'Site deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Error deleting site:', error);
+        showMessage('error', `Failed to delete site: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -405,6 +983,56 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             <AlertCircle className="w-5 h-5" />
           )}
           <span>{message.text}</span>
+        </div>
+      )}
+
+      {/* Data Source Indicator */}
+      {!isLoading && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                {useSupabase ? (
+                  <>
+                    <Database className="w-5 h-5 text-blue-600" />
+                    <span className="text-sm font-medium text-gray-700">Data Source: Supabase Database</span>
+                    <div className="flex items-center space-x-1">
+                      <Wifi className="w-4 h-4 text-green-500" />
+                      <span className="text-xs text-green-600">Online</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Database className="w-5 h-5 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Data Source: Local Storage</span>
+                    <div className="flex items-center space-x-1">
+                      <Wifi className="w-4 h-4 text-gray-400" />
+                      <span className="text-xs text-gray-500">Offline</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={refreshData}
+                disabled={isLoading}
+                className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+              <a
+                href="/enable-supabase.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
+              >
+                <Database className="w-4 h-4" />
+                <span>Switch Mode</span>
+              </a>
+            </div>
+          </div>
         </div>
       )}
 
@@ -623,6 +1251,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                     onDelete={handleEmployeeDelete}
                     onImport={(e) => handleImport(e, 'employees')}
                     onExport={() => exportEmployeesToExcel(employees)}
+                    refreshTrigger={refreshTrigger}
                   />
                 )}
                 {activeTab === 'equipment' && (
@@ -632,6 +1261,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                     onDelete={handleEquipmentDelete}
                     onImport={(e) => handleImport(e, 'equipment')}
                     onExport={() => exportEquipmentToExcel(equipment)}
+                    refreshTrigger={refreshTrigger}
                   />
                 )}
                 {activeTab === 'materials' && (
@@ -641,6 +1271,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                     onDelete={handleMaterialDelete}
                     onImport={(e) => handleImport(e, 'materials')}
                     onExport={() => exportMaterialsToExcel(materials)}
+                    refreshTrigger={refreshTrigger}
                   />
                 )}
                 {activeTab === 'sites' && (
@@ -650,6 +1281,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                     onDelete={handleSiteDelete}
                     onImport={(e) => handleImport(e, 'sites')}
                     onExport={() => exportSitesToExcel(sites)}
+                    refreshTrigger={refreshTrigger}
                   />
                 )}
               </>

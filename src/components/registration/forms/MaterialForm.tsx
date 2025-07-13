@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package } from 'lucide-react';
 import { Material } from '../../../types';
 import { materialCategories } from '../../../data/materialTypes';
@@ -18,8 +18,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     quantity: 0,
     site: '',
     use: '',
-    status: 'available' as const,
-    accessLevel: 'basic' as const
+    status: 'available' as 'available' | 'low-stock' | 'out-of-stock'
   });
   const [showCustomType, setShowCustomType] = useState(false);
 
@@ -67,7 +66,8 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     
     const materialData = {
       ...formData,
-      type: showCustomType ? formData.customType : formData.type
+      type: showCustomType ? formData.customType : formData.type,
+      lastUpdated: new Date().toISOString()
     };
     
     // Remove customType from the final data

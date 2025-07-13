@@ -70,6 +70,52 @@ export interface TimeLog {
   quantity?: number;
 }
 
+// New separate log interfaces
+export interface EmployeeLog {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  site: string;
+  action: 'clock-in' | 'clock-out';
+  date: string;
+  time: string;
+  timestamp: string;
+  notes?: string;
+  location?: [number, number];
+}
+
+export interface EquipmentLog {
+  id: string;
+  equipmentId: string;
+  equipmentName: string;
+  equipmentType: string;
+  action: 'start-use' | 'stop-use';
+  date: string;
+  time: string;
+  timestamp: string;
+  site: string;
+  status: string;
+  notes?: string;
+  location?: [number, number];
+}
+
+export interface MaterialLog {
+  id: string;
+  materialId: string;
+  materialName: string;
+  materialType: string;
+  action: 'material-in' | 'material-out';
+  quantity: number;
+  date: string;
+  time: string;
+  timestamp: string;
+  site: string;
+  status: string;
+  notes?: string;
+  location?: [number, number];
+}
+
 export interface Province {
   name: string;
   coordinates: [number, number];

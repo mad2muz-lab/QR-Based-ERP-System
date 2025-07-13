@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wrench } from 'lucide-react';
 import { Equipment } from '../../../types';
 import { equipmentCategories } from '../../../data/materialTypes';
@@ -19,7 +19,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     model: '',
     serialNumber: '',
     site: '',
-    status: 'available' as const,
+    status: 'available' as 'available' | 'in-use' | 'maintenance' | 'down',
   });
   const [showCustomType, setShowCustomType] = useState(false);
   const [idError, setIdError] = useState('');
@@ -79,7 +79,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     const equipmentData = {
       ...formData,
       id: formData.id.trim() || undefined, // Use provided ID or let system generate
-      type: showCustomType ? formData.customType : formData.type
+      type: showCustomType ? formData.customType : formData.type,
+      lastUpdated: new Date().toISOString()
     };
     
     // Remove customType from the final data

@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { Employee, Equipment, Material, Site, TimeLog, User } from '../types';
+import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog } from '../types';
 import { CSVAppendManager } from './csvAppendUtils';
 
 interface Department {
@@ -28,6 +28,9 @@ export class DataStorage {
     materials: 'qr_system_materials',
     sites: 'qr_system_sites',
     timeLogs: 'qr_system_time_logs',
+    employeeLogs: 'qr_system_employee_logs',
+    equipmentLogs: 'qr_system_equipment_logs',
+    materialLogs: 'qr_system_material_logs',
     users: 'qr_system_users',
     departments: 'qr_system_departments',
     transactionLog: 'qr_system_transaction_log',
@@ -338,7 +341,7 @@ export class DataStorage {
     this.downloadCSV(sites, 'sites.csv');
   }
 
-  // Time Logs
+  // Time Logs (Legacy - for backward compatibility)
   static saveTimeLogs(timeLogs: TimeLog[]): void {
     this.saveToCSV(this.STORAGE_KEYS.timeLogs, timeLogs);
   }
@@ -349,6 +352,54 @@ export class DataStorage {
 
   static downloadTimeLogsCSV(timeLogs: TimeLog[]): void {
     this.downloadCSV(timeLogs, 'time_logs.csv');
+  }
+
+  // Employee Logs
+  static saveEmployeeLogs(employeeLogs: EmployeeLog[]): void {
+    this.saveToCSV(this.STORAGE_KEYS.employeeLogs, employeeLogs);
+  }
+
+  static loadEmployeeLogs(): EmployeeLog[] {
+    return this.loadFromCSV<EmployeeLog>(this.STORAGE_KEYS.employeeLogs);
+  }
+
+  static downloadEmployeeLogsCSV(employeeLogs: EmployeeLog[]): void {
+    this.downloadCSV(employeeLogs, 'employee_logs.csv');
+  }
+
+  // Equipment Logs
+  static saveEquipmentLogs(equipmentLogs: EquipmentLog[]): void {
+    this.saveToCSV(this.STORAGE_KEYS.equipmentLogs, equipmentLogs);
+  }
+
+  static loadEquipmentLogs(): EquipmentLog[] {
+    return this.loadFromCSV<EquipmentLog>(this.STORAGE_KEYS.equipmentLogs);
+  }
+
+  static downloadEquipmentLogsCSV(equipmentLogs: EquipmentLog[]): void {
+    this.downloadCSV(equipmentLogs, 'equipment_logs.csv');
+  }
+
+  // Material Logs
+  static saveMaterialLogs(materialLogs: MaterialLog[]): void {
+    this.saveToCSV(this.STORAGE_KEYS.materialLogs, materialLogs);
+  }
+
+  static loadMaterialLogs(): MaterialLog[] {
+    return this.loadFromCSV<MaterialLog>(this.STORAGE_KEYS.materialLogs);
+  }
+
+  static downloadMaterialLogsCSV(materialLogs: MaterialLog[]): void {
+    this.downloadCSV(materialLogs, 'material_logs.csv');
+  }
+
+  // Combined Logs Helper (for reports that need all logs)
+  static loadAllLogs(): { employeeLogs: EmployeeLog[]; equipmentLogs: EquipmentLog[]; materialLogs: MaterialLog[] } {
+    return {
+      employeeLogs: this.loadEmployeeLogs(),
+      equipmentLogs: this.loadEquipmentLogs(),
+      materialLogs: this.loadMaterialLogs()
+    };
   }
 
   // Users

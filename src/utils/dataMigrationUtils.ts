@@ -1,4 +1,86 @@
 import { DataStorage } from './dataStorage';
+import { supabase } from './supabaseClient';
+
+// Function to create separate log tables
+export const createSeparateLogTables = async (): Promise<{
+  success: boolean;
+  message: string;
+  details?: string[];
+}> => {
+  try {
+    if (!supabase) {
+      return {
+        success: false,
+        message: 'Supabase not configured. Please connect to Supabase first.'
+      };
+    }
+
+    const results: string[] = [];
+
+    // Test if employee_logs table exists
+    const { data: empExists, error: empCheckError } = await supabase
+      .from('employee_logs')
+      .select('count', { count: 'exact', head: true });
+    
+    if (empCheckError && empCheckError.code === '42P01') {
+      // Table doesn't exist, we need to create it
+      results.push('❌ employee_logs table does not exist. Please run the migration manually in Supabase SQL editor.');
+    } else if (empCheckError) {
+      results.push(`❌ Error checking employee_logs table: ${empCheckError.message}`);
+    } else {
+      results.push('✓ employee_logs table already exists');
+    }
+
+    // Test if equipment_logs table exists
+    const { data: eqExists, error: eqCheckError } = await supabase
+      .from('equipment_logs')
+      .select('count', { count: 'exact', head: true });
+    
+    if (eqCheckError && eqCheckError.code === '42P01') {
+      // Table doesn't exist
+      results.push('❌ equipment_logs table does not exist. Please run the migration manually in Supabase SQL editor.');
+    } else if (eqCheckError) {
+      results.push(`❌ Error checking equipment_logs table: ${eqCheckError.message}`);
+    } else {
+      results.push('✓ equipment_logs table already exists');
+    }
+
+    // Test if material_logs table exists
+    const { data: matExists, error: matCheckError } = await supabase
+      .from('material_logs')
+      .select('count', { count: 'exact', head: true });
+    
+    if (matCheckError && matCheckError.code === '42P01') {
+      // Table doesn't exist
+      results.push('❌ material_logs table does not exist. Please run the migration manually in Supabase SQL editor.');
+    } else if (matCheckError) {
+      results.push(`❌ Error checking material_logs table: ${matCheckError.message}`);
+    } else {
+      results.push('✓ material_logs table already exists');
+    }
+
+    const hasErrors = results.some(result => result.includes('❌'));
+    
+    if (hasErrors) {
+      results.push('');
+      results.push('📋 To create the tables manually, run this SQL in your Supabase SQL editor:');
+      results.push('');
+      results.push('-- Copy and paste the content from: supabase/migrations/20250114000000_separate_log_tables.sql');
+    }
+    
+    return {
+      success: !hasErrors,
+      message: hasErrors ? 'Some tables failed to create' : 'All separate log tables created successfully',
+      details: results
+    };
+
+  } catch (error: any) {
+    return {
+      success: false,
+      message: `Error creating separate log tables: ${error.message}`
+    };
+  }
+};
 
 export const migrateDataToSupabase = async (): Promise<{
   success: boolean;
