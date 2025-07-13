@@ -32,6 +32,8 @@ function App() {
   // Initialize offline sync
   const { syncStatus } = useOfflineSync();
 
+  // In your useEffect for initialization, change to:
+  
   useEffect(() => {
     // Only initialize once
     if (!isInitialized) {
@@ -48,21 +50,25 @@ function App() {
       // Initialize default admin user
       DataStorage.initializeDefaultAdmin();
       
-      // Check if user is already authenticated
-      const authenticated = AuthManager.isAuthenticated();
-      const user = AuthManager.getCurrentUser();
-      
-      if (authenticated && user) {
-        setIsAuthenticated(true);
-        setCurrentUser(user);
+      // Check if user is already authenticated (async)
+      const checkAuth = async () => {
+        const authenticated = await AuthManager.isAuthenticated();
+        const user = await AuthManager.getCurrentUser();
         
-        // Show password change modal if first login
-        if (user.isFirstLogin) {
-          setShowPasswordModal(true);
+        if (authenticated && user) {
+          setIsAuthenticated(true);
+          setCurrentUser(user);
+          
+          // Show password change modal if first login
+          if (user.isFirstLogin) {
+            setShowPasswordModal(true);
+          }
         }
-      }
+        
+        setIsInitialized(true);
+      };
       
-      setIsInitialized(true);
+      checkAuth();
     }
   }, [isInitialized]);
 
@@ -94,7 +100,7 @@ function App() {
 
   const renderCurrentView = () => {
     // Check permissions for each view
-    const canAccessAdmin = currentUser?.role === 'admin' || currentUser?.role === 'developer';
+    const canAccessAdmin = AuthManager.hasPermission('admin');
     const canAccessRegistration = AuthManager.hasPermission('manager'); // Level 2 or higher
     const canAccessMap = AuthManager.hasPermission('operator'); // Level 3 or higher
     
@@ -117,7 +123,7 @@ function App() {
           <UnauthorizedAccess requiredRole="admin" />;
       case 'admin':
         return canAccessAdmin ? 
-          <AdminPanel /> : 
+          <AdminPanel currentUser={currentUser} /> : 
           <UnauthorizedAccess requiredRole="admin" />;
       default:
         return <Dashboard />;

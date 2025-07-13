@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, User, Eye, EyeOff, AlertCircle, Database } from 'lucide-react';
 import { AuthManager } from '../../utils/authUtils';
+import { SupabaseAuthManager } from '../../utils/supabaseAuthUtils';
 
 interface LoginFormProps {
   onLogin: (user: any) => void;
@@ -12,6 +13,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [useSupabase, setUseSupabase] = useState(AuthManager.useSupabase());
+  const [supabaseAvailable, setSupabaseAvailable] = useState(false);
+
+  useEffect(() => {
+    // Check if Supabase is configured
+    setSupabaseAvailable(SupabaseAuthManager.isSupabaseConfigured());
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,15 +27,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      const result = AuthManager.login(username, password);
+      // Update the useSupabase setting
+      AuthManager.setUseSupabase(useSupabase);
+      
+      const result = await AuthManager.login(username, password);
       
       if (result.success && result.user) {
         onLogin(result.user);
       } else {
         setError(result.error || 'Login failed');
       }
-    } catch (error) {
-      setError('An unexpected error occurred');
+    } catch (error: any) {
+      setError(error.message || 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -89,6 +100,22 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             </div>
           </div>
 
+          {supabaseAvailable && (
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="useSupabase"
+                checked={useSupabase}
+                onChange={(e) => setUseSupabase(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="useSupabase" className="text-sm text-gray-700 flex items-center">
+                <Database className="w-4 h-4 mr-1" />
+                Use Supabase authentication
+              </label>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={isLoading}
@@ -97,12 +124,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2">Default Admin Access:</h3>
-          <p className="text-sm text-gray-600">Username: <code className="bg-gray-200 px-1 rounded">admin</code></p>
-          <p className="text-sm text-gray-600">Password: <code className="bg-gray-200 px-1 rounded">admin123</code></p>
-        </div>
       </div>
     </div>
   );

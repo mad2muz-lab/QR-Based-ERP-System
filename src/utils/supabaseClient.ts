@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '../types/supabase';
 
-// These environment variables will be set after connecting to Supabase
-// For now, we'll use empty strings as placeholders
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -14,9 +13,8 @@ if (!isSupabaseConfigured) {
 
 // Create a single supabase client for the entire app
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
   : null;
-
 
 // Function to test connection
 export const testConnection = async () => {
@@ -24,20 +22,17 @@ export const testConnection = async () => {
     if (!supabase) {
       return {
         success: false,
-        message: 'Supabase not configured. Please connect to Supabase first.',
+        message: 'Supabase not configured. Please check your .env file.',
         error: 'Missing Supabase configuration'
       };
     }
     
     // Test basic connection by checking if we can reach the database
-    // This uses a simple query that should work with anonymous access
-    const { data, error, status } = await supabase
-      .from('departments')
-      .select('count', { count: 'exact', head: true });
+    const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
     
     if (error) {
       // If we get a permission error, the connection is working but RLS is blocking
-      if (error.code === '42501' || status === 401) {
+      if (error.code === 'PGRST301' || error.code === '42501') {
         return {
           success: true,
           message: 'Connected to Supabase (RLS policies active)',
@@ -62,39 +57,69 @@ export const testConnection = async () => {
   }
 };
 
+// Function to test authentication
+export const testAuthSetup = async () => {
+  try {
+    if (!supabase) {
+      return {
+        success: false,
+        message: 'Supabase not configured. Please check your .env file.',
+        error: 'Missing Supabase configuration'
+      };
+    }
+    
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error) throw error;
+    
+    const user = data?.session?.user;
+    
+    return {
+      success: true,
+      message: user ? 'User is authenticated' : 'No authenticated user (anonymous access)',
+      data: { 
+        authenticated: !!user,
+        user: user ? { id: user.id, email: user.email } : null
+      }
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message || 'Failed to test authentication',
+      error
+    };
+  }
+};
+
 // Function to test data insertion
 export const testDataInsertion = async () => {
   try {
     if (!supabase) {
       return {
         success: false,
-        message: 'Supabase not configured. Please connect to Supabase first.',
+        message: 'Supabase not configured. Please check your .env file.',
         error: 'Missing Supabase configuration'
       };
     }
     
-    // Check if user is already authenticated
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    // Check if user is authenticated first
+    const { data: authData } = await supabase.auth.getSession();
+    if (!authData.session) {
       return {
         success: false,
         message: 'Authentication required for data insertion. Please sign in first.',
-        error: 'No authenticated user found'
+        error: 'Not authenticated'
       };
     }
     
+    // Try to insert a test record
     const testData = {
-      name: `Test Department ${Date.now()}`,
-      description: 'This is a test department created to verify database connection',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      name: `Test Department ${new Date().toISOString()}`,
+      description: 'Test department created for connection testing',
+      created_at: new Date().toISOString()
     };
     
-    const { data, error } = await supabase
-      .from('departments')
-      .insert(testData)
-      .select();
+    const { data, error } = await supabase.from('departments').insert([testData]).select();
     
     if (error) throw error;
     
@@ -104,7 +129,7 @@ export const testDataInsertion = async () => {
       data
     };
   } catch (error: any) {
-    console.error('Supabase data insertion error:', error);
+    console.error('Data insertion error:', error);
     return {
       success: false,
       message: error.message || 'Failed to insert test data',
@@ -119,24 +144,21 @@ export const testDataRetrieval = async () => {
     if (!supabase) {
       return {
         success: false,
-        message: 'Supabase not configured. Please connect to Supabase first.',
+        message: 'Supabase not configured. Please check your .env file.',
         error: 'Missing Supabase configuration'
       };
     }
     
-    const { data, error } = await supabase
-      .from('departments')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5);
+    // Try to retrieve data
+    const { data, error } = await supabase.from('departments').select('*').limit(5);
     
     if (error) {
-      // If we get a permission error, provide helpful message
-      if (error.code === '42501') {
+      // If we get a permission error, it might be due to RLS
+      if (error.code === 'PGRST301' || error.code === '42501') {
         return {
           success: false,
-          message: 'Authentication required to retrieve data. Please sign in first.',
-          error: error.message
+          message: 'Unable to retrieve data due to permissions (RLS). Try authenticating first.',
+          error
         };
       }
       throw error;
@@ -144,72 +166,14 @@ export const testDataRetrieval = async () => {
     
     return {
       success: true,
-      message: 'Successfully retrieved data',
+      message: `Successfully retrieved ${data.length} records`,
       data
     };
   } catch (error: any) {
-    console.error('Supabase data retrieval error:', error);
+    console.error('Data retrieval error:', error);
     return {
       success: false,
       message: error.message || 'Failed to retrieve data',
-      error
-    };
-  }
-};
-// Function to test authentication setup
-export const testAuthSetup = async () => {
-  try {
-    if (!isSupabaseConfigured) {
-      return {
-        success: false,
-        message: 'Supabase not configured. Please connect to Supabase first.',
-        error: 'Missing Supabase configuration'
-      };
-    }
-    
-    if (!supabase) {
-      return {
-        success: false,
-        message: 'Supabase client not initialized. Please refresh the page and try again.',
-        error: 'Supabase client not initialized'
-      };
-    }
-    
-    try {
-      // Test if we can check auth status without errors
-      const { data, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        return {
-          success: false,
-          message: `Authentication test failed: ${error.message}`,
-          error: error.message
-        };
-      }
-      
-      const user = data?.session?.user;
-      
-      return {
-        success: true,
-        message: user ? 'User is authenticated' : 'No authenticated user (anonymous access)',
-        data: { 
-          authenticated: !!user,
-          user: user ? { id: user.id, email: user.email } : null
-        }
-      };
-    } catch (authError) {
-      // Handle specific auth errors gracefully
-      console.error('Auth check error:', authError);
-      return {
-        success: false,
-        message: 'Authentication check failed: ' + (authError instanceof Error ? authError.message : 'Unknown error'),
-        error: authError instanceof Error ? authError.message : 'Unknown auth error'
-      };
-    }
-  } catch (error: any) {
-    return {
-      success: false,
-      message: error.message || 'Failed to test authentication',
       error
     };
   }
