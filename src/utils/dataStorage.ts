@@ -295,15 +295,15 @@ export class DataStorage {
             ];
           }
           // Case 3: String in format "lng,lat"
-          else if (typeof site.coordinates === 'string' && site.coordinates.includes(',')) {
-            const parts = site.coordinates.split(',').map(part => parseFloat(part.trim()));
+          else if (typeof site.coordinates === 'string' && (site.coordinates as string).includes(',')) {
+            const parts = (site.coordinates as string).split(',').map((part: string) => parseFloat(part.trim()));
             if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
               coordinates = [parts[0], parts[1]];
             }
           }
           // Case 4: String in format "lat lng"
-          else if (typeof site.coordinates === 'string' && site.coordinates.includes(' ')) {
-            const parts = site.coordinates.split(' ').map(part => parseFloat(part.trim()));
+          else if (typeof site.coordinates === 'string' && (site.coordinates as string).includes(' ')) {
+            const parts = (site.coordinates as string).split(' ').map((part: string) => parseFloat(part.trim()));
             if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
               coordinates = [parts[1], parts[0]]; // Note: swapping to [lng, lat]
             }
@@ -471,49 +471,69 @@ export class DataStorage {
   }
 
   // ID Generation
+  static generateEmployeeId(): string {
+    const counters = this.getCounters();
+    const timestamp = Date.now().toString().slice(-5);
+    const random = Math.random().toString(36).substr(2, 3).toUpperCase();
+    
+    counters.employee++;
+    this.saveCounters(counters);
+    
+    return `EMP-${timestamp}${random}`;
+  }
+
   static generateMaterialId(): string {
     const counters = this.getCounters();
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const counter = String(counters.material).padStart(3, '0');
+    // Add timestamp and random component to ensure uniqueness across sessions
+    const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
     
     counters.material++;
     this.saveCounters(counters);
     
-    return `MAT-${date}-${counter}`;
+    return `MAT-${date}-${counter}-${timestamp}${random}`;
   }
 
   static generateSiteId(): string {
     const counters = this.getCounters();
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const counter = String(counters.site).padStart(3, '0');
+    // Add timestamp and random component to ensure uniqueness across sessions
+    const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
     
     counters.site++;
     this.saveCounters(counters);
     
-    return `SITE-${date}-${counter}`;
+    return `SITE-${date}-${counter}-${timestamp}${random}`;
   }
 
   static generateEquipmentId(): string {
     const counters = this.getCounters();
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const counter = String(counters.equipment).padStart(3, '0');
+    // Add timestamp and random component to ensure uniqueness across sessions
+    const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
     
     counters.equipment++;
     this.saveCounters(counters);
     
-    return `EQP-${date}-${counter}`;
+    return `EQP-${date}-${counter}-${timestamp}${random}`;
   }
 
-  private static getCounters(): { material: number; site: number; equipment: number } {
+  private static getCounters(): { employee: number; material: number; site: number; equipment: number } {
     try {
       const counters = localStorage.getItem(this.STORAGE_KEYS.counters);
-      return counters ? JSON.parse(counters) : { material: 1, site: 1, equipment: 1 };
+      return counters ? JSON.parse(counters) : { employee: 1, material: 1, site: 1, equipment: 1 };
     } catch {
-      return { material: 1, site: 1, equipment: 1 };
+      return { employee: 1, material: 1, site: 1, equipment: 1 };
     }
   }
 
-  private static saveCounters(counters: { material: number; site: number; equipment: number }): void {
+  private static saveCounters(counters: { employee: number; material: number; site: number; equipment: number }): void {
     localStorage.setItem(this.STORAGE_KEYS.counters, JSON.stringify(counters));
   }
 
@@ -567,8 +587,8 @@ export class DataStorage {
   }
 
   // Add methods for individual entities
-  static addEmployee(employee: Employee): void {
-    const result = CSVAppendManager.appendToCSV('employees', employee);
+  static async addEmployee(employee: Employee): Promise<void> {
+    const result = await CSVAppendManager.appendToCSV('employees', employee);
     if (result.success) {
       this.logTransaction('employee', 'create', employee);
     } else {
@@ -581,8 +601,8 @@ export class DataStorage {
     return this.loadEmployees();
   }
 
-  static addEquipment(equipment: Equipment): void {
-    const result = CSVAppendManager.appendToCSV('equipment', equipment);
+  static async addEquipment(equipment: Equipment): Promise<void> {
+    const result = await CSVAppendManager.appendToCSV('equipment', equipment);
     if (result.success) {
       this.logTransaction('equipment', 'create', equipment);
     } else {
@@ -595,8 +615,8 @@ export class DataStorage {
     return this.loadEquipment();
   }
 
-  static addMaterial(material: Material): void {
-    const result = CSVAppendManager.appendToCSV('materials', material);
+  static async addMaterial(material: Material): Promise<void> {
+    const result = await CSVAppendManager.appendToCSV('materials', material);
     if (result.success) {
       this.logTransaction('material', 'create', material);
     } else {
@@ -609,8 +629,8 @@ export class DataStorage {
     return this.loadMaterials();
   }
 
-  static addSite(site: Site): void {
-    const result = CSVAppendManager.appendToCSV('sites', site);
+  static async addSite(site: Site): Promise<void> {
+    const result = await CSVAppendManager.appendToCSV('sites', site);
     if (result.success) {
       this.logTransaction('site', 'create', site);
     } else {

@@ -18,6 +18,7 @@ import { DataStorage } from '../../utils/dataStorage';
 import { Employee, Equipment, Material, Site } from '../../types';
 import { generateQRCode } from '../../utils/qrCodeUtils';
 import QRCodeDisplay from './QRCodeDisplay';
+import ProfileView from './ProfileView';
 import { AuthManager } from '../../utils/authUtils';
 import { SupabaseDataService } from '../../utils/supabaseDataService';
 
@@ -48,13 +49,15 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemsToDelete, setItemsToDelete] = useState<string[]>([]);
+  const [showProfileView, setShowProfileView] = useState(false);
+  const [selectedProfileItem, setSelectedProfileItem] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [siteFilter, setSiteFilter] = useState('');
   
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const currentUser = AuthManager.getCurrentUser();
+  const currentUser = AuthManager.getCurrentUserSync();
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'developer';
 
   useEffect(() => {
@@ -229,6 +232,11 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
   const handleShowQRCode = (item: any) => {
     setSelectedItem(item);
     setShowQRCode(true);
+  };
+
+  const handleViewProfile = (item: any) => {
+    setSelectedProfileItem(item);
+    setShowProfileView(true);
   };
 
   const getStatusOptions = () => {
@@ -589,6 +597,13 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
             <td className="px-4 py-3 text-sm font-medium">
               <div className="flex space-x-2">
                 <button
+                  onClick={() => handleViewProfile(item)}
+                  className="text-purple-600 hover:text-purple-900"
+                  title="View Profile"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => onEdit(item)}
                   className="text-blue-600 hover:text-blue-900"
                   title="Edit"
@@ -643,6 +658,13 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
             </td>
             <td className="px-4 py-3 text-sm font-medium">
               <div className="flex space-x-2">
+                <button
+                  onClick={() => handleViewProfile(item)}
+                  className="text-purple-600 hover:text-purple-900"
+                  title="View Profile"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => onEdit(item)}
                   className="text-blue-600 hover:text-blue-900"
@@ -699,6 +721,13 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
             <td className="px-4 py-3 text-sm font-medium">
               <div className="flex space-x-2">
                 <button
+                  onClick={() => handleViewProfile(item)}
+                  className="text-purple-600 hover:text-purple-900"
+                  title="View Profile"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => onEdit(item)}
                   className="text-blue-600 hover:text-blue-900"
                   title="Edit"
@@ -748,6 +777,13 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
             <td className="px-4 py-3 text-sm text-gray-500">{item.manager}</td>
             <td className="px-4 py-3 text-sm font-medium">
               <div className="flex space-x-2">
+                <button
+                  onClick={() => handleViewProfile(item)}
+                  className="text-purple-600 hover:text-purple-900"
+                  title="View Profile"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => onEdit(item)}
                   className="text-blue-600 hover:text-blue-900"
@@ -978,6 +1014,19 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
           entity={selectedItem}
           entityType={type.slice(0, -1) as any}
           onClose={() => setShowQRCode(false)}
+        />
+      )}
+      
+      {/* Profile View Modal */}
+      {showProfileView && selectedProfileItem && (
+        <ProfileView
+          entity={selectedProfileItem}
+          entityType={type.slice(0, -1)}
+          onClose={() => setShowProfileView(false)}
+          onEdit={() => {
+            setShowProfileView(false);
+            onEdit(selectedProfileItem);
+          }}
         />
       )}
       

@@ -1,17 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, TrendingUp, Users, Wrench, Package, Download, Filter, BarChart3, PieChart, FileText } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
 import { formatDuration, calculateWorkingHours, isOvertime } from '../../utils/timeUtils';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { Employee, Equipment, Material } from '../../types';
 
-const ReportsPanel: React.FC = () => {
-  // Load data from storage - using new separate log tables
-  const { employeeLogs, equipmentLogs, materialLogs } = DataStorage.loadAllLogs();
-  const timeLogs = DataStorage.loadTimeLogs(); // Keep for backward compatibility
-  const employees = DataStorage.loadEmployees();
-  const equipment = DataStorage.loadEquipment();
-  const materials = DataStorage.loadMaterials();
-  
+interface ReportsPanelProps {
+  employeeLogs: any[];
+  equipmentLogs: any[];
+  materialLogs: any[];
+  timeLogs: any[];
+  employees: Employee[];
+  equipment: Equipment[];
+  materials: Material[];
+}
+
+const ReportsPanel: React.FC<ReportsPanelProps> = ({
+  employeeLogs,
+  equipmentLogs,
+  materialLogs,
+  timeLogs,
+  employees,
+  equipment,
+  materials
+}) => {
   // Combine all logs into a unified format for filtering
   const allLogs = [
     ...employeeLogs.map(log => ({
@@ -54,6 +66,19 @@ const ReportsPanel: React.FC = () => {
   const [entityType, setEntityType] = useState<'employee' | 'equipment' | 'material' | 'all'>('all');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedEntity, setSelectedEntity] = useState<string>('all');
+
+  // Debug logging for props
+  useEffect(() => {
+    console.log('ReportsPanel props:', {
+      employeeLogs: employeeLogs.length,
+      equipmentLogs: equipmentLogs.length,
+      materialLogs: materialLogs.length,
+      timeLogs: timeLogs.length,
+      employees: employees.length,
+      equipment: equipment.length,
+      materials: materials.length
+    });
+  }, [employeeLogs, equipmentLogs, materialLogs, timeLogs, employees, equipment, materials]);
 
   const getDateRange = () => {
     const date = new Date(selectedDate);

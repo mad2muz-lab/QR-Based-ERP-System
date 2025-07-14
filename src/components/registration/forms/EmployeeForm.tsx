@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Camera, Trash2, AlertCircle } from 'lucide-react';
 import { Employee } from '../../../types';
-import { employeeTypes } from '../../../data/materialTypes';
+import { employeeTypes, EmployeeTypeManager } from '../../../data/materialTypes';
 import { DataStorage } from '../../../utils/dataStorage';
 import { AuthManager } from '../../../utils/authUtils';
 import PhotoCapture from '../PhotoCapture';
@@ -9,7 +9,7 @@ import { generateQRCode } from '../../../utils/qrCodeUtils';
 
 interface EmployeeFormProps {
   sites: any[];
-  onSubmit: (employee: Omit<Employee, 'createdAt' | 'qrCode'>) => void;
+  onSubmit: (employee: Omit<Employee, 'createdAt' | 'qrCode'>, isEdit?: boolean) => void;
   initialData?: Employee | null;
 }
 
@@ -23,7 +23,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
     position: '',
     bloodGroup: '',
     site: '',
-    status: 'active' as const,
+    status: 'active' as 'active' | 'inactive',
     photo: '',
     email: '',
     phone: ''
@@ -38,7 +38,8 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [qrCodeImage, setQrCodeImage] = useState<string>('');
 
-  // Handle initial data for editing
+  const isEditMode = !!initialData;
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -56,14 +57,14 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
         phone: initialData.phone || ''
       });
       
-      // Check if we need to show custom type
-      const isCustomType = !employeeTypes.includes(initialData.type || '');
+      const allTypes = EmployeeTypeManager.getAllEmployeeTypesWithCodes();
+      const isCustomType = !allTypes.some((t: { code: string; name: string }) => t.name === initialData.type);
       setShowCustomType(isCustomType);
       if (isCustomType) {
         setFormData(prev => ({ ...prev, customType: initialData.type || '' }));
       }
     } else {
-      // Reset form when no initial data (new registration)
+      // Reset form for new employees
       setFormData({
         id: '',
         name: '',
@@ -83,10 +84,28 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
     }
   }, [initialData]);
 
-  // Real-time ID validation
   useEffect(() => {
     if (formData.id.trim() === '') {
       setIdError('');
+      return;
+    }
+
+    // Skip validation for edit mode
+    if (isEditMode) {
+      setIdError('');
+      return;
+    }
+
+    // Validate EMP- prefix
+    if (!formData.id.startsWith('EMP-')) {
+      setIdError('Employee ID must start with "EMP-" (e.g., EMP-001)');
+      return;
+    }
+
+    // Validate format: EMP- followed by alphanumeric characters
+    const idPattern = /^EMP-[A-Za-z0-9]+$/;
+    if (!idPattern.test(formData.id)) {
+      setIdError('Employee ID must follow format: EMP-XXX (e.g., EMP-001, EMP-ABC)');
       return;
     }
 
@@ -104,9 +123,8 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.id]);
+  }, [formData.id, isEditMode]);
 
-  // Load departments and user info
   useEffect(() => {
     loadDepartments();
     setCurrentUser(AuthManager.getCurrentUser());
@@ -116,48 +134,51 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
     const loadedDepartments = DataStorage.loadDepartments();
     setDepartments(loadedDepartments);
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Prevent double submission
     if (isSubmitting) {
       return;
     }
     
     setIsSubmitting(true);
     
-    // Final ID validation
-    if (idError) {
-      setIsSubmitting(false);
-      return;
-    }
-
+    // Validate required fields
     if (!formData.id.trim()) {
       setIdError('Employee ID is required');
       setIsSubmitting(false);
       return;
     }
 
+    if (idError) {
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      // Generate QR code for the employee ID
-      if (formData.id.trim()) {
-        const qrCode = await generateQRCode(formData.id.trim());
-        setQrCodeImage(qrCode);
+      // Generate QR code using the full user-provided ID (already includes EMP- prefix)
+      const qrCode = await generateQRCode(formData.id);
+      setQrCodeImage(qrCode);
+      
+      let finalType = formData.type;
+      
+      if (showCustomType && formData.customType.trim()) {
+        const addedType = EmployeeTypeManager.addCustomType(formData.customType.trim());
+        finalType = addedType.name;
       }
       
       const employeeData = {
         ...formData,
-        type: showCustomType ? formData.customType : formData.type
+        type: finalType,
+        lastUpdated: new Date().toISOString()
       };
       
-      // Remove customType from the final data
       const { customType, ...finalData } = employeeData;
       
-      // Include QR code in the submission
-      // Submit the employee data
-      onSubmit(finalData);
+      onSubmit(finalData, isEditMode);
       
-      // Reset form only after successful submission
+      // Reset form for next employee
       setFormData({
         id: '',
         name: '',
@@ -192,6 +213,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
       setFormData({ ...formData, department: value });
     }
   };
+
   const handleTypeChange = (value: string) => {
     if (value === 'custom') {
       setShowCustomType(true);
@@ -210,6 +232,8 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
     setFormData({ ...formData, photo: '' });
   };
 
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-3 mb-6">
@@ -219,37 +243,41 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Employee ID - Mandatory Manual Input */}
+          {/* Employee ID Input */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Employee ID * <span className="text-xs text-gray-500">(Must be unique)</span>
+              Employee ID *
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.id}
-                onChange={(e) => setFormData({ ...formData, id: e.target.value.trim() })}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  idError ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="Enter unique employee ID (e.g., EMP-001, 12345)"
-                required
-              />
-              {isCheckingId && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                </div>
-              )}
-            </div>
-            {idError && (
-              <div className="flex items-center space-x-2 mt-1 text-red-600 text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <span>{idError}</span>
+            <input
+              type="text"
+              value={formData.id}
+              onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                idError ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Enter Employee ID (e.g., EMP-001)"
+              required
+              disabled={isEditMode}
+            />
+            {isCheckingId && (
+              <div className="text-sm text-blue-600 mt-1">
+                Checking availability...
               </div>
             )}
-            {formData.id && !idError && !isCheckingId && (
-              <div className="text-green-600 text-sm mt-1">✓ Employee ID is available</div>
+            {idError && (
+              <div className="text-sm text-red-600 mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {idError}
+              </div>
             )}
+            {!idError && formData.id && !isCheckingId && !isEditMode && (
+              <div className="text-sm text-green-600 mt-1">
+                ✓ ID is available
+              </div>
+            )}
+            <div className="text-xs text-gray-500 mt-1">
+              Employee ID must start with "EMP-" followed by alphanumeric characters (e.g., EMP-001, EMP-ABC).
+            </div>
           </div>
 
           <div>
@@ -280,7 +308,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
                   onClick={() => setShowCustomType(false)}
                   className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
                 >
-                  Cancel
+                 总裁
                 </button>
               </div>
             ) : (
@@ -291,8 +319,8 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
                 required
               >
                 <option value="">Select employee type</option>
-                {employeeTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
+                {EmployeeTypeManager.getAllEmployeeTypesWithCodes().map((type: { code: string; name: string }) => (
+                  <option key={type.code} value={type.name}>{type.code}-{type.name}</option>
                 ))}
                 <option value="custom">+ Add Custom Type</option>
               </select>
@@ -415,7 +443,6 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
           </div>
         </div>
 
-        {/* Photo Section */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Employee Photo</label>
           {formData.photo ? (
@@ -462,10 +489,10 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
 
         <button
           type="submit"
-          disabled={!!idError || isCheckingId || !formData.id.trim() || isSubmitting}
+          disabled={!!idError || (isCheckingId && !isEditMode) || !formData.id.trim() || isSubmitting}
           className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
         >
-          {isSubmitting ? 'Registering...' : 'Register Employee'}
+          {isSubmitting ? (isEditMode ? 'Updating...' : 'Registering...') : (isEditMode ? 'Update Employee' : 'Register Employee')}
         </button>
       </form>
 
@@ -474,7 +501,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
           onPhotoCapture={handlePhotoCapture}
           onClose={() => setShowPhotoCapture(false)}
         />
-      )}
+        )}
     </div>
   );
 };

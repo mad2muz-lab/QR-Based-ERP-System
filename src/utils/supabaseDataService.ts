@@ -20,7 +20,10 @@ export class SupabaseDataService {
       // Transform snake_case to camelCase for Employee interface
       const transformedData: Employee[] = (data || []).map(employee => ({
         ...employee,
-        lastUpdated: employee.last_updated
+        lastUpdated: employee.last_updated,
+        bloodGroup: employee.blood_group,
+        createdAt: employee.created_at,
+        qrCode: employee.qr_code
       }));
       
       return transformedData;
@@ -76,7 +79,10 @@ export class SupabaseDataService {
       // Transform snake_case to camelCase for Material interface
       const transformedData: Material[] = (data || []).map(material => ({
         ...material,
-        lastUpdated: material.last_updated
+        lastUpdated: material.last_updated,
+        createdAt: material.created_at || material.createdAt,
+        qrCode: material.qr_code,
+        accessLevel: material.access_level
       }));
       
       return transformedData;
@@ -94,7 +100,7 @@ export class SupabaseDataService {
       const { data, error } = await supabase
         .from('sites')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('last_updated', { ascending: false });
       
       if (error) {
         console.error('Error fetching sites:', error);
@@ -150,6 +156,108 @@ export class SupabaseDataService {
       return [];
     }
   }
+
+  // Fetch employee logs from Supabase
+  static async getEmployeeLogs(): Promise<any[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('employee_logs')
+        .select('*')
+        .order('timestamp', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching employee logs:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching employee logs:', error);
+      return [];
+    }
+  }
+
+  // Fetch equipment logs from Supabase
+  static async getEquipmentLogs(): Promise<any[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('equipment_logs')
+        .select('*')
+        .order('timestamp', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching equipment logs:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching equipment logs:', error);
+      return [];
+    }
+  }
+
+  // Fetch material logs from Supabase
+  static async getMaterialLogs(): Promise<any[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('material_logs')
+        .select('*')
+        .order('timestamp', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching material logs:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching material logs:', error);
+      return [];
+    }
+  }
+
+  // Fetch all logs from separate tables
+  static async getAllLogs(): Promise<{
+    employeeLogs: any[];
+    equipmentLogs: any[];
+    materialLogs: any[];
+  }> {
+    if (!supabase) {
+      return {
+        employeeLogs: [],
+        equipmentLogs: [],
+        materialLogs: []
+      };
+    }
+    
+    try {
+      const [employeeLogs, equipmentLogs, materialLogs] = await Promise.all([
+        this.getEmployeeLogs(),
+        this.getEquipmentLogs(),
+        this.getMaterialLogs()
+      ]);
+      
+      return {
+        employeeLogs,
+        equipmentLogs,
+        materialLogs
+      };
+    } catch (error) {
+      console.error('Error fetching all logs:', error);
+      return {
+        employeeLogs: [],
+        equipmentLogs: [],
+        materialLogs: []
+      };
+    }
+  }
   
   // Fetch all users from Supabase
   static async getUsers(): Promise<User[]> {
@@ -181,19 +289,35 @@ export class SupabaseDataService {
     materials: number;
     sites: number;
     timeLogs: number;
+    employeeLogs: number;
+    equipmentLogs: number;
+    materialLogs: number;
   }> {
     if (!supabase) {
-      return { users: 0, employees: 0, equipment: 0, materials: 0, sites: 0, timeLogs: 0 };
+      return { 
+        users: 0, 
+        employees: 0, 
+        equipment: 0, 
+        materials: 0, 
+        sites: 0, 
+        timeLogs: 0,
+        employeeLogs: 0,
+        equipmentLogs: 0,
+        materialLogs: 0
+      };
     }
     
     try {
-      const [usersResult, employeesResult, equipmentResult, materialsResult, sitesResult, timeLogsResult] = await Promise.all([
+      const [usersResult, employeesResult, equipmentResult, materialsResult, sitesResult, timeLogsResult, empLogsResult, eqLogsResult, matLogsResult] = await Promise.all([
         supabase.from('users').select('count', { count: 'exact', head: true }),
         supabase.from('employees').select('count', { count: 'exact', head: true }),
         supabase.from('equipment').select('count', { count: 'exact', head: true }),
         supabase.from('materials').select('count', { count: 'exact', head: true }),
         supabase.from('sites').select('count', { count: 'exact', head: true }),
-        supabase.from('time_logs').select('count', { count: 'exact', head: true })
+        supabase.from('time_logs').select('count', { count: 'exact', head: true }),
+        supabase.from('employee_logs').select('count', { count: 'exact', head: true }),
+        supabase.from('equipment_logs').select('count', { count: 'exact', head: true }),
+        supabase.from('material_logs').select('count', { count: 'exact', head: true })
       ]);
       
       return {
@@ -202,11 +326,24 @@ export class SupabaseDataService {
         equipment: equipmentResult.count || 0,
         materials: materialsResult.count || 0,
         sites: sitesResult.count || 0,
-        timeLogs: timeLogsResult.count || 0
+        timeLogs: timeLogsResult.count || 0,
+        employeeLogs: empLogsResult.count || 0,
+        equipmentLogs: eqLogsResult.count || 0,
+        materialLogs: matLogsResult.count || 0
       };
     } catch (error) {
       console.error('Error getting table counts:', error);
-      return { users: 0, employees: 0, equipment: 0, materials: 0, sites: 0, timeLogs: 0 };
+      return { 
+        users: 0, 
+        employees: 0, 
+        equipment: 0, 
+        materials: 0, 
+        sites: 0, 
+        timeLogs: 0,
+        employeeLogs: 0,
+        equipmentLogs: 0,
+        materialLogs: 0
+      };
     }
   }
 }

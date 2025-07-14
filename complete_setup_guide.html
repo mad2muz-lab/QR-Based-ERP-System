@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Setup Guide - Separate Logs System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .content {
+            padding: 30px;
+        }
+        .step {
+            margin-bottom: 40px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .step-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .step-number {
+            background: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .step-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+        .step-content {
+            padding: 20px;
+        }
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+            position: relative;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .copy-btn:hover {
+            background: #2d3748;
+        }
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+        .checklist li:last-child {
+            border-bottom: none;
+        }
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #3498db;
+            border-radius: 4px;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .checkbox.checked {
+            background: #3498db;
+            color: white;
+        }
+        .file-tree {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Complete Setup Guide</h1>
+            <p>Step-by-step guide to implement separate logging system for Employees, Equipment, and Materials</p>
+        </div>
+        
+        <div class="content">
+            <!-- Step 1: Database Migration -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <div class="step-number">1</div>
+                        Database Migration - Create Separate Log Tables
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p>First, we need to create the separate log tables in your Supabase database. You have two options:</p>
+                    
+                    <h4>Option A: Using Supabase Dashboard (Recommended)</h4>
+                    <ol>
+                        <li>Go to your <a href="https://supabase.com/dashboard" target="_blank">Supabase Dashboard</a></li>
+                        <li>Navigate to your project</li>
+                        <li>Go to <strong>SQL Editor</strong></li>
+                        <li>Copy and paste the following SQL script:</li>
+                    </ol>
+                    
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyToClipboard('sql-migration')">Copy</button>
+                        <pre id="sql-migration">-- Create separate log tables for employees, equipment, and materials
+-- Drop existing incomplete log tables if they exist
+DROP TABLE IF EXISTS employee_logs CASCADE;
+DROP TABLE IF EXISTS equipment_logs CASCADE;
+DROP TABLE IF EXISTS material_logs CASCADE;
+
+-- Create employee_logs table
+CREATE TABLE employee_logs (
+  id TEXT PRIMARY KEY DEFAULT ('emp-log-' || extract(epoch from now()) || '-' || substr(md5(random()::text), 1, 8)),
+  employee_id TEXT NOT NULL,
+  employee_name TEXT NOT NULL,
+  department TEXT NOT NULL,
+  site TEXT NOT NULL,
+  action TEXT CHECK (action IN ('clock-in', 'clock-out')) NOT NULL,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  time TIME NOT NULL DEFAULT CURRENT_TIME,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  notes TEXT,
+  location POINT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create equipment_logs table
+CREATE TABLE equipment_logs (
+  id TEXT PRIMARY KEY DEFAULT ('eq-log-' || extract(epoch from now()) || '-' || substr(md5(random()::text), 1, 8)),
+  equipment_id TEXT NOT NULL,
+  equipment_name TEXT NOT NULL,
+  equipment_type TEXT NOT NULL,
+  action TEXT CHECK (action IN ('start-use', 'stop-use', 'maintenance', 'repair')) NOT NULL,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  time TIME NOT NULL DEFAULT CURRENT_TIME,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  site TEXT NOT NULL,
+  status TEXT CHECK (status IN ('in-use', 'available', 'maintenance', 'out-of-order')) NOT NULL,
+  notes TEXT,
+  location POINT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create material_logs table
+CREATE TABLE material_logs (
+  id TEXT PRIMARY KEY DEFAULT ('mat-log-' || extract(epoch from now()) || '-' || substr(md5(random()::text), 1, 8)),
+  material_id TEXT NOT NULL,
+  material_name TEXT NOT NULL,
+  material_type TEXT NOT NULL,
+  action TEXT CHECK (action IN ('material-in', 'material-out', 'transfer', 'adjustment')) NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 0,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  time TIME NOT NULL DEFAULT CURRENT_TIME,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  site TEXT NOT NULL,
+  status TEXT CHECK (status IN ('available', 'low-stock', 'out-of-stock', 'reserved')) NOT NULL,
+  notes TEXT,
+  location POINT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create indexes for better performance
+CREATE INDEX idx_employee_logs_employee_id ON employee_logs(employee_id);
+CREATE INDEX idx_employee_logs_timestamp ON employee_logs(timestamp);
+CREATE INDEX idx_employee_logs_site ON employee_logs(site);
+CREATE INDEX idx_employee_logs_action ON employee_logs(action);
+CREATE INDEX idx_employee_logs_date ON employee_logs(date);
+
+CREATE INDEX idx_equipment_logs_equipment_id ON equipment_logs(equipment_id);
+CREATE INDEX idx_equipment_logs_timestamp ON equipment_logs(timestamp);
+CREATE INDEX idx_equipment_logs_site ON equipment_logs(site);
+CREATE INDEX idx_equipment_logs_action ON equipment_logs(action);
+CREATE INDEX idx_equipment_logs_status ON equipment_logs(status);
+CREATE INDEX idx_equipment_logs_date ON equipment_logs(date);
+
+CREATE INDEX idx_material_logs_material_id ON material_logs(material_id);
+CREATE INDEX idx_material_logs_timestamp ON material_logs(timestamp);
+CREATE INDEX idx_material_logs_site ON material_logs(site);
+CREATE INDEX idx_material_logs_action ON material_logs(action);
+CREATE INDEX idx_material_logs_status ON material_logs(status);
+CREATE INDEX idx_material_logs_date ON material_logs(date);
+
+-- Enable Row Level Security
+ALTER TABLE employee_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE equipment_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE material_logs ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for access
+CREATE POLICY "Allow all operations on employee_logs"
+  ON employee_logs FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow all operations on equipment_logs"
+  ON equipment_logs FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow all operations on material_logs"
+  ON material_logs FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+-- Verify tables were created
+SELECT 'employee_logs table created' as status WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'employee_logs');
+SELECT 'equipment_logs table created' as status WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'equipment_logs');
+SELECT 'material_logs table created' as status WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'material_logs');</pre>
+                    </div>
+                    
+                    <h4>Option B: Using Local Migration File</h4>
+                    <p>The migration file has been created at: <span class="highlight">apply_log_tables_only.sql</span></p>
+                    <p>You can also find the complete migration at: <span class="highlight">supabase/migrations/20250123000000_complete_log_tables_fix.sql</span></p>
+                    
+                    <div class="status info">
+                        <strong>✅ Migration Status:</strong> The SQL script above will create three separate log tables with complete schemas matching your application requirements.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Verify Application Code -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <div class="step-number">2</div>
+                        Verify Application Code Updates
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p>The following application files have been updated to support separate logging:</p>
+                    
+                    <div class="file-tree">
+📁 Project Structure Updates:
+├── 📄 src/utils/logManager.ts ✅ (Updated)
+├── 📄 src/utils/offlineDataManager.ts ✅ (Updated)
+├── 📄 src/utils/offlineSync.ts ✅ (Updated)
+├── 📄 src/components/MaterialScanner.tsx ✅ (Fixed TypeScript error)
+├── 📄 src/types/index.ts ✅ (Interfaces defined)
+└── 📄 supabase/migrations/ ✅ (Migration files created)
+                    </div>
+                    
+                    <ul class="checklist">
+                        <li>
+                            <div class="checkbox checked">✓</div>
+                            <span><strong>LogManager:</strong> Separate methods for creating employee, equipment, and material logs</span>
+                        </li>
+                        <li>
+                            <div class="checkbox checked">✓</div>
+                            <span><strong>OfflineDataManager:</strong> Local storage handling for each log type</span>
+                        </li>
+                        <li>
+                            <div class="checkbox checked">✓</div>
+                            <span><strong>OfflineSync:</strong> Synchronization logic for separate log tables</span>
+                        </li>
+                        <li>
+                            <div class="checkbox checked">✓</div>
+                            <span><strong>MaterialScanner:</strong> Fixed TypeScript error with async user fetching</span>
+                        </li>
+                        <li>
+                            <div class="checkbox checked">✓</div>
+                            <span><strong>Type Definitions:</strong> Complete interfaces for EmployeeLog, EquipmentLog, MaterialLog</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Step 3: Test the System -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <div class="step-number">3</div>
+                        Test the Separate Logging System
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p>Use our comprehensive testing tool to verify everything works correctly:</p>
+                    
+                    <div class="status success">
+                        <strong>🔧 Testing Tool Available:</strong> A complete testing interface has been created to verify all logging functionality.
+                    </div>
+                    
+                    <a href="test_separate_logs_system.html" target="_blank" class="btn btn-success">
+                        🧪 Open Testing Tool
+                    </a>
+                    
+                    <h4>What the Testing Tool Includes:</h4>
+                    <ul>
+                        <li><strong>System Status Overview:</strong> Real-time counts of all log types</li>
+                        <li><strong>Database Schema Verification:</strong> Confirms tables exist with correct structure</li>
+                        <li><strong>Employee Logs Testing:</strong> Create and verify employee clock-in/out logs</li>
+                        <li><strong>Equipment Logs Testing:</strong> Test equipment start-use/stop-use logging</li>
+                        <li><strong>Material Logs Testing:</strong> Verify material in/out quantity tracking</li>
+                        <li><strong>Sync System Testing:</strong> Test offline/online synchronization</li>
+                        <li><strong>Data Integrity Verification:</strong> Validate log data structure and consistency</li>
+                        <li><strong>System Cleanup:</strong> Tools to clean test data and reset if needed</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Step 4: Verify Database Tables -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <div class="step-number">4</div>
+                        Verify Database Tables in Supabase
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p>After running the migration, verify the tables exist in your Supabase dashboard:</p>
+                    
+                    <ol>
+                        <li>Go to your Supabase Dashboard → Table Editor</li>
+                        <li>You should see three new tables:</li>
+                    </ol>
+                    
+                    <ul class="checklist">
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span><strong>employee_logs</strong> - Contains: employee_id, employee_name, department, site, action (clock-in/out), date, time</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span><strong>equipment_logs</strong> - Contains: equipment_id, equipment_name, equipment_type, action (start-use/stop-use), site, status</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span><strong>material_logs</strong> - Contains: material_id, material_name, material_type, quantity, action (in/out), site, status</span>
+                        </li>
+                    </ul>
+                    
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyToClipboard('verify-sql')">Copy</button>
+                        <pre id="verify-sql">-- Run this query in Supabase SQL Editor to verify tables
+SELECT 
+  table_name,
+  column_name,
+  data_type,
+  is_nullable
+FROM information_schema.columns 
+WHERE table_name IN ('employee_logs', 'equipment_logs', 'material_logs')
+ORDER BY table_name, ordinal_position;</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Production Deployment -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <div class="step-number">5</div>
+                        Production Deployment Checklist
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p>Before deploying to production, ensure all these items are completed:</p>
+                    
+                    <ul class="checklist">
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>Database migration completed successfully in Supabase</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>All three log tables (employee_logs, equipment_logs, material_logs) exist and have correct schema</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>Testing tool shows all systems working correctly</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>Employee scanning creates logs in employee_logs table</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>Equipment scanning creates logs in equipment_logs table</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>Material scanning creates logs in material_logs table with quantity tracking</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>Offline/online synchronization working properly</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>No TypeScript errors in the application</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>Data integrity verification passes all checks</span>
+                        </li>
+                        <li>
+                            <div class="checkbox" onclick="toggleCheck(this)"></div>
+                            <span>Old timelog table can be safely deprecated (optional)</span>
+                        </li>
+                    </ul>
+                    
+                    <div class="status warning">
+                        <strong>⚠️ Important:</strong> Test thoroughly in a staging environment before deploying to production. The separate logging system is a significant change that affects data storage and retrieval.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6: Monitoring and Maintenance -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <div class="step-number">6</div>
+                        Monitoring and Maintenance
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p>After deployment, monitor the system to ensure everything works as expected:</p>
+                    
+                    <h4>Key Metrics to Monitor:</h4>
+                    <ul>
+                        <li><strong>Log Creation Rate:</strong> Ensure logs are being created for all scanning activities</li>
+                        <li><strong>Sync Success Rate:</strong> Monitor offline/online synchronization success</li>
+                        <li><strong>Database Performance:</strong> Watch for any performance issues with the new tables</li>
+                        <li><strong>Data Integrity:</strong> Regular checks to ensure log data is complete and accurate</li>
+                    </ul>
+                    
+                    <h4>Maintenance Tasks:</h4>
+                    <ul>
+                        <li><strong>Regular Backups:</strong> Ensure log tables are included in backup procedures</li>
+                        <li><strong>Performance Optimization:</strong> Monitor query performance and add indexes if needed</li>
+                        <li><strong>Data Cleanup:</strong> Implement archival strategy for old log data</li>
+                        <li><strong>Security Review:</strong> Regular review of RLS policies and access controls</li>
+                    </ul>
+                    
+                    <div class="status info">
+                        <strong>📊 Analytics:</strong> The separate log tables will provide much better analytics capabilities for employee attendance, equipment usage, and material flow tracking.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const btn = element.parentNode.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#27ae60';
+                
+                setTimeout(function() {
+                    btn.textContent = originalText;
+                    btn.style.background = '#4a5568';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy to clipboard. Please copy manually.');
+            });
+        }
+        
+        function toggleCheck(checkbox) {
+            checkbox.classList.toggle('checked');
+            if (checkbox.classList.contains('checked')) {
+                checkbox.innerHTML = '✓';
+            } else {
+                checkbox.innerHTML = '';
+            }
+        }
+        
+        // Auto-check completed items
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mark application code updates as completed
+            const codeChecks = document.querySelectorAll('.checklist li .checkbox');
+            // Auto-check the first 5 items (application code updates)
+            for (let i = 0; i < Math.min(5, codeChecks.length); i++) {
+                if (codeChecks[i] && !codeChecks[i].classList.contains('checked')) {
+                    toggleCheck(codeChecks[i]);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

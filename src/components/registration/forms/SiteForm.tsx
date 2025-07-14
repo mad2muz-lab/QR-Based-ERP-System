@@ -5,11 +5,12 @@ import { siteTypes } from '../../../data/materialTypes';
 import SearchableLocationDropdown from '../../common/SearchableLocationDropdown';
 
 interface SiteFormProps {
-  onSubmit: (site: Omit<Site, 'id'>) => void;
+  onSubmit: (site: Omit<Site, 'id'>, isEdit?: boolean) => void;
   initialData?: Site | null;
 }
 
 const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
+  const isEditMode = !!initialData;
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -29,7 +30,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
         name: initialData.name || '',
         type: initialData.type || '',
         customType: '',
-        selectedLocation: '', // Will be set based on coordinates if available
+        selectedLocation: '',
         coordinates: initialData.coordinates || [0, 0],
         province: initialData.province || '',
         address: initialData.address || '',
@@ -78,7 +79,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
     const { customType, selectedLocation, ...finalData } = siteData;
     
     console.log("Submitting site with coordinates:", JSON.stringify(finalData.coordinates));
-    onSubmit(finalData);
+    onSubmit(finalData, isEditMode);
     
     // Reset form
     setFormData({
@@ -172,7 +173,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+            <label className="block nửa text-sm font-medium text-gray-700 mb-1">Location *</label>
             <SearchableLocationDropdown
               value={formData.selectedLocation}
               onChange={handleLocationChange}
@@ -221,7 +222,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
           type="submit"
           className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors"
         >
-          Register Site
+          {isEditMode ? 'Update Site' : 'Register Site'}
         </button>
       </form>
     </div>

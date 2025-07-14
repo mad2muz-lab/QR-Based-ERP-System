@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wrench, Search, Filter, Download, RefreshCw, Eye, Edit, MapPin, Calendar } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
+import { fetchData } from '../../utils/dataProxy';
 import { Equipment, Site } from '../../types';
 import { exportToCSV } from '../../utils/csvUtils';
 
@@ -27,12 +28,19 @@ const EquipmentPage: React.FC = () => {
     filterAndSortEquipment();
   }, [equipment, searchTerm, typeFilter, statusFilter, sortField, sortDirection]);
 
-  const loadData = () => {
-    const loadedEquipment = DataStorage.loadEquipment();
-    const loadedSites = DataStorage.loadSites();
-    setEquipment(loadedEquipment);
-    setSites(loadedSites);
-    setLastUpdated(new Date().toLocaleString());
+  const loadData = async () => {
+    try {
+      const [loadedEquipment, loadedSites] = await Promise.all([
+        fetchData('equipment'),
+        fetchData('sites')
+      ]);
+      
+      setEquipment(loadedEquipment as Equipment[]);
+      setSites(loadedSites as Site[]);
+      setLastUpdated(new Date().toLocaleString());
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
   };
 
   const filterAndSortEquipment = () => {

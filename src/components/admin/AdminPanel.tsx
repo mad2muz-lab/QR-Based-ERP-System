@@ -5,8 +5,7 @@ import { DataStorage } from '../../utils/dataStorage';
 import { User } from '../../types';
 import DepartmentManager from './DepartmentManager';
 import UnauthorizedAccess from '../common/UnauthorizedAccess';
-// In src/components/admin/AdminPanel.tsx
-import DataMigrationTool from './DataMigrationTool';
+
 
 interface AdminPanelProps {
   currentUser?: any;
@@ -54,7 +53,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
     const newUser = AuthManager.createUser({
       ...formData,
-      isFirstLogin: true
+      isFirstLogin: false
     });
 
     setUsers([...users, newUser]);
@@ -264,10 +263,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         </div>
       </div>
       )}
-// Add this to your AdminPanel component's render method
-<div className="mt-8">
-  <DataMigrationTool />
-</div>
+
       {/* Create/Edit User Modal */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

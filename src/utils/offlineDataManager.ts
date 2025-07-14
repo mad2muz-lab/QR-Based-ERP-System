@@ -138,6 +138,21 @@ export class OfflineDataManager {
       materials.push(material);
       DataStorage.saveMaterials(materials);
 
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('materialUpdated', {
+        detail: { material, action: 'create' }
+      }));
+
+      // Also dispatch a storage event manually to ensure MaterialsPage refreshes
+      setTimeout(() => {
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'qr_system_materials',
+          newValue: localStorage.getItem('qr_system_materials'),
+          oldValue: null,
+          storageArea: localStorage
+        }));
+      }, 100);
+
       const operationId = offlineSyncManager.queueOperation({
         type: 'create',
         entityType: 'material',
@@ -162,6 +177,22 @@ export class OfflineDataManager {
         materials[index] = { ...material, lastUpdated: new Date().toISOString() };
         DataStorage.saveMaterials(materials);
 
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent('materialUpdated', {
+          detail: { material: materials[index], action: 'update' }
+        }));
+
+        // Also dispatch a storage event manually to ensure MaterialsPage refreshes
+        // Since storage events don't fire within the same window, we simulate it
+        setTimeout(() => {
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'qr_system_materials',
+            newValue: localStorage.getItem('qr_system_materials'),
+            oldValue: null,
+            storageArea: localStorage
+          }));
+        }, 100);
+
         const operationId = offlineSyncManager.queueOperation({
           type: 'update',
           entityType: 'material',
@@ -176,6 +207,45 @@ export class OfflineDataManager {
       }
     } catch (error) {
       console.error('Failed to update material:', error);
+      throw error;
+    }
+  }
+
+  static async deleteMaterial(materialId: string): Promise<string> {
+    try {
+      const materials = DataStorage.loadMaterials();
+      const materialToDelete = materials.find(mat => mat.id === materialId);
+      const filteredMaterials = materials.filter(mat => mat.id !== materialId);
+      DataStorage.saveMaterials(filteredMaterials);
+
+      // Dispatch custom event to notify other components
+      if (materialToDelete) {
+        window.dispatchEvent(new CustomEvent('materialUpdated', {
+          detail: { material: materialToDelete, action: 'delete' }
+        }));
+      }
+
+      // Also dispatch a storage event manually to ensure MaterialsPage refreshes
+      setTimeout(() => {
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'qr_system_materials',
+          newValue: localStorage.getItem('qr_system_materials'),
+          oldValue: null,
+          storageArea: localStorage
+        }));
+      }, 100);
+
+      const operationId = offlineSyncManager.queueOperation({
+        type: 'delete',
+        entityType: 'material',
+        entityId: materialId,
+        data: { id: materialId },
+        priority: 'medium'
+      });
+
+      return operationId;
+    } catch (error) {
+      console.error('Failed to delete material:', error);
       throw error;
     }
   }

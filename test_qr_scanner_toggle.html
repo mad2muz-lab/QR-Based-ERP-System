@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scanner Toggle Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #444;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .log-entry {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #007bff;
+            border-radius: 3px;
+        }
+        .log-entry.employee {
+            border-left-color: #28a745;
+        }
+        .log-entry.equipment {
+            border-left-color: #ffc107;
+        }
+        .toggle-status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 3px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .toggle-status.clocked-in {
+            background: #d4edda;
+            color: #155724;
+        }
+        .toggle-status.clocked-out {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .toggle-status.in-use {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .toggle-status.available {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 QR Scanner Toggle Functionality Test</h1>
+        <p>This tool tests the QR Scanner's toggle functionality for employees (Clock In/Clock Out) and equipment (Start Use/Stop Use).</p>
+        
+        <div class="section">
+            <h2>🏗️ Setup Test Environment</h2>
+            <button class="btn btn-success" onclick="setupTestData()">Create Test Data</button>
+            <button class="btn btn-warning" onclick="clearAllLogs()">Clear All Logs</button>
+            <button class="btn" onclick="checkCurrentStatus()">Check Current Status</button>
+            <div id="setupResult" class="result"></div>
+        </div>
+        
+        <div class="test-grid">
+            <div class="section">
+                <h2>👥 Employee Toggle Test</h2>
+                <div class="status info">
+                    <strong>Expected Behavior:</strong><br>
+                    • First scan: Shows "Clock In" button<br>
+                    • After Clock In: Shows "Clock Out" button<br>
+                    • After Clock Out: Shows "Clock In" button again
+                </div>
+                <button class="btn" onclick="simulateEmployeeScan()">Simulate Employee Scan</button>
+                <button class="btn btn-success" onclick="simulateEmployeeClockIn()">Simulate Clock In</button>
+                <button class="btn btn-danger" onclick="simulateEmployeeClockOut()">Simulate Clock Out</button>
+                <div id="employeeResult" class="result"></div>
+            </div>
+            
+            <div class="section">
+                <h2>🔧 Equipment Toggle Test</h2>
+                <div class="status info">
+                    <strong>Expected Behavior:</strong><br>
+                    • First scan: Shows "Start Use" button<br>
+                    • After Start Use: Shows "Stop Use" button<br>
+                    • After Stop Use: Shows "Start Use" button again
+                </div>
+                <button class="btn" onclick="simulateEquipmentScan()">Simulate Equipment Scan</button>
+                <button class="btn btn-success" onclick="simulateEquipmentStartUse()">Simulate Start Use</button>
+                <button class="btn btn-danger" onclick="simulateEquipmentStopUse()">Simulate Stop Use</button>
+                <div id="equipmentResult" class="result"></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📊 Current Status Overview</h2>
+            <button class="btn" onclick="showStatusOverview()">Refresh Status Overview</button>
+            <div id="statusOverview" class="result"></div>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Log Analysis</h2>
+            <button class="btn" onclick="analyzeEmployeeLogs()">Analyze Employee Logs</button>
+            <button class="btn" onclick="analyzeEquipmentLogs()">Analyze Equipment Logs</button>
+            <button class="btn" onclick="showRecentLogs()">Show Recent Logs</button>
+            <div id="logAnalysis" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Storage keys
+        const STORAGE_KEYS = {
+            employees: 'employees',
+            equipment: 'equipment',
+            employeeLogs: 'employee_logs',
+            equipmentLogs: 'equipment_logs'
+        };
+
+        // Test data
+        const testEmployee = {
+            id: 'EMP-TEST-001',
+            name: 'Test Employee',
+            department: 'Testing',
+            position: 'QR Tester',
+            site: 'Test Site',
+            status: 'active'
+        };
+
+        const testEquipment = {
+            id: 'EQP-TEST-001',
+            name: 'Test Equipment',
+            type: 'Testing Tool',
+            model: 'QR-TEST-2024',
+            site: 'Test Site',
+            status: 'available'
+        };
+
+        // Utility functions
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            return `[${timestamp}] ${message}\n`;
+        }
+
+        function updateResult(elementId, content) {
+            document.getElementById(elementId).textContent = content;
+        }
+
+        function loadFromStorage(key) {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            } catch (error) {
+                console.error(`Error loading ${key}:`, error);
+                return [];
+            }
+        }
+
+        function saveToStorage(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+                return true;
+            } catch (error) {
+                console.error(`Error saving ${key}:`, error);
+                return false;
+            }
+        }
+
+        function generateId() {
+            return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Setup functions
+        function setupTestData() {
+            let output = log('🏗️ Setting up test data...');
+            
+            // Create test employee
+            const employees = [testEmployee];
+            saveToStorage(STORAGE_KEYS.employees, employees);
+            output += log('✅ Test employee created: ' + testEmployee.name);
+            
+            // Create test equipment
+            const equipment = [testEquipment];
+            saveToStorage(STORAGE_KEYS.equipment, equipment);
+            output += log('✅ Test equipment created: ' + testEquipment.name);
+            
+            // Initialize empty log arrays
+            saveToStorage(STORAGE_KEYS.employeeLogs, []);
+            saveToStorage(STORAGE_KEYS.equipmentLogs, []);
+            output += log('✅ Log storage initialized');
+            
+            output += log('🎯 Test data setup complete!');
+            updateResult('setupResult', output);
+        }
+
+        function clearAllLogs() {
+            let output = log('🧹 Clearing all logs...');
+            
+            saveToStorage(STORAGE_KEYS.employeeLogs, []);
+            saveToStorage(STORAGE_KEYS.equipmentLogs, []);
+            
+            output += log('✅ All logs cleared');
+            output += log('🔄 Ready for fresh testing');
+            updateResult('setupResult', output);
+        }
+
+        function checkCurrentStatus() {
+            let output = log('🔍 Checking current status...');
+            
+            // Check employee status
+            const employeeLogs = loadFromStorage(STORAGE_KEYS.employeeLogs);
+            const recentEmployeeLog = employeeLogs
+                .filter(log => log.entity_id === testEmployee.id)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            
+            const employeeStatus = recentEmployeeLog?.action === 'clock-in' ? 'clocked-in' : 'clocked-out';
+            output += log(`👥 Employee Status: ${employeeStatus}`);
+            
+            // Check equipment status
+            const equipmentLogs = loadFromStorage(STORAGE_KEYS.equipmentLogs);
+            const recentEquipmentLog = equipmentLogs
+                .filter(log => log.entity_id === testEquipment.id)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            
+            const equipmentStatus = recentEquipmentLog?.action === 'start-use' ? 'in-use' : 'available';
+            output += log(`🔧 Equipment Status: ${equipmentStatus}`);
+            
+            updateResult('setupResult', output);
+        }
+
+        // Employee testing functions
+        function simulateEmployeeScan() {
+            let output = log('👥 Simulating employee QR scan...');
+            
+            const employeeLogs = loadFromStorage(STORAGE_KEYS.employeeLogs);
+            const recentLog = employeeLogs
+                .filter(log => log.entity_id === testEmployee.id)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            
+            const isClockedIn = recentLog?.action === 'clock-in';
+            const currentStatus = isClockedIn ? 'clocked-in' : 'clocked-out';
+            const expectedAction = isClockedIn ? 'Clock Out' : 'Clock In';
+            
+            output += log(`QR Code: ${testEmployee.id}`);
+            output += log(`Employee: ${testEmployee.name}`);
+            output += log(`Current Status: ${currentStatus}`);
+            output += log(`Expected Button: ${expectedAction}`);
+            
+            if (recentLog) {
+                const timeSinceLastAction = new Date().getTime() - new Date(recentLog.timestamp).getTime();
+                const minutesAgo = Math.floor(timeSinceLastAction / (1000 * 60));
+                output += log(`Last Action: ${recentLog.action} (${minutesAgo} minutes ago)`);
+            } else {
+                output += log('Last Action: None (first scan)');
+            }
+            
+            updateResult('employeeResult', output);
+        }
+
+        function simulateEmployeeClockIn() {
+            let output = log('⏰ Simulating employee clock-in...');
+            
+            const employeeLog = {
+                id: generateId(),
+                entity_id: testEmployee.id,
+                entity_name: testEmployee.name,
+                action: 'clock-in',
+                site: testEmployee.site,
+                timestamp: new Date().toISOString(),
+                notes: 'Simulated clock-in via test'
+            };
+            
+            const employeeLogs = loadFromStorage(STORAGE_KEYS.employeeLogs);
+            employeeLogs.push(employeeLog);
+            saveToStorage(STORAGE_KEYS.employeeLogs, employeeLogs);
+            
+            output += log('✅ Clock-in log created');
+            output += log(`Log ID: ${employeeLog.id}`);
+            output += log('🔄 Next scan should show "Clock Out" button');
+            
+            updateResult('employeeResult', output);
+        }
+
+        function simulateEmployeeClockOut() {
+            let output = log('🏁 Simulating employee clock-out...');
+            
+            const employeeLog = {
+                id: generateId(),
+                entity_id: testEmployee.id,
+                entity_name: testEmployee.name,
+                action: 'clock-out',
+                site: testEmployee.site,
+                timestamp: new Date().toISOString(),
+                notes: 'Simulated clock-out via test'
+            };
+            
+            const employeeLogs = loadFromStorage(STORAGE_KEYS.employeeLogs);
+            employeeLogs.push(employeeLog);
+            saveToStorage(STORAGE_KEYS.employeeLogs, employeeLogs);
+            
+            output += log('✅ Clock-out log created');
+            output += log(`Log ID: ${employeeLog.id}`);
+            output += log('🔄 Next scan should show "Clock In" button');
+            
+            updateResult('employeeResult', output);
+        }
+
+        // Equipment testing functions
+        function simulateEquipmentScan() {
+            let output = log('🔧 Simulating equipment QR scan...');
+            
+            const equipmentLogs = loadFromStorage(STORAGE_KEYS.equipmentLogs);
+            const recentLog = equipmentLogs
+                .filter(log => log.entity_id === testEquipment.id)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            
+            const isInUse = recentLog?.action === 'start-use';
+            const currentStatus = isInUse ? 'in-use' : 'available';
+            const expectedAction = isInUse ? 'Stop Use' : 'Start Use';
+            
+            output += log(`QR Code: ${testEquipment.id}`);
+            output += log(`Equipment: ${testEquipment.name}`);
+            output += log(`Current Status: ${currentStatus}`);
+            output += log(`Expected Button: ${expectedAction}`);
+            
+            if (recentLog) {
+                const timeSinceLastAction = new Date().getTime() - new Date(recentLog.timestamp).getTime();
+                const minutesAgo = Math.floor(timeSinceLastAction / (1000 * 60));
+                output += log(`Last Action: ${recentLog.action} (${minutesAgo} minutes ago)`);
+            } else {
+                output += log('Last Action: None (first scan)');
+            }
+            
+            updateResult('equipmentResult', output);
+        }
+
+        function simulateEquipmentStartUse() {
+            let output = log('▶️ Simulating equipment start-use...');
+            
+            const equipmentLog = {
+                id: generateId(),
+                entity_id: testEquipment.id,
+                entity_name: testEquipment.name,
+                action: 'start-use',
+                site: testEquipment.site,
+                status: 'in-use',
+                timestamp: new Date().toISOString(),
+                notes: 'Simulated start-use via test'
+            };
+            
+            const equipmentLogs = loadFromStorage(STORAGE_KEYS.equipmentLogs);
+            equipmentLogs.push(equipmentLog);
+            saveToStorage(STORAGE_KEYS.equipmentLogs, equipmentLogs);
+            
+            output += log('✅ Start-use log created');
+            output += log(`Log ID: ${equipmentLog.id}`);
+            output += log('🔄 Next scan should show "Stop Use" button');
+            
+            updateResult('equipmentResult', output);
+        }
+
+        function simulateEquipmentStopUse() {
+            let output = log('⏹️ Simulating equipment stop-use...');
+            
+            const equipmentLog = {
+                id: generateId(),
+                entity_id: testEquipment.id,
+                entity_name: testEquipment.name,
+                action: 'stop-use',
+                site: testEquipment.site,
+                status: 'available',
+                timestamp: new Date().toISOString(),
+                notes: 'Simulated stop-use via test'
+            };
+            
+            const equipmentLogs = loadFromStorage(STORAGE_KEYS.equipmentLogs);
+            equipmentLogs.push(equipmentLog);
+            saveToStorage(STORAGE_KEYS.equipmentLogs, equipmentLogs);
+            
+            output += log('✅ Stop-use log created');
+            output += log(`Log ID: ${equipmentLog.id}`);
+            output += log('🔄 Next scan should show "Start Use" button');
+            
+            updateResult('equipmentResult', output);
+        }
+
+        // Analysis functions
+        function showStatusOverview() {
+            let output = log('📊 Current Status Overview:');
+            output += log('=' .repeat(50));
+            
+            // Employee status
+            const employeeLogs = loadFromStorage(STORAGE_KEYS.employeeLogs);
+            const recentEmployeeLog = employeeLogs
+                .filter(log => log.entity_id === testEmployee.id)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            
+            const employeeStatus = recentEmployeeLog?.action === 'clock-in' ? 'CLOCKED IN' : 'CLOCKED OUT';
+            const employeeNextAction = recentEmployeeLog?.action === 'clock-in' ? 'Clock Out' : 'Clock In';
+            
+            output += log(`👥 EMPLOYEE: ${testEmployee.name}`);
+            output += log(`   Status: ${employeeStatus}`);
+            output += log(`   Next Action: ${employeeNextAction}`);
+            output += log(`   Total Logs: ${employeeLogs.filter(log => log.entity_id === testEmployee.id).length}`);
+            
+            // Equipment status
+            const equipmentLogs = loadFromStorage(STORAGE_KEYS.equipmentLogs);
+            const recentEquipmentLog = equipmentLogs
+                .filter(log => log.entity_id === testEquipment.id)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            
+            const equipmentStatus = recentEquipmentLog?.action === 'start-use' ? 'IN USE' : 'AVAILABLE';
+            const equipmentNextAction = recentEquipmentLog?.action === 'start-use' ? 'Stop Use' : 'Start Use';
+            
+            output += log('');
+            output += log(`🔧 EQUIPMENT: ${testEquipment.name}`);
+            output += log(`   Status: ${equipmentStatus}`);
+            output += log(`   Next Action: ${equipmentNextAction}`);
+            output += log(`   Total Logs: ${equipmentLogs.filter(log => log.entity_id === testEquipment.id).length}`);
+            
+            updateResult('statusOverview', output);
+        }
+
+        function analyzeEmployeeLogs() {
+            let output = log('👥 Employee Log Analysis:');
+            output += log('=' .repeat(40));
+            
+            const employeeLogs = loadFromStorage(STORAGE_KEYS.employeeLogs)
+                .filter(log => log.entity_id === testEmployee.id)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            
+            if (employeeLogs.length === 0) {
+                output += log('❌ No employee logs found');
+                output += log('💡 Use "Simulate Clock In" to create test logs');
+            } else {
+                output += log(`📊 Total logs: ${employeeLogs.length}`);
+                output += log('');
+                
+                employeeLogs.forEach((log, index) => {
+                    const timeAgo = Math.floor((new Date().getTime() - new Date(log.timestamp).getTime()) / (1000 * 60));
+                    output += log(`${index + 1}. ${log.action.toUpperCase()} - ${timeAgo} min ago`);
+                });
+                
+                // Analyze pattern
+                const clockIns = employeeLogs.filter(log => log.action === 'clock-in').length;
+                const clockOuts = employeeLogs.filter(log => log.action === 'clock-out').length;
+                
+                output += log('');
+                output += log(`📈 Pattern Analysis:`);
+                output += log(`   Clock-ins: ${clockIns}`);
+                output += log(`   Clock-outs: ${clockOuts}`);
+                
+                if (clockIns === clockOuts) {
+                    output += log('✅ Balanced - Employee is clocked out');
+                } else if (clockIns > clockOuts) {
+                    output += log('⚠️ Employee is currently clocked in');
+                } else {
+                    output += log('❌ More clock-outs than clock-ins (data issue)');
+                }
+            }
+            
+            updateResult('logAnalysis', output);
+        }
+
+        function analyzeEquipmentLogs() {
+            let output = log('🔧 Equipment Log Analysis:');
+            output += log('=' .repeat(40));
+            
+            const equipmentLogs = loadFromStorage(STORAGE_KEYS.equipmentLogs)
+                .filter(log => log.entity_id === testEquipment.id)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            
+            if (equipmentLogs.length === 0) {
+                output += log('❌ No equipment logs found');
+                output += log('💡 Use "Simulate Start Use" to create test logs');
+            } else {
+                output += log(`📊 Total logs: ${equipmentLogs.length}`);
+                output += log('');
+                
+                equipmentLogs.forEach((log, index) => {
+                    const timeAgo = Math.floor((new Date().getTime() - new Date(log.timestamp).getTime()) / (1000 * 60));
+                    output += log(`${index + 1}. ${log.action.toUpperCase()} - ${timeAgo} min ago`);
+                });
+                
+                // Analyze pattern
+                const startUses = equipmentLogs.filter(log => log.action === 'start-use').length;
+                const stopUses = equipmentLogs.filter(log => log.action === 'stop-use').length;
+                
+                output += log('');
+                output += log(`📈 Pattern Analysis:`);
+                output += log(`   Start-uses: ${startUses}`);
+                output += log(`   Stop-uses: ${stopUses}`);
+                
+                if (startUses === stopUses) {
+                    output += log('✅ Balanced - Equipment is available');
+                } else if (startUses > stopUses) {
+                    output += log('⚠️ Equipment is currently in use');
+                } else {
+                    output += log('❌ More stop-uses than start-uses (data issue)');
+                }
+            }
+            
+            updateResult('logAnalysis', output);
+        }
+
+        function showRecentLogs() {
+            let output = log('📋 Recent Logs (All Types):');
+            output += log('=' .repeat(50));
+            
+            const employeeLogs = loadFromStorage(STORAGE_KEYS.employeeLogs).map(log => ({...log, type: 'employee'}));
+            const equipmentLogs = loadFromStorage(STORAGE_KEYS.equipmentLogs).map(log => ({...log, type: 'equipment'}));
+            
+            const allLogs = [...employeeLogs, ...equipmentLogs]
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .slice(0, 10); // Show last 10 logs
+            
+            if (allLogs.length === 0) {
+                output += log('❌ No logs found');
+                output += log('💡 Create some test logs first');
+            } else {
+                allLogs.forEach((log, index) => {
+                    const timeAgo = Math.floor((new Date().getTime() - new Date(log.timestamp).getTime()) / (1000 * 60));
+                    const icon = log.type === 'employee' ? '👥' : '🔧';
+                    output += log(`${icon} ${log.entity_name} - ${log.action.toUpperCase()} (${timeAgo} min ago)`);
+                });
+            }
+            
+            updateResult('logAnalysis', output);
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            setupTestData();
+        };
+    </script>
+</body>
+</html>

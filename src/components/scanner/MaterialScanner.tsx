@@ -16,9 +16,12 @@ import {
 } from 'lucide-react';
 import { parseQRCode } from '../../utils/qrCodeUtils';
 import { DataStorage } from '../../utils/dataStorage';
-import { Material, TimeLog } from '../../types';
+import { Material, MaterialLog } from '../../types';
 import { OfflineDataManager } from '../../utils/offlineDataManager';
 import { AuthManager } from '../../utils/authUtils';
+import { SupabaseDataService } from '../../utils/supabaseDataService';
+import { LogManager } from '../../utils/logManager';
+import { OfflineSyncManager } from '../../utils/offlineSync';
 
 interface MaterialScannerProps {
   onClose: () => void;
@@ -48,7 +51,8 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,8 +99,8 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
 
       qrScannerRef.current = new QrScanner(
         videoRef.current,
-        (result) => {
-          handleScanResult(result.data);
+        async (result) => {
+          await handleScanResult(result.data);
           stopScanning();
         },
         {
@@ -129,7 +133,7 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
     setIsScanning(false);
   };
 
-  const handleScanResult = (qrData: string) => {
+  const handleScanResult = async (qrData: string) => {
     const parsed = parseQRCode(qrData);
     
     if (parsed.type !== 'material') {
@@ -137,7 +141,29 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
       return;
     }
 
-    const material = materials.find(mat => mat.id === parsed.id);
+    let material = materials.find(mat => mat.id === parsed.id);
+    
+    // If material not found locally and Supabase is configured, try loading from Supabase
+    if (!material && AuthManager.useSupabase()) {
+      try {
+        setError('Loading material data from server...');
+        const supabaseMaterials = await SupabaseDataService.getMaterials();
+        material = supabaseMaterials.find(mat => mat.id === parsed.id);
+        
+        if (material) {
+          // Update local materials list
+          setMaterials(prev => {
+            const updated = [...prev, material!];
+            return updated;
+          });
+          setError(''); // Clear loading message
+        }
+      } catch (error) {
+        console.error('Failed to load material from Supabase:', error);
+        setError('Failed to load material from server.');
+        return;
+      }
+    }
     
     if (!material) {
       setError(`Material with ID ${parsed.id} not found in system. Please register this material first.`);
@@ -165,7 +191,7 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
     const file = event.target.files?.[0];
     if (file) {
       QrScanner.scanImage(file)
-        .then(result => handleScanResult(result))
+        .then(async result => await handleScanResult(result))
         .catch(error => {
           console.error('QR scan error:', error);
           setError('No QR code found in image');
@@ -192,22 +218,31 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
       return;
     }
 
-    // Double confirmation for large adjustments
-    if (operation.quantity > 100) {
-      const confirmed = window.confirm(
-        `You are about to ${selectedOperation === 'in' ? 'add' : 'remove'} ${operation.quantity} ${operation.material.unit}. This is a large quantity adjustment. Are you sure?`
-      );
-      if (!confirmed) return;
-    }
+    
 
     setIsProcessing(true);
     setError('');
 
     try {
-      const currentUser = AuthManager.getCurrentUser();
+      // Ensure we're in Supabase mode for proper sync
+      if (!AuthManager.useSupabase()) {
+        console.log('Switching to Supabase mode for material operations...');
+        AuthManager.setUseSupabase(true);
+      }
+
+      // Check authentication
+      const isAuthenticated = await AuthManager.isAuthenticated();
+      if (!isAuthenticated) {
+        throw new Error('Please log in to Supabase to perform material operations. Material operations require Supabase authentication to sync properly.');
+      }
+
+      const currentUser = await AuthManager.getCurrentUser();
       if (!currentUser) {
         throw new Error('User authentication required');
       }
+
+      console.log('Material operation - User authenticated:', currentUser.username || currentUser.email);
+      console.log('Material operation - Supabase mode:', AuthManager.useSupabase());
 
       const previousStock = operation.material.quantity;
       const newStock = selectedOperation === 'in' 
@@ -224,21 +259,53 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
         lastUpdated: new Date().toISOString()
       };
 
-      // Create transaction log
-      const transactionLog: TimeLog = {
-        id: `log-${Date.now()}`,
-        entityId: operation.material.id,
-        entityType: 'material',
-        action: selectedOperation === 'in' ? 'material-in' : 'material-out',
-        timestamp: new Date().toISOString(),
-        site: operation.material.site,
-        quantity: operation.quantity,
-        notes: `Material ${selectedOperation?.toUpperCase()} operation${operation.notes ? ` - ${operation.notes}` : ''} | Previous: ${previousStock}, New: ${newStock} | User: ${currentUser.name}`
-      };
-
+      // Create material log using LogManager
+      const logManager = LogManager.getInstance();
+      const logNotes = `Material ${selectedOperation?.toUpperCase()} operation${operation.notes ? ` - ${operation.notes}` : ''} | Previous: ${previousStock}, New: ${newStock} | User: ${currentUser.name}`;
+      
+      console.log('Updating material:', updatedMaterial.id, 'from', previousStock, 'to', newStock);
+      
       // Update material using offline data manager
       await OfflineDataManager.updateMaterial(updatedMaterial);
-      await OfflineDataManager.createTimeLog(transactionLog);
+      console.log('Material updated in offline data manager');
+      
+      // Create material log
+      await logManager.createMaterialLog(
+        operation.material,
+        selectedOperation === 'in' ? 'material-in' : 'material-out',
+        operation.quantity,
+        operation.material.site,
+        updatedMaterial.status,
+        logNotes
+      );
+      console.log('Material log created');
+
+      // Add a small delay to ensure operations are fully queued before forcing sync
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Force immediate sync to Supabase
+      const syncManager = OfflineSyncManager.getInstance();
+      if (syncManager) {
+        console.log('Forcing immediate sync to Supabase...');
+        let retries = 0;
+        let syncSuccess = false;
+        while (retries < 3 && !syncSuccess) {
+          try {
+            await syncManager.processSyncQueue();
+            console.log('Sync completed successfully');
+            syncSuccess = true;
+          } catch (syncError) {
+            console.error(`Sync attempt ${retries + 1} failed:`, syncError);
+            retries++;
+            if (retries < 3) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+            }
+          }
+        }
+        if (!syncSuccess) {
+          showNotification('error', 'Operation successful locally, but sync to server failed after 3 attempts. Please try manual sync later.');
+        }
+      }
 
       // Update local state
       setMaterials(prev => prev.map(m => 
@@ -246,11 +313,13 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
       ));
 
       showNotification('success', 
-        `Successfully ${selectedOperation === 'in' ? 'added' : 'removed'} ${operation.quantity} ${operation.material.unit} ${selectedOperation === 'in' ? 'to' : 'from'} ${operation.material.name}. New stock: ${newStock} ${operation.material.unit}`
+        `Successfully ${selectedOperation === 'in' ? 'added' : 'removed'} ${operation.quantity} ${operation.material.unit} ${selectedOperation === 'in' ? 'to' : 'from'} ${operation.material.name}. New stock: ${newStock} ${operation.material.unit}. Syncing to database...`
       );
+      setIsCompleted(true);
+      setIsSuccess(true);
 
-      // Reset to selection screen
-      resetToSelection();
+      // Close modal after showing notification
+      setTimeout(() => onClose(), 3000);
     } catch (error) {
       console.error('Failed to update inventory:', error);
       setError(`Failed to update inventory: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -451,126 +520,136 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
           {/* Step 3: Process Operation */}
           {currentStep === 'process' && scanResult && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {selectedOperation === 'in' ? 'Material IN' : 'Material OUT'} - {scanResult.name}
-                </h3>
-                <button
-                  onClick={goBackToScan}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  Scan Different Material
-                </button>
-              </div>
-
-              {/* Material Information */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="font-medium">Material Code:</span> {formatMaterialCode(scanResult.id)}</div>
-                  <div><span className="font-medium">Material Name:</span> {scanResult.name}</div>
-                  <div><span className="font-medium">Category:</span> {scanResult.type}</div>
-                  <div><span className="font-medium">Unit:</span> {scanResult.unit}</div>
-                  <div className="col-span-2">
-                    <span className="font-medium">Current Stock:</span> 
-                    <span className={`ml-2 font-bold ${
-                      scanResult.quantity <= 0 ? 'text-red-600' : 
-                      scanResult.quantity < 50 ? 'text-yellow-600' : 'text-green-600'
-                    }`}>
-                      {scanResult.quantity} {scanResult.unit}
-                    </span>
-                  </div>
+              {isSuccess ? (
+                <div className="p-6 text-center">
+                  <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-green-900 mb-2">Operation Successful</h3>
+                  <p className="text-gray-600">Closing in 3 seconds...</p>
                 </div>
-              </div>
-
-              {/* Material OUT - Stock Check */}
-              {selectedOperation === 'out' && scanResult.quantity <= 0 && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                    <span className="text-red-800 font-medium">Material is not in stock</span>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {selectedOperation === 'in' ? 'Material IN' : 'Material OUT'} - {scanResult.name}
+                    </h3>
+                    <button
+                      onClick={goBackToScan}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Scan Different Material
+                    </button>
                   </div>
-                  <p className="text-red-700 mt-2">
-                    Current quantity: {scanResult.quantity} {scanResult.unit}. Cannot proceed with Material OUT operation.
-                  </p>
-                </div>
-              )}
 
-              {/* Operation Form */}
-              {!(selectedOperation === 'out' && scanResult.quantity <= 0) && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Quantity to {selectedOperation === 'in' ? 'Add' : 'Remove'} ({scanResult.unit}) *
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max={selectedOperation === 'out' ? scanResult.quantity : undefined}
-                      value={operation.quantity}
-                      onChange={(e) => setOperation({...operation, quantity: parseInt(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder={`Enter quantity in ${scanResult.unit}`}
-                      required
-                    />
-                    {selectedOperation === 'out' && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Maximum available: {scanResult.quantity} {scanResult.unit}
+                  {/* Material Information */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><span className="font-medium">Material Code:</span> {formatMaterialCode(scanResult.id)}</div>
+                      <div><span className="font-medium">Material Name:</span> {scanResult.name}</div>
+                      <div><span className="font-medium">Category:</span> {scanResult.type}</div>
+                      <div><span className="font-medium">Unit:</span> {scanResult.unit}</div>
+                      <div className="col-span-2">
+                        <span className="font-medium">Current Stock:</span> 
+                        <span className={`ml-2 font-bold ${
+                          scanResult.quantity <= 0 ? 'text-red-600' : 
+                          scanResult.quantity < 50 ? 'text-yellow-600' : 'text-green-600'
+                        }`}>
+                          {scanResult.quantity} {scanResult.unit}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Material OUT - Stock Check */}
+                  {selectedOperation === 'out' && scanResult.quantity <= 0 && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <AlertTriangle className="w-5 h-5 text-red-600" />
+                        <span className="text-red-800 font-medium">Material is not in stock</span>
+                      </div>
+                      <p className="text-red-700 mt-2">
+                        Current quantity: {scanResult.quantity} {scanResult.unit}. Cannot proceed with Material OUT operation.
                       </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-                    <textarea
-                      value={operation.notes}
-                      onChange={(e) => setOperation({...operation, notes: e.target.value})}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="Optional notes about this transaction..."
-                    />
-                  </div>
-
-                  {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
-                      {error}
                     </div>
                   )}
 
-                  {/* Summary */}
-                  {operation.quantity > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h4 className="font-medium text-blue-900 mb-2">Transaction Summary</h4>
-                      <div className="text-sm text-blue-800 space-y-1">
-                        <div>Current Stock: {scanResult.quantity} {scanResult.unit}</div>
-                        <div>
-                          {selectedOperation === 'in' ? 'Adding' : 'Removing'}: {operation.quantity} {scanResult.unit}
+                  {/* Operation Form */}
+                  {!(selectedOperation === 'out' && scanResult.quantity <= 0) && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Quantity to {selectedOperation === 'in' ? 'Add' : 'Remove'} ({scanResult.unit}) *
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max={selectedOperation === 'out' ? scanResult.quantity : undefined}
+                          value={operation.quantity}
+                          onChange={(e) => setOperation({...operation, quantity: parseInt(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          placeholder={`Enter quantity in ${scanResult.unit}`}
+                          required
+                        />
+                        {selectedOperation === 'out' && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            Maximum available: {scanResult.quantity} {scanResult.unit}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                        <textarea
+                          value={operation.notes}
+                          onChange={(e) => setOperation({...operation, notes: e.target.value})}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          placeholder="Optional notes about this transaction..."
+                        />
+                      </div>
+
+                      {error && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                          {error}
                         </div>
-                        <div className="font-medium">
-                          New Stock: {selectedOperation === 'in' 
-                            ? scanResult.quantity + operation.quantity 
-                            : scanResult.quantity - operation.quantity} {scanResult.unit}
+                      )}
+
+                      {/* Summary */}
+                      {operation.quantity > 0 && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h4 className="font-medium text-blue-900 mb-2">Transaction Summary</h4>
+                          <div className="text-sm text-blue-800 space-y-1">
+                            <div>Current Stock: {scanResult.quantity} {scanResult.unit}</div>
+                            <div>
+                              {selectedOperation === 'in' ? 'Adding' : 'Removing'}: {operation.quantity} {scanResult.unit}
+                            </div>
+                            <div className="font-medium">
+                              New Stock: {selectedOperation === 'in' 
+                                ? scanResult.quantity + operation.quantity 
+                                : scanResult.quantity - operation.quantity} {scanResult.unit}
+                            </div>
+                          </div>
                         </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex space-x-3 pt-4">
+                        <button
+                          onClick={confirmOperation}
+                          disabled={isProcessing || !operation.quantity || operation.quantity <= 0 || isCompleted}
+                          className="flex-1 bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                        >
+                          {isProcessing ? 'Processing...' : isCompleted ? 'Completed' : `Confirm ${selectedOperation === 'in' ? 'Material IN' : 'Material OUT'}`}
+                        </button>
+                        <button
+                          onClick={resetToSelection}
+                          className="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                        >
+                          Cancel
+                        </button>
                       </div>
                     </div>
                   )}
-
-                  {/* Action Buttons */}
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      onClick={confirmOperation}
-                      disabled={isProcessing || !operation.quantity || operation.quantity <= 0}
-                      className="flex-1 bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-                    >
-                      {isProcessing ? 'Processing...' : `Confirm ${selectedOperation === 'in' ? 'Material IN' : 'Material OUT'}`}
-                    </button>
-                    <button
-                      onClick={resetToSelection}
-                      className="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+                </>
               )}
             </div>
           )}

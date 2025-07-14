@@ -149,6 +149,56 @@ export class AuthManager {
     return userLevel <= requiredLevel;
   }
 
-  // Keep the rest of your methods, adding Supabase support as needed
-  // ...
+  // User management methods for local storage
+  static createUser(userData: Omit<User, 'id' | 'createdAt'>): User {
+    const users = DataStorage.loadUsers();
+    const newUser: User = {
+      ...userData,
+      id: this.generateUserId(),
+      createdAt: new Date().toISOString()
+    };
+    
+    users.push(newUser);
+    DataStorage.saveUsers(users);
+    return newUser;
+  }
+
+  static updateUser(userId: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): boolean {
+    const users = DataStorage.loadUsers();
+    const userIndex = users.findIndex(user => user.id === userId);
+    
+    if (userIndex === -1) {
+      return false;
+    }
+    
+    users[userIndex] = { ...users[userIndex], ...updates };
+    DataStorage.saveUsers(users);
+    return true;
+  }
+
+  static deleteUser(userId: string): boolean {
+    const users = DataStorage.loadUsers();
+    const userToDelete = users.find(user => user.id === userId);
+    
+    if (!userToDelete) {
+      return false;
+    }
+    
+    // Don't allow deletion of the last admin
+    if (userToDelete.role === 'admin') {
+      const adminUsers = users.filter(user => user.role === 'admin');
+      if (adminUsers.length <= 1) {
+        alert('Cannot delete the last admin user');
+        return false;
+      }
+    }
+    
+    const filteredUsers = users.filter(user => user.id !== userId);
+    DataStorage.saveUsers(filteredUsers);
+    return true;
+  }
+
+  private static generateUserId(): string {
+    return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
 }

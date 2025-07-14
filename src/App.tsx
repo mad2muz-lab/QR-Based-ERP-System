@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Header from './components/layout/Header';
-import { Dashboard } from './components/dashboard/Dashboard';
-import QRScanner from './components/scanner/QRScanner';
-import RegistrationForm from './components/registration/RegistrationForm';
-import NavigationExample from './components/navigation/NavigationExample';
-import DatabaseConnectionTest from './components/common/DatabaseConnectionTest';
-import EmployeesPage from './components/pages/EmployeesPage';
-import EquipmentPage from './components/pages/EquipmentPage';
-import MaterialsPage from './components/pages/MaterialsPage';
-import SitesPage from './components/pages/SitesPage';
-import MapView from './components/map/MapView';
-import AdminPanel from './components/admin/AdminPanel';
-import LoginForm from './components/auth/LoginForm';
-import ChangePasswordModal from './components/auth/ChangePasswordModal';
 import SyncStatusIndicator from './components/common/SyncStatusIndicator';
 import UnauthorizedAccess from './components/common/UnauthorizedAccess';
+
+// Import lazy components and utilities from centralized file
+import {
+  Dashboard,
+  QRScanner,
+  RegistrationForm,
+  DatabaseConnectionTest,
+  MapView,
+  AdminPanel,
+  LoginForm,
+  ChangePasswordModal,
+  LoadingSpinner,
+  LazyComponentErrorBoundary
+} from './components/common/LazyComponents';
 import { AuthManager } from './utils/authUtils';
 import { DataStorage } from './utils/dataStorage';
 import { User } from './types';
@@ -107,27 +108,69 @@ function App() {
     
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard currentView={currentView} />;
+        return (
+          <LazyComponentErrorBoundary>
+            <Suspense fallback={<LoadingSpinner message="Loading Dashboard..." />}>
+              <Dashboard currentView={currentView} />
+            </Suspense>
+          </LazyComponentErrorBoundary>
+        );
       case 'scan':
-        return <QRScanner />;
+        return (
+          <LazyComponentErrorBoundary>
+            <Suspense fallback={<LoadingSpinner message="Loading QR Scanner..." />}>
+              <QRScanner />
+            </Suspense>
+          </LazyComponentErrorBoundary>
+        );
       case 'register':
-        return canAccessRegistration ? 
-          <RegistrationForm currentUser={currentUser || undefined} /> : 
-          <UnauthorizedAccess requiredRole="manager" />;
+        return canAccessRegistration ? (
+          <LazyComponentErrorBoundary>
+            <Suspense fallback={<LoadingSpinner message="Loading Registration Form..." />}>
+              <RegistrationForm currentUser={currentUser || undefined} />
+            </Suspense>
+          </LazyComponentErrorBoundary>
+        ) : (
+          <UnauthorizedAccess requiredRole="manager" />
+        );
       case 'map':
-        return canAccessMap ? 
-          <MapView /> : 
-          <UnauthorizedAccess requiredRole="operator" />;
+        return canAccessMap ? (
+          <LazyComponentErrorBoundary>
+            <Suspense fallback={<LoadingSpinner message="Loading Map View..." />}>
+              <MapView />
+            </Suspense>
+          </LazyComponentErrorBoundary>
+        ) : (
+          <UnauthorizedAccess requiredRole="operator" />
+        );
       case 'database-test':
-        return canAccessAdmin ? 
-          <DatabaseConnectionTest /> : 
-          <UnauthorizedAccess requiredRole="admin" />;
+        return canAccessAdmin ? (
+          <LazyComponentErrorBoundary>
+            <Suspense fallback={<LoadingSpinner message="Loading Database Test..." />}>
+              <DatabaseConnectionTest />
+            </Suspense>
+          </LazyComponentErrorBoundary>
+        ) : (
+          <UnauthorizedAccess requiredRole="admin" />
+        );
       case 'admin':
-        return canAccessAdmin ? 
-          <AdminPanel currentUser={currentUser || undefined} /> : 
-          <UnauthorizedAccess requiredRole="admin" />;
+        return canAccessAdmin ? (
+          <LazyComponentErrorBoundary>
+            <Suspense fallback={<LoadingSpinner message="Loading Admin Panel..." />}>
+              <AdminPanel currentUser={currentUser || undefined} />
+            </Suspense>
+          </LazyComponentErrorBoundary>
+        ) : (
+          <UnauthorizedAccess requiredRole="admin" />
+        );
       default:
-        return <Dashboard />;
+        return (
+          <LazyComponentErrorBoundary>
+            <Suspense fallback={<LoadingSpinner message="Loading Dashboard..." />}>
+              <Dashboard />
+            </Suspense>
+          </LazyComponentErrorBoundary>
+        );
     }
   };
 
@@ -143,7 +186,13 @@ function App() {
     );
   }
   if (!isAuthenticated) {
-    return <LoginForm onLogin={handleLogin} />;
+    return (
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Login..." />}>
+          <LoginForm onLogin={handleLogin} />
+        </Suspense>
+      </LazyComponentErrorBoundary>
+    );
   }
 
   return (
@@ -174,19 +223,25 @@ function App() {
                   ×
                 </button>
               </div>
-              <DatabaseConnectionTest />
+              <LazyComponentErrorBoundary>
+                <Suspense fallback={<LoadingSpinner message="Loading Database Test..." />}>
+                  <DatabaseConnectionTest />
+                </Suspense>
+              </LazyComponentErrorBoundary>
             </div>
           </div>
         </div>
       )}
       
       {showPasswordModal && currentUser && (
-        <ChangePasswordModal
-          isOpen={showPasswordModal}
-          onClose={handlePasswordChange}
-          userId={currentUser.id}
-          isFirstLogin={currentUser.isFirstLogin}
-        />
+        <Suspense fallback={<LoadingSpinner />}>
+          <ChangePasswordModal
+            isOpen={showPasswordModal}
+            onClose={handlePasswordChange}
+            userId={currentUser.id}
+            isFirstLogin={currentUser.isFirstLogin}
+          />
+        </Suspense>
       )}
     </div>
   );

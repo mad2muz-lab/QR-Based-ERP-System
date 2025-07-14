@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapPin, Users, Wrench, Package, Building, Eye, ArrowLeft, ChevronRight } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
 import { AuthManager } from '../../utils/authUtils';
+import { fetchData, getAllLogs } from '../../utils/dataProxy';
+import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
 import HierarchicalDropdown, { NavigationItem } from '../navigation/HierarchicalDropdown';
 import SiteDetailView from './SiteDetailView';
 import UnauthorizedAccess from '../common/UnauthorizedAccess';
@@ -28,24 +30,52 @@ const MapView: React.FC = () => {
 
   // State for data
   const [showNavigation, setShowNavigation] = useState(false);
-  const [sites, setSites] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [equipment, setEquipment] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]);
-  const [timeLogs, setTimeLogs] = useState<any[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
   const [mapDebug, setMapDebug] = useState<string>('');
 
   // Load data with refresh capability
-  const loadData = useCallback(() => {
-    setSites(DataStorage.loadSites());
-    const loadedSites = DataStorage.loadSites();
-    console.log("Loaded sites:", loadedSites);
-    setMapDebug(`Loaded ${loadedSites.length} sites`);
-    setEmployees(DataStorage.loadEmployees());
-    setEquipment(DataStorage.loadEquipment());
-    setMaterials(DataStorage.loadMaterials());
-    setTimeLogs(DataStorage.loadTimeLogs());
-    setDataTimestamp(Date.now());
+  const loadData = useCallback(async () => {
+    try {
+      const [sitesData, employeesData, equipmentData, materialsData, logsData] = await Promise.all([
+        fetchData('sites'),
+        fetchData('employees'),
+        fetchData('equipment'),
+        fetchData('materials'),
+        getAllLogs()
+      ]);
+      
+      setSites(sitesData as Site[]);
+      console.log("Loaded sites:", sitesData);
+      setMapDebug(`Loaded ${sitesData.length} sites`);
+      setEmployees(employeesData as Employee[]);
+      setEquipment(equipmentData as Equipment[]);
+      setMaterials(materialsData as Material[]);
+      
+      // Handle logs data (could be array or object with separate log types)
+      if (Array.isArray(logsData)) {
+        setTimeLogs(logsData as TimeLog[]);
+      } else if (logsData && typeof logsData === 'object' && logsData.employeeLogs) {
+        // Combine all log types into a single array for backward compatibility
+        const allLogs = [
+          ...(logsData.employeeLogs || []),
+          ...(logsData.equipmentLogs || []),
+          ...(logsData.materialLogs || []),
+          ...(logsData.siteLogs || [])
+        ];
+        setTimeLogs(allLogs as TimeLog[]);
+      } else {
+        setTimeLogs([]);
+      }
+      
+      setDataTimestamp(Date.now());
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setMapDebug('Error loading data');
+    }
   }, []);
 
   // Initial data load

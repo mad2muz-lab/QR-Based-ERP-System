@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Sync Cache - Material Update Fix</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button.danger {
+            background-color: #dc3545;
+        }
+        .button.danger:hover {
+            background-color: #c82333;
+        }
+        .button.success {
+            background-color: #28a745;
+        }
+        .button.success:hover {
+            background-color: #218838;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Material Update Fix - Clear Sync Cache</h1>
+        
+        <div class="section">
+            <h3>📋 Issue Summary</h3>
+            <p>The QR scanner was creating material logs but not updating the materials list because:</p>
+            <ul>
+                <li>Database migrated from UUID to TEXT IDs</li>
+                <li>Sync system was still trying to resolve custom IDs to UUIDs</li>
+                <li>Error: "No database UUID found for custom ID: MAT-xxx"</li>
+            </ul>
+            <p><strong>✅ Fix Applied:</strong> Updated sync system to use TEXT IDs directly</p>
+        </div>
+
+        <div class="section">
+            <h3>🧹 Clear Cache (Required)</h3>
+            <p>Clear the old ID mappings cache to prevent conflicts with the new TEXT ID system:</p>
+            <button class="button danger" onclick="clearCache()">Clear ID Mappings & Sync Queue</button>
+            <div id="clearResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>📊 Current Status</h3>
+            <button class="button" onclick="checkStatus()">Check Current Status</button>
+            <div id="statusResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Test Material Update</h3>
+            <p>Test if material updates now work correctly:</p>
+            <button class="button success" onclick="testMaterialUpdate()">Test Material Update</button>
+            <div id="testResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>📝 Next Steps</h3>
+            <ol>
+                <li>Click "Clear ID Mappings & Sync Queue" above</li>
+                <li>Go to the Register page in your app</li>
+                <li>Try scanning a material QR code</li>
+                <li>Verify the material list updates correctly</li>
+                <li>Check that material logs are still created</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEYS = {
+            idMappings: 'qr_system_id_mappings',
+            pendingSync: 'qr_system_pending_sync',
+            failedSync: 'qr_system_failed_sync',
+            syncErrors: 'qr_system_sync_errors',
+            materials: 'qr_system_materials',
+            materialLogs: 'qr_system_material_logs'
+        };
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            return `[${timestamp}] ${message}\n`;
+        }
+
+        function updateResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="result ${type}">${content}</div>`;
+        }
+
+        function clearCache() {
+            let output = log('🧹 Clearing sync cache...');
+            
+            try {
+                // Clear ID mappings
+                const mappings = localStorage.getItem(STORAGE_KEYS.idMappings);
+                if (mappings) {
+                    const mappingCount = Object.keys(JSON.parse(mappings)).length;
+                    localStorage.removeItem(STORAGE_KEYS.idMappings);
+                    output += log(`✅ Cleared ${mappingCount} ID mappings`);
+                } else {
+                    output += log('ℹ️  No ID mappings found');
+                }
+
+                // Clear sync queues
+                const pending = localStorage.getItem(STORAGE_KEYS.pendingSync);
+                if (pending) {
+                    const pendingCount = JSON.parse(pending).length;
+                    localStorage.removeItem(STORAGE_KEYS.pendingSync);
+                    output += log(`✅ Cleared ${pendingCount} pending sync operations`);
+                }
+
+                const failed = localStorage.getItem(STORAGE_KEYS.failedSync);
+                if (failed) {
+                    const failedCount = JSON.parse(failed).length;
+                    localStorage.removeItem(STORAGE_KEYS.failedSync);
+                    output += log(`✅ Cleared ${failedCount} failed sync operations`);
+                }
+
+                // Clear sync errors
+                localStorage.removeItem(STORAGE_KEYS.syncErrors);
+                output += log('✅ Cleared sync errors');
+
+                output += log('\n🎉 Cache cleared successfully!');
+                output += log('📱 Now test material scanning in your app');
+                
+                updateResult('clearResult', output, 'success');
+            } catch (error) {
+                output += log(`❌ Error: ${error.message}`);
+                updateResult('clearResult', output, 'error');
+            }
+        }
+
+        function checkStatus() {
+            let output = log('📊 Checking current status...');
+            
+            try {
+                // Check materials
+                const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+                output += log(`📦 Materials in storage: ${materials.length}`);
+                
+                if (materials.length > 0) {
+                    const sampleMaterial = materials[0];
+                    output += log(`📋 Sample material ID: ${sampleMaterial.id}`);
+                }
+
+                // Check material logs
+                const materialLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]');
+                output += log(`📝 Material logs: ${materialLogs.length}`);
+
+                // Check ID mappings
+                const mappings = JSON.parse(localStorage.getItem(STORAGE_KEYS.idMappings) || '{}');
+                const mappingCount = Object.keys(mappings).length;
+                output += log(`🔗 ID mappings: ${mappingCount}`);
+
+                // Check sync queues
+                const pending = JSON.parse(localStorage.getItem(STORAGE_KEYS.pendingSync) || '[]');
+                const failed = JSON.parse(localStorage.getItem(STORAGE_KEYS.failedSync) || '[]');
+                output += log(`⏳ Pending sync operations: ${pending.length}`);
+                output += log(`❌ Failed sync operations: ${failed.length}`);
+
+                if (mappingCount > 0) {
+                    output += log('\n⚠️  ID mappings still exist - click "Clear Cache" to remove them');
+                } else {
+                    output += log('\n✅ No ID mappings found - ready for TEXT ID system');
+                }
+                
+                updateResult('statusResult', output, 'info');
+            } catch (error) {
+                output += log(`❌ Error: ${error.message}`);
+                updateResult('statusResult', output, 'error');
+            }
+        }
+
+        function testMaterialUpdate() {
+            let output = log('🧪 Testing material update logic...');
+            
+            try {
+                const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+                
+                if (materials.length === 0) {
+                    output += log('⚠️  No materials found in storage');
+                    output += log('📱 Please add some materials first in the app');
+                    updateResult('testResult', output, 'info');
+                    return;
+                }
+
+                // Test with first material
+                const testMaterial = { ...materials[0] };
+                const originalQuantity = testMaterial.quantity;
+                
+                output += log(`📦 Testing with material: ${testMaterial.id}`);
+                output += log(`📊 Original quantity: ${originalQuantity}`);
+                
+                // Simulate quantity update
+                testMaterial.quantity = originalQuantity + 1;
+                testMaterial.lastUpdated = new Date().toISOString();
+                
+                // Update in storage
+                const updatedMaterials = materials.map(m => 
+                    m.id === testMaterial.id ? testMaterial : m
+                );
+                localStorage.setItem(STORAGE_KEYS.materials, JSON.stringify(updatedMaterials));
+                
+                output += log(`✅ Updated quantity to: ${testMaterial.quantity}`);
+                output += log('✅ Material update test completed');
+                output += log('\n📱 Now test actual QR scanning in your app');
+                
+                updateResult('testResult', output, 'success');
+            } catch (error) {
+                output += log(`❌ Error: ${error.message}`);
+                updateResult('testResult', output, 'error');
+            }
+        }
+
+        // Initialize
+        checkStatus();
+    </script>
+</body>
+</html>

@@ -180,25 +180,121 @@ export const siteTypes = [
   'Storage Facility',
   'Office Complex'
 ];
-// Employee types for different employment categories
-export const employeeTypes = [
-  'Permanent Employee',
-  'Contract Employee', 
-  'Temporary Employee',
-  'Consultant',
-  'Rental/Outsourced',
-  'Intern/Trainee',
-  'Part-time Employee',
-  'Seasonal Employee',
-  'Freelancer',
-  'Subcontractor',
-  'Supervisor',
-  'Manager',
-  'Engineer',
-  'Technician',
-  'Operator',
-  'Labor/Worker'
+// Employee types for different employment categories with sequential codes
+export const employeeTypesWithCodes = [
+  { code: '01', name: 'Permanent Employee' },
+  { code: '02', name: 'Contract Employee' },
+  { code: '03', name: 'Temporary Employee' },
+  { code: '04', name: 'Consultant' },
+  { code: '05', name: 'Rental/Outsourced' },
+  { code: '06', name: 'Intern/Trainee' },
+  { code: '07', name: 'Part-time Employee' },
+  { code: '08', name: 'Seasonal Employee' },
+  { code: '09', name: 'Freelancer' },
+  { code: '10', name: 'Subcontractor' },
+  { code: '11', name: 'Supervisor' },
+  { code: '12', name: 'Manager' },
+  { code: '13', name: 'Engineer' },
+  { code: '14', name: 'Technician' },
+  { code: '15', name: 'Operator' },
+  { code: '16', name: 'Labor/Worker' }
 ];
+
+// Legacy employee types array for backward compatibility
+export const employeeTypes = employeeTypesWithCodes.map(type => type.name);
+
+// Employee type management utilities
+export class EmployeeTypeManager {
+  private static readonly CUSTOM_TYPES_KEY = 'qr_system_custom_employee_types';
+  private static readonly NEXT_CODE_KEY = 'qr_system_next_employee_type_code';
+
+  // Get all employee types with codes (predefined + custom)
+  static getAllEmployeeTypesWithCodes(): { code: string; name: string }[] {
+    const customTypes = this.getCustomTypes();
+    return [...employeeTypesWithCodes, ...customTypes];
+  }
+
+  // Get custom employee types from storage
+  static getCustomTypes(): { code: string; name: string }[] {
+    try {
+      const stored = localStorage.getItem(this.CUSTOM_TYPES_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  // Add a new custom employee type
+  static addCustomType(typeName: string): { code: string; name: string } {
+    const customTypes = this.getCustomTypes();
+    
+    // Check if type already exists
+    const allTypes = this.getAllEmployeeTypesWithCodes();
+    const existingType = allTypes.find(type => type.name.toLowerCase() === typeName.toLowerCase());
+    if (existingType) {
+      return existingType;
+    }
+
+    // Generate next sequential code
+    const nextCode = this.getNextCode();
+    const newType = { code: nextCode, name: typeName };
+    
+    // Save to storage
+    customTypes.push(newType);
+    localStorage.setItem(this.CUSTOM_TYPES_KEY, JSON.stringify(customTypes));
+    
+    // Update next code counter
+    this.incrementNextCode();
+    
+    return newType;
+  }
+
+  // Get the next available code
+  private static getNextCode(): string {
+    try {
+      const stored = localStorage.getItem(this.NEXT_CODE_KEY);
+      const nextCode = stored ? parseInt(stored) : 17; // Start after predefined types
+      return nextCode.toString().padStart(2, '0');
+    } catch {
+      return '17';
+    }
+  }
+
+  // Increment the next code counter
+  private static incrementNextCode(): void {
+    try {
+      const stored = localStorage.getItem(this.NEXT_CODE_KEY);
+      const currentCode = stored ? parseInt(stored) : 17;
+      localStorage.setItem(this.NEXT_CODE_KEY, (currentCode + 1).toString());
+    } catch {
+      localStorage.setItem(this.NEXT_CODE_KEY, '18');
+    }
+  }
+
+  // Get employee type by code
+  static getTypeByCode(code: string): { code: string; name: string } | undefined {
+    return this.getAllEmployeeTypesWithCodes().find(type => type.code === code);
+  }
+
+  // Get employee type by name
+  static getTypeByName(name: string): { code: string; name: string } | undefined {
+    return this.getAllEmployeeTypesWithCodes().find(type => type.name === name);
+  }
+
+  // Format type for display (code-name)
+  static formatTypeForDisplay(type: { code: string; name: string }): string {
+    return `${type.code}-${type.name}`;
+  }
+
+  // Parse formatted type string back to code and name
+  static parseFormattedType(formattedType: string): { code: string; name: string } | null {
+    const match = formattedType.match(/^(\d{2})-(.+)$/);
+    if (match) {
+      return { code: match[1], name: match[2] };
+    }
+    return null;
+  }
+}
 
 // Get all material types as flat array
 export const getAllMaterialTypes = (): string[] => {

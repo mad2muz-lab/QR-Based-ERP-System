@@ -9,28 +9,47 @@ import { getShiftStatus } from '../../utils/timeUtils';
 import { useHardwareScanner } from '../../hooks/useHardwareScanner';
 import { OfflineDataManager } from '../../utils/offlineDataManager';
 import { logManager } from '../../utils/logManager';
+import { AuthManager } from '../../utils/authUtils';
+import { SupabaseDataService } from '../../utils/supabaseDataService';
+import { fetchData, getAllLogs } from '../../utils/dataProxy';
+import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
 import UnifiedScanResult from './UnifiedScanResult';
 
 const QRScanner: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<any>(null);
+  const [scanResult, setScanResult] = useState<{
+    type: string;
+    entity?: any;
+    entityId?: string;
+    currentStatus?: string;
+    actions: any[];
+    currentShift?: {
+      startTime: Date;
+      currentHours: number;
+      isOvertime: boolean;
+    };
+    icon?: any;
+  } | null>(null);
   const [error, setError] = useState<string>('');
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [lastScannedCode, setLastScannedCode] = useState<string>('');
+  const [lastScanTime, setLastScanTime] = useState<number>(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isProcessingRef = useRef<boolean>(false);
   
   // Use hardware scanner hook
   useHardwareScanner({
-    onScan: (data) => {
-      if (data && !scanResult) {
-        handleScanResult(data);
+    onScan: async (data) => {
+      if (data && !scanResult && !isProcessingAction) {
+        await handleScanResult(data);
       }
     },
     inputRef,
-    enabled: !scanResult && !isScanning
+    enabled: !scanResult && !isScanning && !isProcessingAction
   });
 
   useEffect(() => {
@@ -68,9 +87,11 @@ const QRScanner: React.FC = () => {
 
       qrScannerRef.current = new QrScanner(
         videoRef.current,
-        (result) => {
-          handleScanResult(result.data);
-          stopScanning();
+        async (result) => {
+          if (!scanResult && !isProcessingAction) {
+            await handleScanResult(result.data);
+            stopScanning();
+          }
         },
         {
           highlightScanRegion: true,
@@ -107,7 +128,16 @@ const QRScanner: React.FC = () => {
     setIsScanning(false);
   };
 
-  const handleScanResult = (qrData: string) => {
+  const handleScanResult = async (qrData: string) => {
+    // Improved debounce: Allow re-scanning after actions complete, but prevent rapid duplicate scans
+    const now = Date.now();
+if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5 seconds to prevent immediate re-scan
+  return;
+}
+    
+    setLastScannedCode(qrData);
+    setLastScanTime(now);
+    
     const parsed = parseQRCode(qrData);
     
     if (!parsed.type) {
@@ -115,27 +145,46 @@ const QRScanner: React.FC = () => {
       return;
     }
 
-    // Load data from storage
-    const employees = DataStorage.loadEmployees();
-    const equipment = DataStorage.loadEquipment();
-    const materials = DataStorage.loadMaterials();
-    const sites = DataStorage.loadSites();
-    const timeLogs = DataStorage.loadTimeLogs();
+    // Load data through centralized proxy
+    let employees, equipment, materials, sites, allLogs;
+    try {
+      setError('Loading data...');
+      [employees, equipment, materials, sites, allLogs] = await Promise.all([
+        fetchData('employees'),
+        fetchData('equipment'),
+        fetchData('materials'),
+        fetchData('sites'),
+        getAllLogs()
+      ]);
+      
+      setError(''); // Clear loading message
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      setError('Failed to load data. Please try again.');
+      return;
+    }
 
     let entity = null;
     let currentStatus = '';
-    let actions: any[] = [];
+    let actions: Array<{
+      id: string;
+      label: string;
+      description: string;
+      icon: any;
+      color: string;
+    }> = [];
     let entityType = parsed.type;
 
     // Find the entity based on type and ID
     switch (parsed.type) {
       case 'employee':
-        entity = employees.find(emp => emp.id === parsed.id);
+        entity = (employees as any[]).find((emp: any) => emp.id === parsed.id);
         if (entity) {
-          // Check current status from recent logs
-          const recentLog = timeLogs
-            .filter(log => log.entityId === parsed.id && log.entityType === 'employee')
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+          // Check current status from recent employee logs
+          const employeeLogs = allLogs.employeeLogs || allLogs || [];
+          const recentLog = employeeLogs
+            .filter((log: any) => log.entity_id === parsed.id || log.entityId === parsed.id || log.employeeId === parsed.id || log.employee_id === parsed.id)
+            .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
           
           const isClockedIn = recentLog?.action === 'clock-in';
           currentStatus = isClockedIn ? 'clocked-in' : 'clocked-out';
@@ -198,11 +247,16 @@ const QRScanner: React.FC = () => {
         break;
 
       case 'equipment':
-        entity = equipment.find(eq => eq.id === parsed.id);
+        entity = (equipment as any[]).find((eq: any) => eq.id === parsed.id);
         if (entity) {
-          const recentLog = timeLogs
-            .filter(log => log.entityId === parsed.id && log.entityType === 'equipment')
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+          // Check current status from recent equipment logs
+          const equipmentLogs = allLogs.equipmentLogs || allLogs || [];
+          
+
+          
+          const recentLog = equipmentLogs
+            .filter((log: any) => log.entity_id === parsed.id || log.entityId === parsed.id || log.equipmentId === parsed.id || log.equipment_id === parsed.id)
+            .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
           
           const isInUse = recentLog?.action === 'start-use';
           currentStatus = isInUse ? 'in-use' : 'available';
@@ -239,7 +293,7 @@ const QRScanner: React.FC = () => {
         break;
 
       case 'material':
-        entity = materials.find(mat => mat.id === parsed.id);
+        entity = (materials as any[]).find((mat: any) => mat.id === parsed.id);
         if (entity) {
           currentStatus = entity.status;
           actions = [
@@ -272,7 +326,7 @@ const QRScanner: React.FC = () => {
         break;
 
       case 'site':
-        entity = sites.find(site => site.id === parsed.id);
+        entity = (sites as any[]).find((site: any) => site.id === parsed.id);
         if (entity) {
           actions = [{
             id: 'site-checkin',
@@ -317,11 +371,18 @@ const QRScanner: React.FC = () => {
   };
 
   const handleAction = async (actionId: string, quantity?: number) => {
-    if (!scanResult) return;
+    // Immediate synchronous protection against rapid clicks
+    if (!scanResult || isProcessingAction || isProcessingRef.current) {
+      console.log('🚫 Action blocked:', { actionId, hasResult: !!scanResult, isProcessingAction, isProcessingRef: isProcessingRef.current });
+      return;
+    }
+    
+    console.log('✅ Action starting:', actionId, 'for', scanResult.type);
+    isProcessingRef.current = true;
+    setIsProcessingAction(true);
 
     // Load current data from storage
-    const timeLogs = DataStorage.loadTimeLogs();
-    const materials = DataStorage.loadMaterials();
+    const materials = await fetchData('materials');
 
     const timestamp = new Date().toISOString();
     let notes = '';
@@ -338,26 +399,6 @@ const QRScanner: React.FC = () => {
     // Add quantity info for material actions
     if ((actionId === 'material-in' || actionId === 'material-out') && quantity) {
       notes = `${actionId} via QR scan - Quantity: ${quantity}`;
-      
-      // Update material quantity in mock data
-      const materialIndex = materials.findIndex(m => m.id === scanResult.entity.id);
-      if (materialIndex !== -1) {
-        if (actionId === 'material-in') {
-          materials[materialIndex].quantity += quantity;
-        } else {
-          materials[materialIndex].quantity = Math.max(0, materials[materialIndex].quantity - quantity);
-        }
-        
-        // Update status based on quantity
-        const newQuantity = materials[materialIndex].quantity;
-        if (newQuantity === 0) {
-          materials[materialIndex].status = 'out-of-stock';
-        } else if (newQuantity < 50) {
-          materials[materialIndex].status = 'low-stock';
-        } else {
-          materials[materialIndex].status = 'available';
-        }
-      }
     }
 
     try {
@@ -394,8 +435,8 @@ const QRScanner: React.FC = () => {
           
         case 'material':
           if (actionId === 'material-in' || actionId === 'material-out') {
-            if (!quantity) {
-              throw new Error('Quantity is required for material operations');
+            if (!quantity || quantity <= 0) {
+              throw new Error('Valid quantity is required for material operations');
             }
             operationId = await logManager.createMaterialLog(
               scanResult.entity,
@@ -406,11 +447,7 @@ const QRScanner: React.FC = () => {
               notes
             );
             
-            // Update material quantity in local storage
-            const materialIndex = materials.findIndex(m => m.id === scanResult.entity.id);
-            if (materialIndex !== -1) {
-              await OfflineDataManager.updateMaterial(materials[materialIndex]);
-            }
+            // Material quantity update is now handled within logManager.createMaterialLog
           } else {
             throw new Error(`Invalid action for material: ${actionId}`);
           }
@@ -431,17 +468,42 @@ const QRScanner: React.FC = () => {
           throw new Error(`Unsupported entity type: ${scanResult.type}`);
       }
       
-      console.log(`${scanResult.type} log created with operation ID:`, operationId);
+
       
       // Show success message
       setError(`✅ ${actionId.replace('-', ' ').toUpperCase()} recorded successfully!`);
+      
+      // For equipment actions, add a small delay to ensure log is persisted before potential re-scan
+      if (scanResult.type === 'equipment' && (actionId === 'start-use' || actionId === 'stop-use')) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     } catch (error) {
       console.error('Failed to log action:', error);
       setError(`❌ Failed to record ${actionId.replace('-', ' ')}. Please try again.`);
-    }
+    } finally {
+        console.log('🏁 Action completed:', actionId);
+        
+        // For equipment stop-use, clear debounce immediately to allow instant re-scanning
+        if (actionId === 'stop-use') {
+          setLastScannedCode('');
+          setLastScanTime(0);
+        }
+        
+        // Clear scan result after action to allow rescanning
+        // Keep processing state active until scan result is cleared to prevent duplicate actions
+        setTimeout(() => {
+  console.log('🔄 Clearing scan result and processing state for:', actionId);
+  setScanResult(null);
+  isProcessingRef.current = false;
+  setIsProcessingAction(false);
+  setLastScannedCode(''); // Reset to allow future scans after delay
+  if (actionId !== 'stop-use') {
+            setLastScannedCode('');
+            setLastScanTime(0);
+          }
+        }, actionId === 'stop-use' ? 500 : 800);
+      }
     
-    // Reset scan result to allow new scan
-    setScanResult(null);
     setTimeout(() => setError(''), 3000);
   };
 
@@ -449,7 +511,7 @@ const QRScanner: React.FC = () => {
     const file = event.target.files?.[0];
     if (file) {
       QrScanner.scanImage(file)
-        .then(result => handleScanResult(result))
+        .then(async result => await handleScanResult(result))
         .catch(error => {
           console.error('QR scan error:', error);
           setError('No QR code found in image');
@@ -547,7 +609,7 @@ const QRScanner: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => inputRef.current?.click()}
                   className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                 >
                   <Upload className="w-5 h-5" />
@@ -556,7 +618,7 @@ const QRScanner: React.FC = () => {
               </div>
 
               <input
-                ref={fileInputRef}
+                ref={inputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleFileUpload}
@@ -568,6 +630,7 @@ const QRScanner: React.FC = () => {
               scanResult={scanResult} 
               onAction={handleAction}
               onBack={() => setScanResult(null)}
+              isProcessing={isProcessingAction}
             />
           )}
         </div>

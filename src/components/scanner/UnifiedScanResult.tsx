@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, User, Wrench, Package, Building, AlertTriangle, UserPlus, ArrowLeft } from 'lucide-react';
 import { formatDuration } from '../../utils/timeUtils';
 
@@ -6,11 +6,20 @@ interface UnifiedScanResultProps {
   scanResult: any;
   onAction: (actionId: string, quantity?: number) => void;
   onBack: () => void;
+  isProcessing?: boolean;
 }
 
-const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAction, onBack }) => {
+const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAction, onBack, isProcessing = false }) => {
   const [materialQuantity, setMaterialQuantity] = useState<number>(1);
   const [showQuantityInput, setShowQuantityInput] = useState<string | null>(null);
+
+  // Reset quantity input dialog when processing starts
+  useEffect(() => {
+    if (isProcessing && showQuantityInput) {
+      console.log('🔄 Resetting quantity input dialog due to processing state');
+      setShowQuantityInput(null);
+    }
+  }, [isProcessing, showQuantityInput]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -61,9 +70,12 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
 
   const handleQuantitySubmit = (actionId: string) => {
     if (materialQuantity > 0) {
+      console.log('📦 Submitting material action:', actionId, 'with quantity:', materialQuantity);
       onAction(actionId, materialQuantity);
       setShowQuantityInput(null);
       setMaterialQuantity(1);
+    } else {
+      console.warn('⚠️ Invalid quantity:', materialQuantity);
     }
   };
 
@@ -296,13 +308,23 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
               <div className="flex space-x-2">
                 <button
                   onClick={() => handleQuantitySubmit(showQuantityInput)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={isProcessing}
+                  className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                    isProcessing 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
                 >
-                  Confirm
+                  {isProcessing ? 'Processing...' : 'Confirm'}
                 </button>
                 <button
                   onClick={() => setShowQuantityInput(null)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  disabled={isProcessing}
+                  className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                    isProcessing 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-gray-600 hover:bg-gray-700'
+                  }`}
                 >
                   Cancel
                 </button>
@@ -324,12 +346,21 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                 <button
                   key={action.id}
                   onClick={() => handleActionClick(action.id)}
-                  className={`flex items-center space-x-3 p-4 text-white rounded-lg transition-all duration-200 border-2 hover:shadow-lg transform hover:scale-105 ${colorClasses[action.color as keyof typeof colorClasses]}`}
+                  disabled={isProcessing}
+                  className={`flex items-center space-x-3 p-4 text-white rounded-lg transition-all duration-200 border-2 ${
+                    isProcessing 
+                      ? 'bg-gray-400 border-gray-400 cursor-not-allowed' 
+                      : `hover:shadow-lg transform hover:scale-105 ${colorClasses[action.color as keyof typeof colorClasses]}`
+                  }`}
                 >
                   <Icon className="w-5 h-5" />
                   <div className="text-left">
-                    <div className="font-semibold">{action.label}</div>
-                    <div className="text-sm opacity-90">{action.description}</div>
+                    <div className="font-semibold">
+                      {isProcessing ? 'Processing...' : action.label}
+                    </div>
+                    <div className="text-sm opacity-90">
+                      {isProcessing ? 'Please wait' : action.description}
+                    </div>
                   </div>
                 </button>
               );

@@ -23,6 +23,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentEntity, setCurrentEntity] = useState(entity);
+  const [allQRCodes, setAllQRCodes] = useState<string[]>([]);
   
   const itemsToShow = showMultiple ? entities : [entity];
   
@@ -38,6 +39,28 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     }
   }, [currentIndex, entity, entities, showMultiple]);
 
+  // Generate QR codes for all entities when in bulk mode
+  useEffect(() => {
+    if (showMultiple && entities && entities.length > 0) {
+      const generateAllQRs = async () => {
+        const codes: string[] = [];
+        for (const entity of entities) {
+          try {
+            const qrData = entity.qrCode || entity.id;
+            const qrImage = await generateQRCode(qrData);
+            codes.push(qrImage);
+          } catch (error) {
+            console.error('Error generating QR code:', error);
+            codes.push('');
+          }
+        }
+        setAllQRCodes(codes);
+      };
+      
+      generateAllQRs();
+    }
+  }, [showMultiple, entities]);
+
   const generateQR = async (entity: any) => {
     setIsLoading(true);
     try {
@@ -51,10 +74,89 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     }
   };
 
+  const handlePrintAll = () => {
+    if (!showMultiple || entities.length === 0) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print QR codes');
+      return;
+    }
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Bulk QR Codes</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+          }
+          .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+          }
+          .qr-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+          }
+          .qr-image {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+          }
+          .qr-name {
+            font-weight: bold;
+            margin-top: 10px;
+          }
+          .qr-id {
+            font-family: monospace;
+            margin-top: 5px;
+            color: #666;
+          }
+          @media print {
+            .qr-grid {
+              page-break-inside: avoid;
+            }
+            .qr-item {
+              page-break-inside: avoid;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Bulk QR Codes - ${getEntityTypeLabel(entityType)}s</h1>
+        <div class="qr-grid">
+          ${entities.map((entity, index) => `
+            <div class="qr-item">
+              <img class="qr-image" src="${allQRCodes[index] || ''}" alt="QR Code">
+              <div class="qr-name">${entity.name}</div>
+              <div class="qr-id">${entity.id}</div>
+            </div>
+          `).join('')}
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for images to load before printing
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+      }, 1000);
+    };
+  };
+
   const handlePrint = () => {
     if (entityType === 'employee') {
       generateEmployeeIDCard(currentEntity, qrCodeImage);
-      // Ensure the ID card is generated with the correct dimensions (85.60mm x 53.98mm)
     } else {
       generateIDCardPDF(currentEntity, qrCodeImage, entityType);
     }
@@ -62,10 +164,8 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
 
   const handleDownload = () => {
     if (entityType === 'employee') {
-      // Download employee ID card with proper dimensions
       downloadEmployeeIDCard(currentEntity, qrCodeImage);
     } else {
-      // Download QR code for other entity types
       const link = document.createElement('a');
       link.href = qrCodeImage;
       link.download = `${entityType}-${currentEntity.id}-qrcode.png`;
@@ -102,7 +202,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">
-            {getEntityTypeLabel(entityType)} QR Code
+            {getEntityTypeLabel(entityType)} QR Code{showMultiple ? 's' : ''}
             {showMultiple && ` (${currentIndex + 1}/${itemsToShow.length})`}
           </h3>
           <button
@@ -162,6 +262,19 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
                 className="p-2 bg-gray-100 rounded-full disabled:opacity-50"
               >
                 <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
+          {/* Bulk Actions */}
+          {showMultiple && itemsToShow.length > 1 && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <button
+                onClick={handlePrintAll}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print All QR Codes ({itemsToShow.length})</span>
               </button>
             </div>
           )}

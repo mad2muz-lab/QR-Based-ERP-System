@@ -55,6 +55,11 @@ export class LogManager {
     // Use OfflineDataManager to handle local storage and sync queuing
     const operationId = await OfflineDataManager.createEmployeeLog(employeeLog);
     
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('employeeLogCreated', {
+      detail: { employeeLog, action }
+    }));
+    
     console.log(`Employee log created: ${employee.name} - ${action} at ${site}`);
     return operationId;
   }
@@ -85,6 +90,11 @@ export class LogManager {
     };
 
     const operationId = await OfflineDataManager.createEquipmentLog(equipmentLog);
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('equipmentLogCreated', {
+      detail: { equipmentLog, action }
+    }));
     
     console.log(`Equipment log created: ${equipment.name} - ${action} at ${site}`);
     return operationId;
@@ -117,7 +127,59 @@ export class LogManager {
       location
     };
 
+    // Create the material log first
     const operationId = await OfflineDataManager.createMaterialLog(materialLog);
+    
+    // Update material quantity in both local storage and queue for Supabase sync
+    try {
+      // Load current materials from storage
+      const { DataStorage } = await import('./dataStorage');
+      const materials = DataStorage.loadMaterials();
+      const materialIndex = materials.findIndex(m => m.id === material.id);
+      
+      if (materialIndex !== -1) {
+        // Update material quantity based on action
+        const currentMaterial = materials[materialIndex];
+        let newQuantity = currentMaterial.quantity || 0;
+        
+        if (action === 'material-in') {
+          newQuantity += quantity;
+        } else {
+          newQuantity = Math.max(0, newQuantity - quantity);
+        }
+        
+        // Update status based on new quantity
+         let newStatus: 'available' | 'low-stock' | 'out-of-stock' = 'available';
+         if (newQuantity === 0) {
+           newStatus = 'out-of-stock';
+         } else if (newQuantity < 50) {
+           newStatus = 'low-stock';
+         }
+        
+        // Create updated material object
+        const updatedMaterial = {
+          ...currentMaterial,
+          quantity: newQuantity,
+          status: newStatus,
+          lastUpdated: now.toISOString()
+        };
+        
+        // Update material using OfflineDataManager to ensure Supabase sync
+        await OfflineDataManager.updateMaterial(updatedMaterial);
+        
+        console.log(`Material quantity updated: ${material.name} - ${action} (${quantity}) - New quantity: ${newQuantity}`);
+      } else {
+        console.warn(`Material not found for quantity update: ${material.id}`);
+      }
+    } catch (error) {
+      console.error('Failed to update material quantity:', error);
+      // Don't throw error here as the log was already created successfully
+    }
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('materialLogCreated', {
+      detail: { materialLog, action }
+    }));
     
     console.log(`Material log created: ${material.name} - ${action} (${quantity}) at ${site}`);
     return operationId;

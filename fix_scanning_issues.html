@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR System - Fix Scanning Issues</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            background: #f9fafb;
+        }
+        
+        .section h3 {
+            color: #1f2937;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+        
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result.success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        
+        .result.error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        
+        .result.info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 QR System Fix Tool</h1>
+            <p>Diagnose and fix material scanning and employee logging issues</p>
+        </div>
+        
+        <div class="content">
+            <div class="alert alert-warning">
+                <strong>⚠️ Important:</strong> This tool fixes issues with material scanning not working and missing employee_logs table. Run the database migration first, then fix the application issues.
+            </div>
+            
+            <div class="section">
+                <h3>🗄️ Database Issues</h3>
+                <p>The employee_logs table was created with incomplete structure. Run the migration to fix this:</p>
+                <div class="alert alert-info">
+                    <strong>Migration Required:</strong> Execute the SQL migration file: <code>supabase/migrations/20250122000000_fix_employee_logs_table.sql</code>
+                </div>
+                <button class="btn btn-primary" onclick="checkDatabaseStatus()">Check Database Status</button>
+                <div id="databaseResult" class="result"></div>
+            </div>
+            
+            <div class="section">
+                <h3>📊 System Status</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="materialCount">0</div>
+                        <div class="stat-label">Materials</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="employeeCount">0</div>
+                        <div class="stat-label">Employees</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="materialLogCount">0</div>
+                        <div class="stat-label">Material Logs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="employeeLogCount">0</div>
+                        <div class="stat-label">Employee Logs</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="updateStats()">Refresh Stats</button>
+            </div>
+            
+            <div class="section">
+                <h3>🔍 Material Scanning Issues</h3>
+                <p>Check and fix material scanning and logging problems:</p>
+                <button class="btn btn-primary" onclick="diagnoseMaterialScanning()">Diagnose Material Scanning</button>
+                <button class="btn btn-success" onclick="testMaterialLog()">Test Material Log Creation</button>
+                <button class="btn btn-warning" onclick="fixMaterialIssues()">Fix Material Issues</button>
+                <div id="materialScanResult" class="result"></div>
+            </div>
+            
+            <div class="section">
+                <h3>👥 Employee Logging Issues</h3>
+                <p>Check and fix employee logging problems:</p>
+                <button class="btn btn-primary" onclick="diagnoseEmployeeLogging()">Diagnose Employee Logging</button>
+                <button class="btn btn-success" onclick="testEmployeeLog()">Test Employee Log Creation</button>
+                <button class="btn btn-warning" onclick="fixEmployeeIssues()">Fix Employee Issues</button>
+                <div id="employeeLogResult" class="result"></div>
+            </div>
+            
+            <div class="section">
+                <h3>🔄 Sync Issues</h3>
+                <p>Check and fix sync problems:</p>
+                <button class="btn btn-primary" onclick="checkSyncStatus()">Check Sync Status</button>
+                <button class="btn btn-warning" onclick="clearFailedOperations()">Clear Failed Operations</button>
+                <button class="btn btn-success" onclick="triggerSync()">Trigger Manual Sync</button>
+                <div id="syncResult" class="result"></div>
+            </div>
+            
+            <div class="section">
+                <h3>🧹 Cleanup Tools</h3>
+                <p>Clean up data and reset if needed:</p>
+                <button class="btn btn-warning" onclick="cleanupOldLogs()">Cleanup Old Logs</button>
+                <button class="btn btn-danger" onclick="resetAllData()">Reset All Data (Dangerous)</button>
+                <div id="cleanupResult" class="result"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const STORAGE_KEYS = {
+            materials: 'qr_system_materials',
+            employees: 'qr_system_employees',
+            materialLogs: 'qr_system_material_logs',
+            employeeLogs: 'qr_system_employee_logs',
+            equipmentLogs: 'qr_system_equipment_logs',
+            timeLogs: 'qr_system_time_logs',
+            syncQueue: 'qr_system_sync_queue',
+            failedOperations: 'qr_system_failed_operations',
+            idMappings: 'qr_system_id_mappings'
+        };
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            return `[${timestamp}] ${message}\n`;
+        }
+        
+        function updateResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = content;
+            element.className = `result ${type}`;
+        }
+        
+        function updateStats() {
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            const employees = JSON.parse(localStorage.getItem(STORAGE_KEYS.employees) || '[]');
+            const materialLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]');
+            const employeeLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.employeeLogs) || '[]');
+            
+            document.getElementById('materialCount').textContent = materials.length;
+            document.getElementById('employeeCount').textContent = employees.length;
+            document.getElementById('materialLogCount').textContent = materialLogs.length;
+            document.getElementById('employeeLogCount').textContent = employeeLogs.length;
+        }
+        
+        function checkDatabaseStatus() {
+            let output = log('🔍 Checking database status...');
+            output += log('\n📋 Required Tables:');
+            output += log('✅ materials - Should exist');
+            output += log('✅ employees - Should exist');
+            output += log('✅ equipment - Should exist');
+            output += log('✅ sites - Should exist');
+            output += log('❓ employee_logs - May be missing or incomplete');
+            output += log('✅ equipment_logs - Should exist');
+            output += log('✅ material_logs - Should exist');
+            output += log('\n🔧 Migration Required:');
+            output += log('Run: supabase/migrations/20250122000000_fix_employee_logs_table.sql');
+            output += log('This will recreate employee_logs with correct structure.');
+            
+            updateResult('databaseResult', output, 'info');
+        }
+        
+        function diagnoseMaterialScanning() {
+            let output = log('🔍 Diagnosing material scanning issues...');
+            
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            const materialLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]');
+            const timeLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.timeLogs) || '[]');
+            
+            output += log(`\n📊 Current Status:`);
+            output += log(`   Materials: ${materials.length}`);
+            output += log(`   Material Logs: ${materialLogs.length}`);
+            output += log(`   Time Logs: ${timeLogs.length}`);
+            
+            // Check for issues
+            let issues = 0;
+            
+            // Check for materials without QR codes
+            const missingQR = materials.filter(m => !m.qrCode).length;
+            if (missingQR > 0) {
+                output += log(`\n⚠️  Issue: ${missingQR} materials missing QR codes`);
+                issues++;
+            }
+            
+            // Check for QR code mismatches
+            const mismatchedQR = materials.filter(m => m.qrCode && m.id && m.qrCode !== m.id).length;
+            if (mismatchedQR > 0) {
+                output += log(`⚠️  Issue: ${mismatchedQR} materials with mismatched QR codes`);
+                issues++;
+            }
+            
+            // Check for double MAT- prefix
+            const doublePrefix = materials.filter(m => m.qrCode && m.qrCode.startsWith('MAT-MAT-')).length;
+            if (doublePrefix > 0) {
+                output += log(`⚠️  Issue: ${doublePrefix} materials with double MAT- prefix`);
+                issues++;
+            }
+            
+            // Check for old TimeLog entries for materials
+            const materialTimeLogs = timeLogs.filter(log => log.entityType === 'material').length;
+            if (materialTimeLogs > 0) {
+                output += log(`⚠️  Issue: ${materialTimeLogs} old TimeLog entries (should be MaterialLog)`);
+                issues++;
+            }
+            
+            if (issues === 0) {
+                output += log('\n✅ No material scanning issues found!');
+                updateResult('materialScanResult', output, 'success');
+            } else {
+                output += log(`\n❌ Found ${issues} issue(s) that need fixing.`);
+                updateResult('materialScanResult', output, 'error');
+            }
+        }
+        
+        function testMaterialLog() {
+            let output = log('🧪 Testing material log creation...');
+            
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            
+            if (materials.length === 0) {
+                output += log('❌ No materials found. Create a material first.');
+                updateResult('materialScanResult', output, 'error');
+                return;
+            }
+            
+            const testMaterial = materials[0];
+            output += log(`Testing with: ${testMaterial.name} (${testMaterial.id})`);
+            
+            // Create a test material log
+            const materialLog = {
+                id: `mat-log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                materialId: testMaterial.id,
+                materialName: testMaterial.name,
+                materialType: testMaterial.type,
+                action: 'material-in',
+                quantity: 10,
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().split(' ')[0],
+                timestamp: new Date().toISOString(),
+                site: testMaterial.site,
+                status: 'available',
+                notes: 'Test log created by fix tool'
+            };
+            
+            try {
+                const materialLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]');
+                materialLogs.push(materialLog);
+                localStorage.setItem(STORAGE_KEYS.materialLogs, JSON.stringify(materialLogs));
+                
+                output += log('✅ Material log created successfully!');
+                output += log(`   Log ID: ${materialLog.id}`);
+                output += log(`   Action: ${materialLog.action}`);
+                output += log(`   Quantity: ${materialLog.quantity}`);
+                
+                updateStats();
+                updateResult('materialScanResult', output, 'success');
+            } catch (error) {
+                output += log(`❌ Failed to create material log: ${error.message}`);
+                updateResult('materialScanResult', output, 'error');
+            }
+        }
+        
+        function fixMaterialIssues() {
+            let output = log('🔧 Fixing material issues...');
+            
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            let fixedCount = 0;
+            
+            materials.forEach(material => {
+                let fixed = false;
+                
+                // Fix missing QR codes
+                if (!material.qrCode && material.id) {
+                    material.qrCode = material.id;
+                    fixed = true;
+                }
+                
+                // Fix double MAT- prefix
+                if (material.qrCode && material.qrCode.startsWith('MAT-MAT-')) {
+                    material.qrCode = material.qrCode.replace('MAT-MAT-', 'MAT-');
+                    fixed = true;
+                }
+                
+                // Sync QR code with ID
+                if (material.qrCode && material.id && material.qrCode !== material.id && material.id.startsWith('MAT-')) {
+                    material.qrCode = material.id;
+                    fixed = true;
+                }
+                
+                if (fixed) {
+                    fixedCount++;
+                    output += log(`Fixed: ${material.name}`);
+                }
+            });
+            
+            if (fixedCount > 0) {
+                localStorage.setItem(STORAGE_KEYS.materials, JSON.stringify(materials));
+                output += log(`\n✅ Fixed ${fixedCount} material issues`);
+                updateResult('materialScanResult', output, 'success');
+            } else {
+                output += log('\n✅ No material issues found to fix');
+                updateResult('materialScanResult', output, 'success');
+            }
+            
+            updateStats();
+        }
+        
+        function diagnoseEmployeeLogging() {
+            let output = log('🔍 Diagnosing employee logging issues...');
+            
+            const employees = JSON.parse(localStorage.getItem(STORAGE_KEYS.employees) || '[]');
+            const employeeLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.employeeLogs) || '[]');
+            const timeLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.timeLogs) || '[]');
+            
+            output += log(`\n📊 Current Status:`);
+            output += log(`   Employees: ${employees.length}`);
+            output += log(`   Employee Logs: ${employeeLogs.length}`);
+            output += log(`   Time Logs: ${timeLogs.length}`);
+            
+            // Check for old TimeLog entries for employees
+            const employeeTimeLogs = timeLogs.filter(log => log.entityType === 'employee').length;
+            if (employeeTimeLogs > 0) {
+                output += log(`\n⚠️  Issue: ${employeeTimeLogs} old TimeLog entries (should be EmployeeLog)`);
+                output += log('❌ Database issue: employee_logs table may be missing or incomplete');
+                updateResult('employeeLogResult', output, 'error');
+            } else {
+                output += log('\n✅ No employee logging issues found!');
+                updateResult('employeeLogResult', output, 'success');
+            }
+        }
+        
+        function testEmployeeLog() {
+            let output = log('🧪 Testing employee log creation...');
+            
+            const employees = JSON.parse(localStorage.getItem(STORAGE_KEYS.employees) || '[]');
+            
+            if (employees.length === 0) {
+                output += log('❌ No employees found. Create an employee first.');
+                updateResult('employeeLogResult', output, 'error');
+                return;
+            }
+            
+            const testEmployee = employees[0];
+            output += log(`Testing with: ${testEmployee.name} (${testEmployee.id})`);
+            
+            // Create a test employee log
+            const employeeLog = {
+                id: `emp-log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                employeeId: testEmployee.id,
+                employeeName: testEmployee.name,
+                department: testEmployee.department,
+                site: testEmployee.site,
+                action: 'clock-in',
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().split(' ')[0],
+                timestamp: new Date().toISOString(),
+                notes: 'Test log created by fix tool'
+            };
+            
+            try {
+                const employeeLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.employeeLogs) || '[]');
+                employeeLogs.push(employeeLog);
+                localStorage.setItem(STORAGE_KEYS.employeeLogs, JSON.stringify(employeeLogs));
+                
+                output += log('✅ Employee log created successfully!');
+                output += log(`   Log ID: ${employeeLog.id}`);
+                output += log(`   Action: ${employeeLog.action}`);
+                output += log(`   Department: ${employeeLog.department}`);
+                
+                updateStats();
+                updateResult('employeeLogResult', output, 'success');
+            } catch (error) {
+                output += log(`❌ Failed to create employee log: ${error.message}`);
+                updateResult('employeeLogResult', output, 'error');
+            }
+        }
+        
+        function fixEmployeeIssues() {
+            let output = log('🔧 Fixing employee issues...');
+            
+            // Check for old TimeLog entries that should be EmployeeLog
+            const timeLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.timeLogs) || '[]');
+            const employeeTimeLogs = timeLogs.filter(log => log.entityType === 'employee');
+            
+            if (employeeTimeLogs.length > 0) {
+                output += log(`Found ${employeeTimeLogs.length} old employee time logs`);
+                output += log('⚠️  These should be migrated to EmployeeLog format');
+                output += log('⚠️  Database migration required for employee_logs table');
+                updateResult('employeeLogResult', output, 'error');
+            } else {
+                output += log('✅ No employee issues found to fix');
+                updateResult('employeeLogResult', output, 'success');
+            }
+        }
+        
+        function checkSyncStatus() {
+            let output = log('🔍 Checking sync status...');
+            
+            const syncQueue = JSON.parse(localStorage.getItem(STORAGE_KEYS.syncQueue) || '[]');
+            const failedOperations = JSON.parse(localStorage.getItem(STORAGE_KEYS.failedOperations) || '[]');
+            const idMappings = JSON.parse(localStorage.getItem(STORAGE_KEYS.idMappings) || '{}');
+            
+            output += log(`\n📊 Sync Status:`);
+            output += log(`   Pending Operations: ${syncQueue.length}`);
+            output += log(`   Failed Operations: ${failedOperations.length}`);
+            output += log(`   ID Mappings: ${Object.keys(idMappings).length}`);
+            
+            if (failedOperations.length > 0) {
+                output += log('\n❌ Failed Operations:');
+                failedOperations.slice(0, 5).forEach((op, index) => {
+                    output += log(`   ${index + 1}. ${op.entityType} - ${op.type} (${op.error || 'Unknown error'})`);
+                });
+                if (failedOperations.length > 5) {
+                    output += log(`   ... and ${failedOperations.length - 5} more`);
+                }
+                updateResult('syncResult', output, 'error');
+            } else {
+                output += log('\n✅ No failed operations');
+                updateResult('syncResult', output, 'success');
+            }
+        }
+        
+        function clearFailedOperations() {
+            let output = log('🧹 Clearing failed operations...');
+            
+            const failedOperations = JSON.parse(localStorage.getItem(STORAGE_KEYS.failedOperations) || '[]');
+            
+            if (failedOperations.length > 0) {
+                localStorage.removeItem(STORAGE_KEYS.failedOperations);
+                output += log(`✅ Cleared ${failedOperations.length} failed operations`);
+                updateResult('syncResult', output, 'success');
+            } else {
+                output += log('✅ No failed operations to clear');
+                updateResult('syncResult', output, 'success');
+            }
+        }
+        
+        function triggerSync() {
+            let output = log('🔄 Triggering manual sync...');
+            output += log('⚠️  Manual sync requires the main application to be running');
+            output += log('⚠️  This tool can only clear failed operations and check status');
+            updateResult('syncResult', output, 'info');
+        }
+        
+        function cleanupOldLogs() {
+            let output = log('🧹 Cleaning up old logs...');
+            
+            const timeLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.timeLogs) || '[]');
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - 30); // Keep last 30 days
+            
+            const oldLogs = timeLogs.filter(log => new Date(log.timestamp) < cutoffDate);
+            const recentLogs = timeLogs.filter(log => new Date(log.timestamp) >= cutoffDate);
+            
+            if (oldLogs.length > 0) {
+                localStorage.setItem(STORAGE_KEYS.timeLogs, JSON.stringify(recentLogs));
+                output += log(`✅ Cleaned up ${oldLogs.length} old time logs`);
+                output += log(`   Kept ${recentLogs.length} recent logs`);
+                updateResult('cleanupResult', output, 'success');
+            } else {
+                output += log('✅ No old logs to clean up');
+                updateResult('cleanupResult', output, 'success');
+            }
+            
+            updateStats();
+        }
+        
+        function resetAllData() {
+            const confirmed = confirm('⚠️ WARNING: This will delete ALL local data including materials, employees, and logs. This action cannot be undone. Are you sure?');
+            
+            if (!confirmed) return;
+            
+            let output = log('🗑️ Resetting all data...');
+            
+            Object.values(STORAGE_KEYS).forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            output += log('✅ All local data has been reset');
+            output += log('⚠️  You will need to re-register all entities');
+            
+            updateResult('cleanupResult', output, 'success');
+            updateStats();
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+        });
+    </script>
+</body>
+</html>

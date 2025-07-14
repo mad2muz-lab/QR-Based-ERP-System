@@ -185,7 +185,7 @@ export const downloadEmployeeTemplate = () => {
   
   // Add instructions sheet
   const instructions = [
-    { 'Field': 'Employee ID', 'Description': 'Unique identifier for employee (leave blank for auto-generation)', 'Required': 'No', 'Example': 'EMP-001' },
+    { 'Field': 'Employee ID', 'Description': 'Unique identifier for employee (must start with EMP-)', 'Required': 'Yes', 'Example': 'EMP-001' },
     { 'Field': 'Employee Name', 'Description': 'Full name of the employee', 'Required': 'Yes', 'Example': 'John Doe' },
     { 'Field': 'Department', 'Description': 'Employee department', 'Required': 'Yes', 'Example': 'Construction, Operations, Maintenance' },
     { 'Field': 'Position', 'Description': 'Job position/title', 'Required': 'Yes', 'Example': 'Site Engineer, Operator' },
@@ -205,7 +205,7 @@ export const downloadEquipmentTemplate = () => {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Equipment Template');
   
   const instructions = [
-    { 'Field': 'Equipment ID', 'Description': 'Unique identifier for equipment (leave blank for auto-generation)', 'Required': 'No', 'Example': 'EQP-001' },
+    { 'Field': 'Equipment ID', 'Description': 'Unique identifier for equipment (must start with EQP-)', 'Required': 'Yes', 'Example': 'EQP-001' },
     { 'Field': 'Equipment Name', 'Description': 'Name of the equipment', 'Required': 'Yes', 'Example': 'Asphalt Paver' },
     { 'Field': 'Type', 'Description': 'Equipment category', 'Required': 'Yes', 'Example': 'Heavy Machinery, Lifting Equipment' },
     { 'Field': 'Model', 'Description': 'Equipment model', 'Required': 'Yes', 'Example': 'CAT AP655F' },
@@ -274,14 +274,37 @@ export const importEmployeesFromExcel = (file: File): Promise<Partial<Employee>[
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
-        const employees = jsonData.map((row: any) => ({
-          id: row['Employee ID'] || undefined,
-          name: row['Employee Name'],
-          department: row['Department'],
-          position: row['Position'],
-          site: row['Site ID'],
-          status: row['Status'] || 'active'
-        }));
+        const employees = jsonData.map((row: any, index: number) => {
+          const employeeId = row['Employee ID'];
+          
+          // Validate Employee ID is provided
+          if (!employeeId || !employeeId.trim()) {
+            throw new Error(`Row ${index + 2}: Employee ID is required`);
+          }
+          
+          // Validate Employee ID format
+          if (!employeeId.startsWith('EMP-')) {
+            throw new Error(`Row ${index + 2}: Employee ID must start with "EMP-" (found: ${employeeId})`);
+          }
+          
+          const idPattern = /^EMP-[A-Za-z0-9]+$/;
+          if (!idPattern.test(employeeId)) {
+            throw new Error(`Row ${index + 2}: Employee ID must follow format EMP-XXX (found: ${employeeId})`);
+          }
+          
+          return {
+            id: employeeId,
+            name: row['Employee Name'],
+            department: row['Department'],
+            position: row['Position'],
+            site: row['Site ID'],
+            status: row['Status'] || 'active',
+            type: row['Employee Type'] || '',
+            bloodGroup: row['Blood Group'] || '',
+            email: row['Email'] || '',
+            phone: row['Phone'] || ''
+          };
+        });
         
         resolve(employees);
       } catch (error) {
@@ -302,15 +325,34 @@ export const importEquipmentFromExcel = (file: File): Promise<Partial<Equipment>
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
-        const equipment = jsonData.map((row: any) => ({
-          id: row['Equipment ID'] || undefined,
-          name: row['Equipment Name'],
-          type: row['Type'],
-          model: row['Model'],
-          serialNumber: row['Serial Number'],
-          site: row['Site ID'],
-          status: row['Status'] || 'available'
-        }));
+        const equipment = jsonData.map((row: any, index: number) => {
+          const equipmentId = row['Equipment ID'];
+          
+          // Validate Equipment ID is provided
+          if (!equipmentId || !equipmentId.trim()) {
+            throw new Error(`Row ${index + 2}: Equipment ID is required`);
+          }
+          
+          // Validate Equipment ID format
+          if (!equipmentId.startsWith('EQP-')) {
+            throw new Error(`Row ${index + 2}: Equipment ID must start with "EQP-" (found: ${equipmentId})`);
+          }
+          
+          const idPattern = /^EQP-[A-Za-z0-9]+$/;
+          if (!idPattern.test(equipmentId)) {
+            throw new Error(`Row ${index + 2}: Equipment ID must follow format EQP-XXX (found: ${equipmentId})`);
+          }
+          
+          return {
+            id: equipmentId,
+            name: row['Equipment Name'],
+            type: row['Type'],
+            model: row['Model'],
+            serialNumber: row['Serial Number'],
+            site: row['Site ID'],
+            status: row['Status'] || 'available'
+          };
+        });
         
         resolve(equipment);
       } catch (error) {

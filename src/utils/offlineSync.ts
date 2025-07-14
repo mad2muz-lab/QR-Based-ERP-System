@@ -149,22 +149,33 @@ export class OfflineSyncManager {
     if (!this.isOnline || this.isSyncing || this.syncQueue.length === 0) {
       return;
     }
-
+  
     this.isSyncing = true;
     this.notifyStatusChange();
-
+  
     try {
-      // Sort by priority and timestamp
+      // Sort by entity type priority (entities before logs), then by priority and timestamp
       const sortedQueue = this.syncQueue.sort((a, b) => {
+        // Entity type priority: entities first, then logs
+        const entityTypeOrder = {
+          'employee': 4, 'equipment': 4, 'material': 4, 'site': 4,
+          'employeeLog': 1, 'equipmentLog': 1, 'materialLog': 1, 'timeLog': 1
+        };
+        const entityTypeDiff = (entityTypeOrder[b.entityType] || 2) - (entityTypeOrder[a.entityType] || 2);
+        if (entityTypeDiff !== 0) return entityTypeDiff;
+        
+        // Then by operation priority
         const priorityOrder = { high: 3, medium: 2, low: 1 };
         const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
         if (priorityDiff !== 0) return priorityDiff;
+        
+        // Finally by timestamp
         return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
       });
-
+  
       const batchSize = this.getBatchSize();
       const batch = sortedQueue.slice(0, batchSize);
-
+  
       for (let i = 0; i < batch.length; i++) {
         const operation = batch[i];
         
@@ -185,7 +196,7 @@ export class OfflineSyncManager {
           await this.handleSyncError(operation, error);
         }
       }
-
+  
       // Update last sync time
       localStorage.setItem('qr_system_last_sync', new Date().toISOString());
       
@@ -194,6 +205,10 @@ export class OfflineSyncManager {
     } finally {
       this.isSyncing = false;
       this.notifyStatusChange();
+      // Chain next batch if queue still has items
+      if (this.syncQueue.length > 0 && this.isOnline) {
+        setTimeout(() => this.processSyncQueue(), 1000);
+      }
     }
   }
 
@@ -236,13 +251,15 @@ export class OfflineSyncManager {
   
     const { type, entityType, entityId, data } = operation;
     
+    // For main entity types, use SupabaseRegistrationService to ensure proper transformations
+    if (['employee', 'equipment', 'material', 'site'].includes(entityType)) {
+      return this.syncEntityOperation(operation);
+    }
+    
+    // For log types, continue with direct Supabase operations
     // Map entity types to correct table names
     const getTableName = (entityType: string): string => {
       switch (entityType) {
-        case 'employee': return 'employees';
-        case 'equipment': return 'equipment';
-        case 'material': return 'materials';
-        case 'site': return 'sites';
         case 'timeLog': return 'time_logs';
         case 'employeeLog': return 'employee_logs';
         case 'equipmentLog': return 'equipment_logs';
@@ -261,16 +278,13 @@ export class OfflineSyncManager {
       
       // Handle ID resolution for different operation types
       if (operationType === 'create') {
-        // For create operations, remove the custom ID and let database generate UUID
-        delete transformed.id;
+        // For create operations with TEXT IDs, keep the custom ID as-is
+        // The database now uses TEXT IDs directly, not UUIDs
+        // No need to delete the ID for TEXT-based tables
       } else if (operationType === 'update' && transformed.id) {
-        // For update operations, resolve custom ID to database UUID
-        const databaseUuid = this.getUuidForCustomId(transformed.id);
-        if (databaseUuid) {
-          transformed.id = databaseUuid;
-        } else {
-          throw new Error(`No database UUID found for custom ID: ${transformed.id}`);
-        }
+        // For update operations with TEXT IDs, use the custom ID directly
+        // No UUID resolution needed since database uses TEXT IDs
+        // Keep the original custom ID for TEXT-based tables
       }
       
       // Remove form-specific fields that don't exist in database
@@ -332,6 +346,8 @@ export class OfflineSyncManager {
         // Convert camelCase to snake_case for log-specific fields
         if (transformed.employeeId !== undefined) {
           const employeeUuid = this.getUuidForCustomId(transformed.employeeId);
+          // Use UUID if available, otherwise use the original employeeId
+          // This allows logs to sync even if the employee hasn't been synced yet
           transformed.employee_id = employeeUuid || transformed.employeeId;
           delete transformed.employeeId;
         }
@@ -341,6 +357,8 @@ export class OfflineSyncManager {
         }
         if (transformed.equipmentId !== undefined) {
           const equipmentUuid = this.getUuidForCustomId(transformed.equipmentId);
+          // Use UUID if available, otherwise use the original equipmentId
+          // This allows logs to sync even if the equipment hasn't been synced yet
           transformed.equipment_id = equipmentUuid || transformed.equipmentId;
           delete transformed.equipmentId;
         }
@@ -354,6 +372,8 @@ export class OfflineSyncManager {
         }
         if (transformed.materialId !== undefined) {
           const materialUuid = this.getUuidForCustomId(transformed.materialId);
+          // Use UUID if available, otherwise use the original materialId
+          // This allows logs to sync even if the material hasn't been synced yet
           transformed.material_id = materialUuid || transformed.materialId;
           delete transformed.materialId;
         }
@@ -380,43 +400,28 @@ export class OfflineSyncManager {
     try {
       switch (type) {
         case 'create':
-          const { data: insertedData, error: createError } = await supabase
+          const { error: createError } = await supabase
             .from(tableName)
-            .insert(dbData)
-            .select('id')
-            .single();
+            .insert(dbData);
           if (createError) throw createError;
-          
-          // Store ID mapping between custom ID and database UUID
-          if (insertedData && insertedData.id && data.id) {
-            this.addIdMapping(data.id, insertedData.id);
-          }
           break;
           
         case 'update':
-          // Resolve custom ID to database UUID for the where clause
-          const updateUuid = this.getUuidForCustomId(entityId) || entityId;
+          // Use the custom ID directly for TEXT-based tables
           const { error: updateError } = await supabase
             .from(tableName)
             .update(dbData)
-            .eq('id', updateUuid);
+            .eq('id', entityId);
           if (updateError) throw updateError;
           break;
           
         case 'delete':
-          // Resolve custom ID to database UUID for the where clause
-          const deleteUuid = this.getUuidForCustomId(entityId) || entityId;
+          // Use the custom ID directly for TEXT-based tables
           const { error: deleteError } = await supabase
             .from(tableName)
             .delete()
-            .eq('id', deleteUuid);
+            .eq('id', entityId);
           if (deleteError) throw deleteError;
-          
-          // Remove ID mapping after successful deletion
-          if (this.idMappings.has(entityId)) {
-            this.idMappings.delete(entityId);
-            this.saveIdMappings();
-          }
           break;
       }
       
@@ -432,8 +437,99 @@ export class OfflineSyncManager {
         data: dbData
       });
       throw error;
+    };
+  }
+
+  private async syncEntityOperation(operation: SyncOperation): Promise<void> {
+    const { type, entityType, entityId, data } = operation;
+    
+    try {
+      // Import SupabaseRegistrationService dynamically to avoid circular dependencies
+      const { SupabaseRegistrationService } = await import('./supabaseRegistrationService');
+      
+      let result: { success: boolean; data?: any; error?: string };
+      
+      switch (entityType) {
+        case 'employee':
+          switch (type) {
+            case 'create':
+              result = await SupabaseRegistrationService.createEmployee(data);
+              break;
+            case 'update':
+              result = await SupabaseRegistrationService.updateEmployee(data);
+              break;
+            case 'delete':
+              result = await SupabaseRegistrationService.deleteEmployee(entityId);
+              break;
+            default:
+              throw new Error(`Unsupported operation type: ${type}`);
+          }
+          break;
+          
+        case 'equipment':
+          switch (type) {
+            case 'create':
+              result = await SupabaseRegistrationService.createEquipment(data);
+              break;
+            case 'update':
+              result = await SupabaseRegistrationService.updateEquipment(data);
+              break;
+            case 'delete':
+              result = await SupabaseRegistrationService.deleteEquipment(entityId);
+              break;
+            default:
+              throw new Error(`Unsupported operation type: ${type}`);
+          }
+          break;
+          
+        case 'material':
+          switch (type) {
+            case 'create':
+              result = await SupabaseRegistrationService.createMaterial(data);
+              break;
+            case 'update':
+              result = await SupabaseRegistrationService.updateMaterial(data);
+              break;
+            case 'delete':
+              result = await SupabaseRegistrationService.deleteMaterial(entityId);
+              break;
+            default:
+              throw new Error(`Unsupported operation type: ${type}`);
+          }
+          break;
+          
+        case 'site':
+          switch (type) {
+            case 'create':
+              result = await SupabaseRegistrationService.createSite(data);
+              break;
+            case 'update':
+              result = await SupabaseRegistrationService.updateSite(data);
+              break;
+            case 'delete':
+              result = await SupabaseRegistrationService.deleteSite(entityId);
+              break;
+            default:
+              throw new Error(`Unsupported operation type: ${type}`);
+          }
+          break;
+          
+        default:
+          throw new Error(`Unsupported entity type: ${entityType}`);
+      }
+      
+      if (!result.success) {
+        throw new Error(result.error || `Failed to sync ${entityType} ${type} operation`);
+      }
+      
+      console.log(`Successfully synced ${type} ${entityType} ${entityId} using SupabaseRegistrationService`);
+      
+    } catch (error: any) {
+      console.error(`Failed to sync ${type} ${entityType} ${entityId} using SupabaseRegistrationService:`, error);
+      throw error;
     }
   }
+
     // Conflict Resolution
   async resolveConflict(
     localData: any, 
@@ -487,6 +583,18 @@ export class OfflineSyncManager {
 
   // Error Handling
   private async handleSyncError(operation: SyncOperation, error: any): Promise<void> {
+    const isDependencyError = error.message?.includes('UUID mapping not found');
+    
+    if (isDependencyError) {
+      // For dependency errors, move the operation to the end of the queue without incrementing retry count
+      this.removeFromQueue(operation.id);
+      operation.retryCount = 0; // Reset retry count for dependency errors
+      this.syncQueue.push(operation);
+      this.savePendingOperations();
+      console.log(`Deferred operation due to missing dependency: ${operation.entityType} ${operation.entityId}`);
+      return;
+    }
+    
     operation.retryCount++;
     
     const syncError: SyncError = {
@@ -521,7 +629,8 @@ export class OfflineSyncManager {
       'Network timeout',
       'Connection failed',
       'Server temporarily unavailable',
-      'Rate limit exceeded'
+      'Rate limit exceeded',
+      'UUID mapping not found' // Dependency errors are retryable
     ];
     
     return retryableErrors.some(retryable => 
@@ -672,6 +781,12 @@ export class OfflineSyncManager {
     this.syncQueue = [];
     this.savePendingOperations();
     this.notifyStatusChange();
+  }
+
+  clearIdMappings(): void {
+    this.idMappings.clear();
+    localStorage.removeItem('qr_system_id_mappings');
+    console.log('Cleared ID mappings cache - now using TEXT IDs directly');
   }
 
   clearErrors(): void {

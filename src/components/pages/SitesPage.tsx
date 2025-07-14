@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Building, Search, Filter, Download, RefreshCw, Eye, Edit, MapPin, User } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
+import { fetchData } from '../../utils/dataProxy';
 import { Site, Employee, Equipment, Material } from '../../types';
 import { exportToCSV } from '../../utils/csvUtils';
 
@@ -29,17 +30,23 @@ const SitesPage: React.FC = () => {
     filterAndSortSites();
   }, [sites, searchTerm, provinceFilter, statusFilter, sortField, sortDirection]);
 
-  const loadData = () => {
-    const loadedSites = DataStorage.loadSites();
-    const loadedEmployees = DataStorage.loadEmployees();
-    const loadedEquipment = DataStorage.loadEquipment();
-    const loadedMaterials = DataStorage.loadMaterials();
-    
-    setSites(loadedSites);
-    setEmployees(loadedEmployees);
-    setEquipment(loadedEquipment);
-    setMaterials(loadedMaterials);
-    setLastUpdated(new Date().toLocaleString());
+  const loadData = async () => {
+    try {
+      const [loadedSites, loadedEmployees, loadedEquipment, loadedMaterials] = await Promise.all([
+        fetchData('sites'),
+        fetchData('employees'),
+        fetchData('equipment'),
+        fetchData('materials')
+      ]);
+      
+      setSites(loadedSites as Site[]);
+      setEmployees(loadedEmployees as Employee[]);
+      setEquipment(loadedEquipment as Equipment[]);
+      setMaterials(loadedMaterials as Material[]);
+      setLastUpdated(new Date().toLocaleString());
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
   };
 
   const filterAndSortSites = () => {

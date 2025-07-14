@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Filter, Download, RefreshCw, Eye, Edit, MapPin, Phone, Mail } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
+import { fetchData } from '../../utils/dataProxy';
 import { Employee, Site } from '../../types';
 import { exportToCSV } from '../../utils/csvUtils';
 
@@ -27,12 +28,19 @@ const EmployeesPage: React.FC = () => {
     filterAndSortEmployees();
   }, [employees, searchTerm, departmentFilter, statusFilter, sortField, sortDirection]);
 
-  const loadData = () => {
-    const loadedEmployees = DataStorage.loadEmployees();
-    const loadedSites = DataStorage.loadSites();
-    setEmployees(loadedEmployees);
-    setSites(loadedSites);
-    setLastUpdated(new Date().toLocaleString());
+  const loadData = async () => {
+    try {
+      const [loadedEmployees, loadedSites] = await Promise.all([
+        fetchData('employees'),
+        fetchData('sites')
+      ]);
+      
+      setEmployees(loadedEmployees as Employee[]);
+      setSites(loadedSites as Site[]);
+      setLastUpdated(new Date().toLocaleString());
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
   };
 
   const filterAndSortEmployees = () => {

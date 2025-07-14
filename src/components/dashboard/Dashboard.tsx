@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Wrench, Package, Clock, TrendingUp, AlertTriangle, Building, BarChart3, FileText, RefreshCw, Wifi, WifiOff, CheckCircle, Database } from 'lucide-react';
+import { 
+  Users, Wrench, Package, Clock, TrendingUp, AlertTriangle, 
+  Building, BarChart3, FileText, RefreshCw, Wifi, 
+  WifiOff, CheckCircle, Database 
+} from 'lucide-react';
 import StatsCard from './StatsCard';
 import ReportsPanel from '../scanner/ReportsPanel';
 import { DataStorage } from '../../utils/dataStorage';
@@ -7,52 +11,80 @@ import { SupabaseDataService } from '../../utils/supabaseDataService';
 import { AuthManager } from '../../utils/authUtils';
 import { offlineSyncManager, SyncStatus } from '../../utils/offlineSync';
 import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
+import { fetchData, getAllLogs, getCurrentDataSource } from '../../utils/dataProxy';
+import DataSourceToggle from '../common/DataSourceToggle';
+import { SampleDataInitializer } from '../../utils/sampleDataInitializer';
 
 interface DashboardProps {
   currentView?: string;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports'>('overview');
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(offlineSyncManager.getStatus());
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local');
+  
+  // State for all data entities
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
+  const [employeeLogs, setEmployeeLogs] = useState<any[]>([]);
+  const [equipmentLogs, setEquipmentLogs] = useState<any[]>([]);
+  const [materialLogs, setMaterialLogs] = useState<any[]>([]);
 
   // Load data based on current mode
   const loadData = async () => {
     setIsLoadingData(true);
     try {
-      const useSupabase = AuthManager.useSupabase();
-      setDataSource(useSupabase ? 'supabase' : 'local');
+      // Initialize sample data if no data exists (only for local storage)
+      const currentSource = getCurrentDataSource();
+      if (currentSource === 'localstorage') {
+        SampleDataInitializer.initializeSampleData();
+      }
       
-      if (useSupabase) {
-        // Load from Supabase
-        const [empData, eqData, matData, siteData, logData] = await Promise.all([
-          SupabaseDataService.getEmployees(),
-          SupabaseDataService.getEquipment(),
-          SupabaseDataService.getMaterials(),
-          SupabaseDataService.getSites(),
-          SupabaseDataService.getTimeLogs()
-        ]);
-        
-        setEmployees(empData);
-        setEquipment(eqData);
-        setMaterials(matData);
-        setSites(siteData);
-        setTimeLogs(logData);
+      // Use centralized data source
+      setDataSource(currentSource === 'supabase' ? 'supabase' : 'local');
+      
+      // Load all data through proxy
+      const [empData, eqData, matData, siteData, logData, separateLogsData] = await Promise.all([
+        fetchData('employees'),
+        fetchData('equipment'),
+        fetchData('materials'),
+        fetchData('sites'),
+        fetchData('time_logs'),
+        getAllLogs()
+      ]);
+      
+      setEmployees(empData as Employee[]);
+      setEquipment(eqData as Equipment[]);
+      setMaterials(matData as Material[]);
+      setSites(siteData as Site[]);
+      setTimeLogs(logData as TimeLog[]);
+      
+      // Load separate log tables
+      if (separateLogsData && typeof separateLogsData === 'object' && 'employeeLogs' in separateLogsData) {
+        setEmployeeLogs(separateLogsData.employeeLogs || []);
+        setEquipmentLogs(separateLogsData.equipmentLogs || []);
+        setMaterialLogs(separateLogsData.materialLogs || []);
+        console.log('Loaded logs:', {
+          employeeLogs: separateLogsData.employeeLogs?.length,
+          equipmentLogs: separateLogsData.equipmentLogs?.length,
+          materialLogs: separateLogsData.materialLogs?.length
+        });
       } else {
-        // Load from local storage
-        setEmployees(DataStorage.loadEmployees());
-        setEquipment(DataStorage.loadEquipment());
-        setMaterials(DataStorage.loadMaterials());
-        setSites(DataStorage.loadSites());
-        setTimeLogs(DataStorage.loadTimeLogs());
+        // Handle case where separateLogsData is an array (localStorage format)
+        setEmployeeLogs([]);
+        setEquipmentLogs([]);
+        setMaterialLogs([]);
+        console.log('Loaded logs:', {
+          employeeLogs: 0,
+          equipmentLogs: 0,
+          materialLogs: 0
+        });
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -61,29 +93,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
     }
   };
 
+  // Initial data loading and sync setup
   useEffect(() => {
     const handleStatusChange = (status: SyncStatus) => {
       setSyncStatus(status);
       setIsSyncing(status.isSyncing);
     };
 
+    // Listen for log updates to refresh dashboard
+    const handleLogUpdate = () => {
+      console.log('Log updated, refreshing dashboard...');
+      loadData();
+    };
+
+    // Listen for storage changes (new logs)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && (
+        e.key === 'qr_system_employee_logs' ||
+        e.key === 'qr_system_equipment_logs' ||
+        e.key === 'qr_system_material_logs'
+      )) {
+        handleLogUpdate();
+      }
+    };
+
+    // Listen for custom events
+    window.addEventListener('employeeLogCreated', handleLogUpdate);
+    window.addEventListener('equipmentLogCreated', handleLogUpdate);
+    window.addEventListener('materialLogCreated', handleLogUpdate);
+    window.addEventListener('storage', handleStorageChange);
+
     offlineSyncManager.addSyncListener(handleStatusChange);
-    
-    // Load initial data
     loadData();
 
     return () => {
+      window.removeEventListener('employeeLogCreated', handleLogUpdate);
+      window.removeEventListener('equipmentLogCreated', handleLogUpdate);
+      window.removeEventListener('materialLogCreated', handleLogUpdate);
+      window.removeEventListener('storage', handleStorageChange);
       offlineSyncManager.removeSyncListener(handleStatusChange);
     };
   }, []);
 
-  // Refresh data whenever user navigates back to dashboard
+  // Refresh data when navigating back to dashboard
   useEffect(() => {
     if (currentView === 'dashboard') {
       loadData();
     }
   }, [currentView]);
 
+  // Sync button handler
   const handleSyncNow = async () => {
     if (syncStatus.isOnline && !syncStatus.isSyncing) {
       setIsSyncing(true);
@@ -95,6 +154,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
     }
   };
 
+  // Helper functions for sync UI
   const getSyncButtonText = () => {
     if (!syncStatus.isOnline) return 'Offline';
     if (syncStatus.isSyncing) return 'Syncing...';
@@ -108,8 +168,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
     if (syncStatus.pendingOperations === 0) return CheckCircle;
     return RefreshCw;
   };
-  
-  // Data is now loaded via useEffect and stored in state
 
   // Calculate real-time statistics
   const activeEmployees = employees.filter(e => e.status === 'active').length;
@@ -125,14 +183,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
   
   const totalSites = sites.length;
   
-  // Calculate today's activities
+  // Calculate today's activities using new separate log tables
   const today = new Date().toDateString();
-  const todayLogs = timeLogs.filter(log => 
+  
+  // Combine all logs from separate tables with normalized entityId
+  const allLogs = [
+    ...employeeLogs.map(log => ({ ...log, entityType: 'employee', entityId: log.employeeId })),
+    ...equipmentLogs.map(log => ({ ...log, entityType: 'equipment', entityId: log.equipmentId })),
+    ...materialLogs.map(log => ({ ...log, entityType: 'material', entityId: log.materialId }))
+  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  
+  const todayLogs = allLogs.filter(log => 
     new Date(log.timestamp).toDateString() === today
   ).length;
 
   // Get recent logs (last 10)
-  const recentLogs = timeLogs.slice(-10).reverse();
+  const recentLogs = allLogs.slice(0, 10);
 
   // Calculate site statistics
   const siteStats = sites.map(site => {
@@ -142,16 +208,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
     
     // Get active employees (those who clocked in today)
     const activeSiteEmployees = siteEmployees.filter(emp => {
-      const recentLog = timeLogs
-        .filter(log => log.entityId === emp.id && log.entityType === 'employee')
+      const recentLog = employeeLogs
+        .filter(log => log.employeeId === emp.id)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
       return recentLog?.action === 'clock-in' && new Date(recentLog.timestamp).toDateString() === today;
     });
 
     // Get equipment in use
     const activeSiteEquipment = siteEquipment.filter(eq => {
-      const recentLog = timeLogs
-        .filter(log => log.entityId === eq.id && log.entityType === 'equipment')
+      const recentLog = equipmentLogs
+        .filter(log => log.equipmentId === eq.id)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
       return recentLog?.action === 'start-use';
     });
@@ -171,6 +237,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'reports', label: 'Reports & Analytics', icon: FileText }
   ];
+
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
@@ -196,7 +263,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
         </div>
       </div>
 
-      {/* Sync Status and Button */}
+      {/* Sync Status Panel */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -280,6 +347,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
             )}
           </div>
           <div className="flex items-center space-x-2">
+            <DataSourceToggle className="mr-4" />
             <button
               onClick={loadData}
               disabled={isLoadingData}
@@ -292,14 +360,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
               <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
               <span>Refresh Data</span>
             </button>
-            <a
-              href="/enable-supabase.html"
-              target="_blank"
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition-all duration-200"
-            >
-              <Database className="w-4 h-4" />
-              <span>Switch Mode</span>
-            </a>
           </div>
         </div>
       </div>
@@ -532,7 +592,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
 
       {activeTab === 'reports' && (
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <ReportsPanel />
+          <ReportsPanel
+            employeeLogs={employeeLogs}
+            equipmentLogs={equipmentLogs}
+            materialLogs={materialLogs}
+            timeLogs={timeLogs}
+            employees={employees}
+            equipment={equipment}
+            materials={materials}
+          />
         </div>
       )}
     </div>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Sync Errors</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .error { background: #fee; border-color: #fcc; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .info { background: #e7f3ff; border-color: #b3d9ff; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .fix-btn { background: #28a745; }
+        .fix-btn:hover { background: #1e7e34; }
+        .danger-btn { background: #dc3545; }
+        .danger-btn:hover { background: #c82333; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix Sync Errors</h1>
+        
+        <div class="section info">
+            <h3>📋 Current Status</h3>
+            <div id="status">Loading...</div>
+        </div>
+        
+        <div class="section warning">
+            <h3>⚠️ Issue Description</h3>
+            <p>Material logs are failing to sync because they reference materialId, but the sync system was requiring UUID mappings that don't exist yet.</p>
+            <p><strong>Fix Applied:</strong> Modified the sync logic to allow logs to sync using original IDs when UUID mappings aren't available.</p>
+        </div>
+        
+        <div class="section">
+            <h3>🔍 Failed Operations</h3>
+            <button onclick="checkFailedOperations()">Check Failed Operations</button>
+            <div id="failedOps"></div>
+        </div>
+        
+        <div class="section">
+            <h3>🔧 Fix Actions</h3>
+            <button class="fix-btn" onclick="clearFailedOperations()">Clear Failed Operations</button>
+            <button class="fix-btn" onclick="moveFailedToPending()">Move Failed to Pending Queue</button>
+            <button class="danger-btn" onclick="clearAllSyncData()">Clear All Sync Data (Reset)</button>
+            <div id="fixResults"></div>
+        </div>
+        
+        <div class="section">
+            <h3>🔄 Manual Sync Trigger</h3>
+            <p>After clearing failed operations, you can trigger a manual sync in the main application.</p>
+            <button onclick="triggerSync()">Trigger Sync (if available)</button>
+            <div id="syncResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Storage keys
+        const STORAGE_KEYS = {
+            failedSync: 'qr_system_failed_sync',
+            pendingSync: 'qr_system_pending_sync',
+            syncErrors: 'qr_system_sync_errors',
+            lastSync: 'qr_system_last_sync'
+        };
+
+        function updateStatus() {
+            const failed = JSON.parse(localStorage.getItem(STORAGE_KEYS.failedSync) || '[]');
+            const pending = JSON.parse(localStorage.getItem(STORAGE_KEYS.pendingSync) || '[]');
+            const errors = JSON.parse(localStorage.getItem(STORAGE_KEYS.syncErrors) || '[]');
+            const lastSync = localStorage.getItem(STORAGE_KEYS.lastSync);
+            
+            document.getElementById('status').innerHTML = `
+                <strong>Failed Operations:</strong> ${failed.length}<br>
+                <strong>Pending Operations:</strong> ${pending.length}<br>
+                <strong>Sync Errors:</strong> ${errors.length}<br>
+                <strong>Last Sync:</strong> ${lastSync ? new Date(lastSync).toLocaleString() : 'Never'}
+            `;
+        }
+
+        function checkFailedOperations() {
+            const failed = JSON.parse(localStorage.getItem(STORAGE_KEYS.failedSync) || '[]');
+            let html = `<p><strong>Total failed operations:</strong> ${failed.length}</p>`;
+            
+            if (failed.length > 0) {
+                html += '<pre>';
+                failed.forEach((item, i) => {
+                    const op = item.operation;
+                    html += `${i+1}. ${op.type} ${op.entityType} ${op.entityId}\n`;
+                    html += `   Error: ${item.error.error}\n`;
+                    html += `   Timestamp: ${new Date(op.timestamp).toLocaleString()}\n`;
+                    if (op.data && op.data.materialId) {
+                        html += `   Material ID: ${op.data.materialId}\n`;
+                    }
+                    html += '\n';
+                });
+                html += '</pre>';
+            } else {
+                html += '<p class="success">✅ No failed operations found!</p>';
+            }
+            
+            document.getElementById('failedOps').innerHTML = html;
+        }
+
+        function clearFailedOperations() {
+            localStorage.removeItem(STORAGE_KEYS.failedSync);
+            localStorage.removeItem(STORAGE_KEYS.syncErrors);
+            
+            document.getElementById('fixResults').innerHTML = `
+                <div class="success">
+                    ✅ Cleared all failed operations and sync errors.
+                    <br>The operations will be retried automatically on the next sync.
+                </div>
+            `;
+            
+            updateStatus();
+        }
+
+        function moveFailedToPending() {
+            const failed = JSON.parse(localStorage.getItem(STORAGE_KEYS.failedSync) || '[]');
+            const pending = JSON.parse(localStorage.getItem(STORAGE_KEYS.pendingSync) || '[]');
+            
+            let moved = 0;
+            failed.forEach(item => {
+                // Reset retry count and add back to pending queue
+                const operation = { ...item.operation };
+                operation.retryCount = 0;
+                pending.push(operation);
+                moved++;
+            });
+            
+            // Save updated pending queue and clear failed operations
+            localStorage.setItem(STORAGE_KEYS.pendingSync, JSON.stringify(pending));
+            localStorage.removeItem(STORAGE_KEYS.failedSync);
+            localStorage.removeItem(STORAGE_KEYS.syncErrors);
+            
+            document.getElementById('fixResults').innerHTML = `
+                <div class="success">
+                    ✅ Moved ${moved} failed operations back to pending queue.
+                    <br>They will be retried with the fixed sync logic.
+                </div>
+            `;
+            
+            updateStatus();
+        }
+
+        function clearAllSyncData() {
+            if (!confirm('Are you sure you want to clear ALL sync data? This will reset the entire sync state.')) {
+                return;
+            }
+            
+            localStorage.removeItem(STORAGE_KEYS.failedSync);
+            localStorage.removeItem(STORAGE_KEYS.pendingSync);
+            localStorage.removeItem(STORAGE_KEYS.syncErrors);
+            localStorage.removeItem('qr_system_id_mappings');
+            
+            document.getElementById('fixResults').innerHTML = `
+                <div class="warning">
+                    ⚠️ Cleared ALL sync data. The system will start fresh.
+                    <br>All local changes will need to be re-synced.
+                </div>
+            `;
+            
+            updateStatus();
+        }
+
+        function triggerSync() {
+            // Try to trigger sync if the OfflineSyncManager is available
+            if (window.offlineSyncManager) {
+                try {
+                    window.offlineSyncManager.processSyncQueue();
+                    document.getElementById('syncResults').innerHTML = `
+                        <div class="success">
+                            ✅ Sync triggered successfully!
+                        </div>
+                    `;
+                } catch (error) {
+                    document.getElementById('syncResults').innerHTML = `
+                        <div class="error">
+                            ❌ Failed to trigger sync: ${error.message}
+                        </div>
+                    `;
+                }
+            } else {
+                document.getElementById('syncResults').innerHTML = `
+                    <div class="warning">
+                        ⚠️ Sync manager not available. Please trigger sync from the main application.
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize
+        updateStatus();
+        
+        // Auto-refresh status every 5 seconds
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>

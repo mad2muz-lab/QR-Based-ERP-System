@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Search, Filter, Download, RefreshCw, Eye, Edit, AlertTriangle, TrendingDown } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
+import { fetchData } from '../../utils/dataProxy';
 import { Material, Site } from '../../types';
 import { exportToCSV } from '../../utils/csvUtils';
 
@@ -21,18 +22,47 @@ const MaterialsPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    
+    // Listen for storage changes to auto-refresh when materials are updated
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'qr_system_materials' && e.newValue !== e.oldValue) {
+        console.log('Materials updated in storage, refreshing list...');
+        loadData();
+      }
+    };
+    
+    // Listen for custom events from other components
+    const handleMaterialUpdate = () => {
+      console.log('Material update event received, refreshing list...');
+      loadData();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('materialUpdated', handleMaterialUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('materialUpdated', handleMaterialUpdate);
+    };
   }, []);
 
   useEffect(() => {
     filterAndSortMaterials();
   }, [materials, searchTerm, categoryFilter, statusFilter, sortField, sortDirection]);
 
-  const loadData = () => {
-    const loadedMaterials = DataStorage.loadMaterials();
-    const loadedSites = DataStorage.loadSites();
-    setMaterials(loadedMaterials);
-    setSites(loadedSites);
-    setLastUpdated(new Date().toLocaleString());
+  const loadData = async () => {
+    try {
+      const [loadedMaterials, loadedSites] = await Promise.all([
+        fetchData('materials'),
+        fetchData('sites')
+      ]);
+      
+      setMaterials(loadedMaterials as Material[]);
+      setSites(loadedSites as Site[]);
+      setLastUpdated(new Date().toLocaleString());
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
   };
 
   const filterAndSortMaterials = () => {

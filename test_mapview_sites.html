@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapView Sites Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ MapView Sites Diagnostic Test</h1>
+        <p>This test checks why MapView might not be showing all 4 sites.</p>
+        
+        <div class="test-section">
+            <h3>Current Data Source</h3>
+            <button onclick="checkDataSource()">Check Current Data Source</button>
+            <div id="dataSourceResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Sites Data Test</h3>
+            <button onclick="testSitesData()">Test Sites Data from Both Sources</button>
+            <div id="sitesResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Data Source Toggle</h3>
+            <button onclick="switchToSupabase()">Switch to Supabase</button>
+            <button onclick="switchToLocalStorage()">Switch to Local Storage</button>
+            <div id="toggleResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>MapView Data Loading Test</h3>
+            <button onclick="testMapViewDataLoading()">Test MapView Data Loading</button>
+            <div id="mapViewResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // Import the necessary modules
+        async function loadModules() {
+            try {
+                // These would be imported in a real React environment
+                window.testModules = {
+                    dataSourceLoaded: true
+                };
+                return true;
+            } catch (error) {
+                console.error('Error loading modules:', error);
+                return false;
+            }
+        }
+
+        async function checkDataSource() {
+            const result = document.getElementById('dataSourceResult');
+            result.innerHTML = '<p>Checking current data source...</p>';
+            
+            try {
+                // Check localStorage for current data source
+                const currentSource = localStorage.getItem('qr_system_data_source') || 'localStorage';
+                const supabaseEnabled = localStorage.getItem('qr_system_supabase_enabled') === 'true';
+                
+                result.innerHTML = `
+                    <div class="${currentSource === 'supabase' ? 'success' : 'warning'}">
+                        <h4>Data Source Status</h4>
+                        <p><strong>Current Source:</strong> ${currentSource}</p>
+                        <p><strong>Supabase Enabled:</strong> ${supabaseEnabled}</p>
+                        <p><strong>Recommendation:</strong> ${currentSource === 'supabase' ? 'Using Supabase - should show all sites' : 'Using Local Storage - check if sites are saved locally'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="error"><p>Error: ${error.message}</p></div>`;
+            }
+        }
+
+        async function testSitesData() {
+            const result = document.getElementById('sitesResult');
+            result.innerHTML = '<p>Testing sites data from both sources...</p>';
+            
+            try {
+                // Check localStorage sites
+                const localSites = JSON.parse(localStorage.getItem('qr_system_sites') || '[]');
+                
+                // Check if we can access Supabase (this would need actual implementation)
+                const supabaseAvailable = localStorage.getItem('qr_system_supabase_enabled') === 'true';
+                
+                result.innerHTML = `
+                    <div class="${localSites.length >= 4 ? 'success' : 'warning'}">
+                        <h4>Local Storage Sites</h4>
+                        <p><strong>Count:</strong> ${localSites.length} sites</p>
+                        <pre>${JSON.stringify(localSites.map(s => ({id: s.id, name: s.name, coordinates: s.coordinates})), null, 2)}</pre>
+                    </div>
+                    <div class="${supabaseAvailable ? 'success' : 'warning'}">
+                        <h4>Supabase Status</h4>
+                        <p><strong>Available:</strong> ${supabaseAvailable}</p>
+                        <p><strong>Note:</strong> ${supabaseAvailable ? 'Supabase is configured - sites should be fetched from database' : 'Supabase not configured - using local storage only'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="error"><p>Error: ${error.message}</p></div>`;
+            }
+        }
+
+        async function switchToSupabase() {
+            const result = document.getElementById('toggleResult');
+            try {
+                localStorage.setItem('qr_system_data_source', 'supabase');
+                localStorage.setItem('qr_system_supabase_enabled', 'true');
+                result.innerHTML = '<div class="success"><p>✅ Switched to Supabase data source. Refresh the main app to see changes.</p></div>';
+            } catch (error) {
+                result.innerHTML = `<div class="error"><p>Error: ${error.message}</p></div>`;
+            }
+        }
+
+        async function switchToLocalStorage() {
+            const result = document.getElementById('toggleResult');
+            try {
+                localStorage.setItem('qr_system_data_source', 'localStorage');
+                result.innerHTML = '<div class="success"><p>✅ Switched to Local Storage data source. Refresh the main app to see changes.</p></div>';
+            } catch (error) {
+                result.innerHTML = `<div class="error"><p>Error: ${error.message}</p></div>`;
+            }
+        }
+
+        async function testMapViewDataLoading() {
+            const result = document.getElementById('mapViewResult');
+            result.innerHTML = '<p>Testing MapView data loading pattern...</p>';
+            
+            try {
+                const currentSource = localStorage.getItem('qr_system_data_source') || 'localStorage';
+                const localSites = JSON.parse(localStorage.getItem('qr_system_sites') || '[]');
+                
+                let recommendations = [];
+                
+                if (currentSource === 'localStorage' && localSites.length < 4) {
+                    recommendations.push('⚠️ Local storage has fewer than 4 sites. Switch to Supabase or add more sites.');
+                }
+                
+                if (currentSource === 'supabase') {
+                    recommendations.push('✅ Using Supabase - MapView should fetch all sites from database.');
+                }
+                
+                if (localSites.some(site => !site.coordinates || !Array.isArray(site.coordinates))) {
+                    recommendations.push('⚠️ Some sites have invalid coordinates. This may affect map display.');
+                }
+                
+                result.innerHTML = `
+                    <div class="${recommendations.some(r => r.includes('⚠️')) ? 'warning' : 'success'}">
+                        <h4>MapView Data Loading Analysis</h4>
+                        <p><strong>Current Source:</strong> ${currentSource}</p>
+                        <p><strong>Local Sites Count:</strong> ${localSites.length}</p>
+                        <h5>Recommendations:</h5>
+                        <ul>
+                            ${recommendations.map(r => `<li>${r}</li>`).join('')}
+                        </ul>
+                        <p><strong>Next Steps:</strong></p>
+                        <ol>
+                            <li>Ensure you're using the correct data source</li>
+                            <li>Verify sites have valid coordinates</li>
+                            <li>Check browser console for MapView errors</li>
+                            <li>Refresh the main application after switching data sources</li>
+                        </ol>
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="error"><p>Error: ${error.message}</p></div>`;
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            loadModules();
+            checkDataSource();
+        });
+    </script>
+</body>
+</html>

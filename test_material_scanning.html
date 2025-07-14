@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Material QR Scanning Diagnostic Tool</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .result { 
+            margin: 10px 0; 
+            padding: 15px; 
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error { background: #ffebee; color: #c62828; border-left: 4px solid #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; border-left: 4px solid #2e7d32; }
+        .info { background: #e3f2fd; color: #1565c0; border-left: 4px solid #1565c0; }
+        .warning { background: #fff3e0; color: #ef6c00; border-left: 4px solid #ef6c00; }
+        
+        button { 
+            padding: 12px 20px; 
+            margin: 8px; 
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #1e7e34; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        
+        input { 
+            padding: 10px; 
+            margin: 5px; 
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .log-entry {
+            background: white;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+        }
+        
+        .material-item {
+            background: white;
+            margin: 5px 0;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .material-id {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .material-qr {
+            font-family: 'Courier New', monospace;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Material QR Scanning Diagnostic Tool</h1>
+        <p>This tool helps diagnose and fix issues with material QR code scanning and logging.</p>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="materialCount">0</div>
+                <div class="stat-label">Materials</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="materialLogCount">0</div>
+                <div class="stat-label">Material Logs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="qrIssueCount">0</div>
+                <div class="stat-label">QR Issues</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="lastLogTime">Never</div>
+                <div class="stat-label">Last Log</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔍 Quick Diagnostics</h3>
+            <button class="btn-primary" onclick="runFullDiagnostic()">Run Full Diagnostic</button>
+            <button class="btn-success" onclick="fixAllIssues()">Fix All Issues</button>
+            <button class="btn-warning" onclick="clearAllData()">Clear All Data</button>
+            <button class="btn-primary" onclick="refreshStats()">Refresh Stats</button>
+            <div id="diagnosticResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 QR Code Testing</h3>
+            <input type="text" id="qrInput" placeholder="Enter QR code (e.g., MAT-20250713-001-123456)" value="MAT-20250713-001-123456">
+            <button class="btn-primary" onclick="testQRParsing()">Test Parse QR Code</button>
+            <button class="btn-success" onclick="testBatchQRCodes()">Test Batch QR Codes</button>
+            <div id="parseResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📦 Material Management</h3>
+            <button class="btn-success" onclick="createTestMaterial()">Create Test Material</button>
+            <button class="btn-primary" onclick="viewMaterials()">View All Materials</button>
+            <button class="btn-warning" onclick="fixMaterialQRCodes()">Fix QR Code Issues</button>
+            <div id="materialResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Logging System</h3>
+            <button class="btn-success" onclick="testMaterialLogging()">Create Test Log</button>
+            <button class="btn-primary" onclick="viewMaterialLogs()">View Material Logs</button>
+            <button class="btn-warning" onclick="testLogStorage()">Test Log Storage</button>
+            <div id="logResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔄 Material Scanning Simulation</h3>
+            <button class="btn-primary" onclick="simulateMaterialScan()">Simulate Material Scan</button>
+            <button class="btn-success" onclick="simulateMaterialAction()">Simulate Material Action</button>
+            <div id="scanResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>💾 Data Export/Import</h3>
+            <button class="btn-primary" onclick="exportData()">Export All Data</button>
+            <button class="btn-warning" onclick="importSampleData()">Import Sample Data</button>
+            <div id="dataResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Storage keys used by the application
+        const STORAGE_KEYS = {
+            materials: 'qr_system_materials',
+            materialLogs: 'qr_system_material_logs',
+            employeeLogs: 'qr_system_employee_logs',
+            equipmentLogs: 'qr_system_equipment_logs'
+        };
+        
+        // Mock the parseQRCode function from the actual app
+        function parseQRCode(qrData) {
+            if (qrData.startsWith('EMP-')) {
+                return { type: 'employee', id: qrData };
+            } else if (qrData.startsWith('EQP-')) {
+                return { type: 'equipment', id: qrData };
+            } else if (qrData.startsWith('MAT-')) {
+                return { type: 'material', id: qrData };
+            } else if (qrData.startsWith('SITE-')) {
+                return { type: 'site', id: qrData };
+            }
+            return { type: null, id: qrData };
+        }
+        
+        // Generate material ID like the actual app
+        function generateMaterialId() {
+            const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const counter = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+            const timestamp = Date.now().toString().slice(-4);
+            const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+            return `MAT-${date}-${counter}-${timestamp}${random}`;
+        }
+        
+        // Utility functions
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            return `[${timestamp}] ${message}`;
+        }
+        
+        function updateResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.textContent = content;
+        }
+        
+        function appendResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.textContent += content + '\n';
+        }
+        
+        // Refresh statistics
+        function refreshStats() {
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            const materialLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]');
+            
+            document.getElementById('materialCount').textContent = materials.length;
+            document.getElementById('materialLogCount').textContent = materialLogs.length;
+            
+            // Count QR issues
+            let qrIssues = 0;
+            materials.forEach(material => {
+                if (material.qrCode && material.qrCode.startsWith('MAT-MAT-')) qrIssues++;
+                if (material.qrCode && material.qrCode !== material.id) qrIssues++;
+                if (!material.qrCode && material.id) qrIssues++;
+            });
+            document.getElementById('qrIssueCount').textContent = qrIssues;
+            
+            // Last log time
+            if (materialLogs.length > 0) {
+                const lastLog = materialLogs[materialLogs.length - 1];
+                const lastTime = new Date(lastLog.timestamp).toLocaleString();
+                document.getElementById('lastLogTime').textContent = lastTime;
+            } else {
+                document.getElementById('lastLogTime').textContent = 'Never';
+            }
+        }
+        
+        // Run full diagnostic
+        function runFullDiagnostic() {
+            let output = log('🔍 Starting Full Diagnostic...\n');
+            
+            try {
+                const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+                const materialLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]');
+                
+                output += log(`📦 Found ${materials.length} materials`);
+                output += log(`📝 Found ${materialLogs.length} material logs`);
+                
+                // Check for QR code issues
+                let doublePrefix = 0;
+                let missingQR = 0;
+                let mismatchedQR = 0;
+                
+                materials.forEach(material => {
+                    if (material.qrCode && material.qrCode.startsWith('MAT-MAT-')) {
+                        doublePrefix++;
+                    }
+                    if (!material.qrCode && material.id) {
+                        missingQR++;
+                    }
+                    if (material.qrCode && material.id && material.qrCode !== material.id) {
+                        mismatchedQR++;
+                    }
+                });
+                
+                output += log(`\n🔍 QR Code Issues:`);
+                output += log(`   Double MAT- prefix: ${doublePrefix}`);
+                output += log(`   Missing QR codes: ${missingQR}`);
+                output += log(`   Mismatched QR codes: ${mismatchedQR}`);
+                
+                // Test QR parsing
+                output += log(`\n🧪 Testing QR Code Parsing:`);
+                const testCodes = ['MAT-20250713-001-123456', 'MAT-MAT-20250713-001-123456', 'INVALID'];
+                testCodes.forEach(code => {
+                    const parsed = parseQRCode(code);
+                    output += log(`   ${code} -> ${parsed.type || 'INVALID'}`);
+                });
+                
+                // Check log structure
+                output += log(`\n📋 Log Structure Check:`);
+                const requiredFields = ['id', 'materialId', 'materialName', 'action', 'timestamp'];
+                let validLogs = 0;
+                materialLogs.forEach(logEntry => {
+                    const hasAllFields = requiredFields.every(field => logEntry.hasOwnProperty(field));
+                    if (hasAllFields) validLogs++;
+                });
+                output += log(`   Valid logs: ${validLogs}/${materialLogs.length}`);
+                
+                output += log(`\n✅ Diagnostic completed successfully!`);
+                updateResult('diagnosticResult', output, 'success');
+                
+            } catch (error) {
+                output += log(`❌ Error during diagnostic: ${error.message}`);
+                updateResult('diagnosticResult', output, 'error');
+            }
+            
+            refreshStats();
+        }
+        
+        // Fix all issues
+        function fixAllIssues() {
+            let output = log('🔧 Starting Fix Process...\n');
+            
+            try {
+                const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+                let fixedCount = 0;
+                
+                materials.forEach(material => {
+                    // Fix double MAT- prefix
+                    if (material.qrCode && material.qrCode.startsWith('MAT-MAT-')) {
+                        material.qrCode = material.qrCode.replace('MAT-MAT-', 'MAT-');
+                        fixedCount++;
+                        output += log(`Fixed double prefix: ${material.name}`);
+                    }
+                    
+                    // Add missing QR codes
+                    if (!material.qrCode && material.id && material.id.startsWith('MAT-')) {
+                        material.qrCode = material.id;
+                        fixedCount++;
+                        output += log(`Added missing QR code: ${material.name}`);
+                    }
+                    
+                    // Sync mismatched QR codes
+                    if (material.qrCode && material.id && material.qrCode !== material.id && material.id.startsWith('MAT-')) {
+                        material.qrCode = material.id;
+                        fixedCount++;
+                        output += log(`Synced QR code: ${material.name}`);
+                    }
+                });
+                
+                if (fixedCount > 0) {
+                    localStorage.setItem(STORAGE_KEYS.materials, JSON.stringify(materials));
+                    output += log(`\n✅ Fixed ${fixedCount} issues`);
+                } else {
+                    output += log(`\n✅ No issues found to fix`);
+                }
+                
+                updateResult('diagnosticResult', output, 'success');
+                
+            } catch (error) {
+                output += log(`❌ Error during fix: ${error.message}`);
+                updateResult('diagnosticResult', output, 'error');
+            }
+            
+            refreshStats();
+        }
+        
+        // Test QR parsing
+        function testQRParsing() {
+            const qrCode = document.getElementById('qrInput').value;
+            const parsed = parseQRCode(qrCode);
+            
+            let output = log(`Testing QR Code: ${qrCode}\n`);
+            
+            if (parsed.type) {
+                output += log(`✅ Successfully parsed`);
+                output += log(`   Type: ${parsed.type}`);
+                output += log(`   ID: ${parsed.id}`);
+                updateResult('parseResult', output, 'success');
+            } else {
+                output += log(`❌ Failed to parse QR code`);
+                output += log(`   Invalid format: ${qrCode}`);
+                updateResult('parseResult', output, 'error');
+            }
+        }
+        
+        // Test batch QR codes
+        function testBatchQRCodes() {
+            const testCodes = [
+                'MAT-20250713-001-123456',
+                'MAT-MAT-20250713-001-123456',
+                'EMP-20250713-001-123456',
+                'EQP-20250713-001-123456',
+                'SITE-20250713-001-123456',
+                'INVALID-CODE',
+                ''
+            ];
+            
+            let output = log('Testing Batch QR Codes:\n');
+            
+            testCodes.forEach(code => {
+                const parsed = parseQRCode(code);
+                const status = parsed.type ? '✅' : '❌';
+                output += log(`${status} ${code || '(empty)'} -> ${parsed.type || 'INVALID'}`);
+            });
+            
+            updateResult('parseResult', output, 'info');
+        }
+        
+        // Create test material
+        function createTestMaterial() {
+            const materialId = generateMaterialId();
+            const testMaterial = {
+                id: materialId,
+                qrCode: materialId,
+                name: `Test Material ${Date.now()}`,
+                type: 'Construction',
+                unit: 'pieces',
+                site: 'Test Site',
+                quantity: 100,
+                status: 'available',
+                createdAt: new Date().toISOString(),
+                lastUpdated: new Date().toISOString(),
+                notes: 'Created by diagnostic tool'
+            };
+            
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            materials.push(testMaterial);
+            localStorage.setItem(STORAGE_KEYS.materials, JSON.stringify(materials));
+            
+            let output = log('✅ Created test material:\n');
+            output += log(`   Name: ${testMaterial.name}`);
+            output += log(`   ID: ${testMaterial.id}`);
+            output += log(`   QR Code: ${testMaterial.qrCode}`);
+            output += log(`   Type: ${testMaterial.type}`);
+            
+            updateResult('materialResult', output, 'success');
+            refreshStats();
+        }
+        
+        // View materials
+        function viewMaterials() {
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            
+            if (materials.length === 0) {
+                updateResult('materialResult', log('No materials found'), 'warning');
+                return;
+            }
+            
+            let output = log(`Found ${materials.length} materials:\n`);
+            
+            materials.forEach((material, index) => {
+                output += log(`${index + 1}. ${material.name}`);
+                output += log(`   ID: ${material.id}`);
+                output += log(`   QR: ${material.qrCode || 'MISSING'}`);
+                output += log(`   Type: ${material.type}`);
+                output += log(`   Status: ${material.status}`);
+                
+                // Check for issues
+                if (material.qrCode && material.qrCode.startsWith('MAT-MAT-')) {
+                    output += log(`   ⚠️  Double MAT- prefix detected`);
+                }
+                if (!material.qrCode) {
+                    output += log(`   ⚠️  Missing QR code`);
+                }
+                if (material.qrCode && material.id && material.qrCode !== material.id) {
+                    output += log(`   ⚠️  QR code mismatch`);
+                }
+                output += log('');
+            });
+            
+            updateResult('materialResult', output, 'info');
+        }
+        
+        // Test material logging
+        function testMaterialLogging() {
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            
+            if (materials.length === 0) {
+                updateResult('logResult', log('❌ No materials found. Create a test material first.'), 'error');
+                return;
+            }
+            
+            const testMaterial = materials[0];
+            const materialLog = {
+                id: `mat-log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                materialId: testMaterial.id,
+                materialName: testMaterial.name,
+                materialType: testMaterial.type,
+                action: 'material-in',
+                quantity: Math.floor(Math.random() * 20) + 1,
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().split(' ')[0],
+                timestamp: new Date().toISOString(),
+                site: testMaterial.site || 'Test Site',
+                status: testMaterial.status || 'available',
+                notes: 'Test log entry from diagnostic tool'
+            };
+            
+            const materialLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]');
+            materialLogs.push(materialLog);
+            localStorage.setItem(STORAGE_KEYS.materialLogs, JSON.stringify(materialLogs));
+            
+            let output = log('✅ Created material log:\n');
+            output += log(`   Log ID: ${materialLog.id}`);
+            output += log(`   Material: ${materialLog.materialName}`);
+            output += log(`   Action: ${materialLog.action}`);
+            output += log(`   Quantity: ${materialLog.quantity}`);
+            output += log(`   Timestamp: ${materialLog.timestamp}`);
+            
+            updateResult('logResult', output, 'success');
+            refreshStats();
+        }
+        
+        // View material logs
+        function viewMaterialLogs() {
+            const materialLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]');
+            
+            if (materialLogs.length === 0) {
+                updateResult('logResult', log('No material logs found'), 'warning');
+                return;
+            }
+            
+            let output = log(`Found ${materialLogs.length} material logs:\n`);
+            
+            materialLogs.slice(-10).forEach((logEntry, index) => {
+                output += log(`${materialLogs.length - 9 + index}. ${logEntry.materialName}`);
+                output += log(`   Action: ${logEntry.action}`);
+                output += log(`   Quantity: ${logEntry.quantity || 'N/A'}`);
+                output += log(`   Time: ${new Date(logEntry.timestamp).toLocaleString()}`);
+                output += log(`   Site: ${logEntry.site}`);
+                output += log('');
+            });
+            
+            if (materialLogs.length > 10) {
+                output += log(`... and ${materialLogs.length - 10} more logs`);
+            }
+            
+            updateResult('logResult', output, 'info');
+        }
+        
+        // Simulate material scan
+        function simulateMaterialScan() {
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            
+            if (materials.length === 0) {
+                updateResult('scanResult', log('❌ No materials found. Create a test material first.'), 'error');
+                return;
+            }
+            
+            const testMaterial = materials[0];
+            const qrCode = testMaterial.qrCode || testMaterial.id;
+            
+            let output = log('🔄 Simulating Material Scan...\n');
+            output += log(`Scanning QR Code: ${qrCode}`);
+            
+            const parsed = parseQRCode(qrCode);
+            
+            if (parsed.type === 'material') {
+                const foundMaterial = materials.find(m => m.id === parsed.id);
+                if (foundMaterial) {
+                    output += log(`✅ Material scan successful!`);
+                    output += log(`   Found: ${foundMaterial.name}`);
+                    output += log(`   ID: ${foundMaterial.id}`);
+                    output += log(`   Type: ${foundMaterial.type}`);
+                    output += log(`   Current Quantity: ${foundMaterial.quantity}`);
+                    output += log(`   Status: ${foundMaterial.status}`);
+                    updateResult('scanResult', output, 'success');
+                } else {
+                    output += log(`❌ Material with ID ${parsed.id} not found in system`);
+                    updateResult('scanResult', output, 'error');
+                }
+            } else {
+                output += log(`❌ Invalid QR code format for material: ${qrCode}`);
+                output += log(`   Parsed type: ${parsed.type || 'null'}`);
+                updateResult('scanResult', output, 'error');
+            }
+        }
+        
+        // Simulate material action
+        function simulateMaterialAction() {
+            const materials = JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]');
+            
+            if (materials.length === 0) {
+                updateResult('scanResult', log('❌ No materials found. Create a test material first.'), 'error');
+                return;
+            }
+            
+            const testMaterial = materials[0];
+            const action = Math.random() > 0.5 ? 'material-in' : 'material-out';
+            const quantity = Math.floor(Math.random() * 10) + 1;
+            
+            let output = log('🎬 Simulating Material Action...\n');
+            output += log(`Material: ${testMaterial.name}`);
+            output += log(`Action: ${action}`);
+            output += log(`Quantity: ${quantity}`);
+            output += log(`Current Stock: ${testMaterial.quantity}`);
+            
+            // Update material quantity
+            const newQuantity = action === 'material-in' 
+                ? testMaterial.quantity + quantity 
+                : Math.max(0, testMaterial.quantity - quantity);
+            
+            testMaterial.quantity = newQuantity;
+            testMaterial.lastUpdated = new Date().toISOString();
+            
+            // Update status based on quantity
+            if (newQuantity === 0) {
+                testMaterial.status = 'out-of-stock';
+            } else if (newQuantity < 10) {
+                testMaterial.status = 'low-stock';
+            } else {
+                testMaterial.status = 'available';
+            }
+            
+            // Save updated material
+            const materialIndex = materials.findIndex(m => m.id === testMaterial.id);
+            materials[materialIndex] = testMaterial;
+            localStorage.setItem(STORAGE_KEYS.materials, JSON.stringify(materials));
+            
+            // Create log entry
+            const materialLog = {
+                id: `mat-log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                materialId: testMaterial.id,
+                materialName: testMaterial.name,
+                materialType: testMaterial.type,
+                action: action,
+                quantity: quantity,
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().split(' ')[0],
+                timestamp: new Date().toISOString(),
+                site: testMaterial.site || 'Test Site',
+                status: testMaterial.status,
+                notes: 'Simulated action from diagnostic tool'
+            };
+            
+            const materialLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]');
+            materialLogs.push(materialLog);
+            localStorage.setItem(STORAGE_KEYS.materialLogs, JSON.stringify(materialLogs));
+            
+            output += log(`\n✅ Action completed successfully!`);
+            output += log(`   New Quantity: ${newQuantity}`);
+            output += log(`   New Status: ${testMaterial.status}`);
+            output += log(`   Log Created: ${materialLog.id}`);
+            
+            updateResult('scanResult', output, 'success');
+            refreshStats();
+        }
+        
+        // Clear all data
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                Object.values(STORAGE_KEYS).forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                
+                updateResult('diagnosticResult', log('✅ All data cleared successfully'), 'warning');
+                refreshStats();
+            }
+        }
+        
+        // Export data
+        function exportData() {
+            const data = {
+                materials: JSON.parse(localStorage.getItem(STORAGE_KEYS.materials) || '[]'),
+                materialLogs: JSON.parse(localStorage.getItem(STORAGE_KEYS.materialLogs) || '[]'),
+                employeeLogs: JSON.parse(localStorage.getItem(STORAGE_KEYS.employeeLogs) || '[]'),
+                equipmentLogs: JSON.parse(localStorage.getItem(STORAGE_KEYS.equipmentLogs) || '[]'),
+                exportDate: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qr_system_data_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            updateResult('dataResult', log('✅ Data exported successfully'), 'success');
+        }
+        
+        // Import sample data
+        function importSampleData() {
+            const sampleMaterials = [
+                {
+                    id: 'MAT-20250713-001-123456',
+                    qrCode: 'MAT-20250713-001-123456',
+                    name: 'Steel Rebar 12mm',
+                    type: 'Construction',
+                    unit: 'pieces',
+                    site: 'Construction Site A',
+                    quantity: 150,
+                    status: 'available',
+                    createdAt: new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
+                },
+                {
+                    id: 'MAT-20250713-002-789012',
+                    qrCode: 'MAT-20250713-002-789012',
+                    name: 'Concrete Mix',
+                    type: 'Construction',
+                    unit: 'bags',
+                    site: 'Construction Site B',
+                    quantity: 75,
+                    status: 'available',
+                    createdAt: new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
+                }
+            ];
+            
+            localStorage.setItem(STORAGE_KEYS.materials, JSON.stringify(sampleMaterials));
+            
+            let output = log('✅ Sample data imported successfully:\n');
+            output += log(`   Imported ${sampleMaterials.length} materials`);
+            sampleMaterials.forEach(material => {
+                output += log(`   - ${material.name} (${material.id})`);
+            });
+            
+            updateResult('dataResult', output, 'success');
+            refreshStats();
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshStats();
+            updateResult('diagnosticResult', log('🔧 Material QR Scanning Diagnostic Tool Ready\nClick "Run Full Diagnostic" to start'), 'info');
+        });
+    </script>
+</body>
+</html>

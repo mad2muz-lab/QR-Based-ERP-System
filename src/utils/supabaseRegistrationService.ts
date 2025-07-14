@@ -13,14 +13,15 @@ export class SupabaseRegistrationService {
       // Transform camelCase to snake_case for Supabase
       const supabaseEmployee = {
         ...employee,
-        last_updated: employee.lastUpdated
+        last_updated: employee.lastUpdated,
+        blood_group: employee.bloodGroup,
+        created_at: employee.createdAt,
+        qr_code: employee.id // Use the full employee ID (already includes EMP- prefix)
       };
       delete (supabaseEmployee as any).lastUpdated;
-      
-      // Remove ID to let PostgreSQL generate UUID
-      if (supabaseEmployee.id && typeof supabaseEmployee.id === 'string' && supabaseEmployee.id.startsWith('EMP-')) {
-        delete (supabaseEmployee as any).id;
-      }
+      delete (supabaseEmployee as any).bloodGroup;
+      delete (supabaseEmployee as any).createdAt;
+      delete (supabaseEmployee as any).qrCode;
 
       const { data, error } = await supabase
         .from('employees')
@@ -36,7 +37,8 @@ export class SupabaseRegistrationService {
       // Transform snake_case back to camelCase
       const transformedData: Employee = {
         ...data,
-        lastUpdated: data.last_updated
+        lastUpdated: data.last_updated,
+        qrCode: data.id // QR code uses the full ID
       };
       delete (transformedData as any).last_updated;
 
@@ -56,9 +58,15 @@ export class SupabaseRegistrationService {
       // Transform camelCase to snake_case for Supabase
       const supabaseEmployee = {
         ...employee,
-        last_updated: employee.lastUpdated
+        last_updated: employee.lastUpdated,
+        blood_group: employee.bloodGroup,
+        created_at: employee.createdAt,
+        qr_code: employee.qrCode
       };
       delete (supabaseEmployee as any).lastUpdated;
+      delete (supabaseEmployee as any).bloodGroup;
+      delete (supabaseEmployee as any).createdAt;
+      delete (supabaseEmployee as any).qrCode;
 
       const { data, error } = await supabase
         .from('employees')
@@ -119,14 +127,15 @@ export class SupabaseRegistrationService {
       // Transform camelCase to snake_case for Supabase
       const supabaseEquipment = {
         ...equipment,
-        last_updated: equipment.lastUpdated
+        created_at: equipment.createdAt,
+        last_updated: equipment.lastUpdated,
+        serial_number: equipment.serialNumber,
+        qr_code: equipment.qrCode || equipment.id // Use qrCode if available, otherwise use ID
       };
+      delete (supabaseEquipment as any).createdAt;
       delete (supabaseEquipment as any).lastUpdated;
-      
-      // Remove ID to let PostgreSQL generate UUID
-      if (supabaseEquipment.id && typeof supabaseEquipment.id === 'string' && supabaseEquipment.id.startsWith('EQP-')) {
-        delete (supabaseEquipment as any).id;
-      }
+      delete (supabaseEquipment as any).serialNumber;
+      delete (supabaseEquipment as any).qrCode;
 
       const { data, error } = await supabase
         .from('equipment')
@@ -142,9 +151,14 @@ export class SupabaseRegistrationService {
       // Transform snake_case back to camelCase
       const transformedData: Equipment = {
         ...data,
-        lastUpdated: data.last_updated
+        createdAt: data.created_at,
+        lastUpdated: data.last_updated,
+        serialNumber: data.serial_number,
+        qrCode: data.id // QR code uses the full ID
       };
+      delete (transformedData as any).created_at;
       delete (transformedData as any).last_updated;
+      delete (transformedData as any).serial_number;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -162,9 +176,13 @@ export class SupabaseRegistrationService {
       // Transform camelCase to snake_case for Supabase
       const supabaseEquipment = {
         ...equipment,
-        last_updated: equipment.lastUpdated
+        created_at: equipment.createdAt,
+        last_updated: equipment.lastUpdated,
+        serial_number: equipment.serialNumber
       };
+      delete (supabaseEquipment as any).createdAt;
       delete (supabaseEquipment as any).lastUpdated;
+      delete (supabaseEquipment as any).serialNumber;
 
       const { data, error } = await supabase
         .from('equipment')
@@ -181,9 +199,13 @@ export class SupabaseRegistrationService {
       // Transform snake_case back to camelCase
       const transformedData: Equipment = {
         ...data,
-        lastUpdated: data.last_updated
+        createdAt: data.created_at,
+        lastUpdated: data.last_updated,
+        serialNumber: data.serial_number
       };
+      delete (transformedData as any).created_at;
       delete (transformedData as any).last_updated;
+      delete (transformedData as any).serial_number;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -225,14 +247,16 @@ export class SupabaseRegistrationService {
       // Transform camelCase to snake_case for Supabase
       const supabaseMaterial = {
         ...material,
-        last_updated: material.lastUpdated
+        last_updated: material.lastUpdated,
+        created_at: material.createdAt,
+        access_level: (material as any).accessLevel || 'basic',
+        qr_code: material.qrCode || material.id, // Use qrCode if available, otherwise use ID
+        use: material.use || material.type // Handle 'use' field
       };
       delete (supabaseMaterial as any).lastUpdated;
-      
-      // Remove ID to let PostgreSQL generate UUID
-      if (supabaseMaterial.id && typeof supabaseMaterial.id === 'string' && supabaseMaterial.id.startsWith('MAT-')) {
-        delete (supabaseMaterial as any).id;
-      }
+      delete (supabaseMaterial as any).createdAt;
+      delete (supabaseMaterial as any).qrCode;
+      delete (supabaseMaterial as any).accessLevel;
 
       const { data, error } = await supabase
         .from('materials')
@@ -245,12 +269,22 @@ export class SupabaseRegistrationService {
         return { success: false, error: error.message };
       }
 
-      // Transform snake_case back to camelCase
+      // Transform snake_case back to camelCase and use the QR code as-is
       const transformedData: Material = {
         ...data,
-        lastUpdated: data.last_updated
-      };
+        lastUpdated: data.last_updated,
+        qrCode: data.qr_code, // Use the QR code as stored in database
+        accessLevel: data.access_level || 'basic'
+      } as any;
       delete (transformedData as any).last_updated;
+      delete (transformedData as any).access_level;
+      delete (transformedData as any).qr_code;
+      
+      // Update the QR code in the database with the actual ID
+      await supabase
+        .from('materials')
+        .update({ qr_code: `MAT-${data.id}` })
+        .eq('id', data.id);
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -268,9 +302,16 @@ export class SupabaseRegistrationService {
       // Transform camelCase to snake_case for Supabase
       const supabaseMaterial = {
         ...material,
-        last_updated: material.lastUpdated
+        last_updated: material.lastUpdated,
+        access_level: (material as any).accessLevel || 'basic',
+        qr_code: material.qrCode,
+        use: material.use || material.type // Handle 'use' field
       };
       delete (supabaseMaterial as any).lastUpdated;
+      delete (supabaseMaterial as any).accessLevel;
+      delete (supabaseMaterial as any).qrCode;
+      delete (supabaseMaterial as any).createdAt;
+      delete (supabaseMaterial as any).id;
 
       const { data, error } = await supabase
         .from('materials')
@@ -287,9 +328,14 @@ export class SupabaseRegistrationService {
       // Transform snake_case back to camelCase
       const transformedData: Material = {
         ...data,
-        lastUpdated: data.last_updated
-      };
+        lastUpdated: data.last_updated,
+        accessLevel: data.access_level || 'basic',
+        qrCode: data.qr_code
+      } as any;
       delete (transformedData as any).last_updated;
+      delete (transformedData as any).access_level;
+      delete (transformedData as any).qr_code;
+      
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -333,14 +379,11 @@ export class SupabaseRegistrationService {
         ...site,
         last_updated: site.lastUpdated,
         // Transform coordinates array to PostgreSQL POINT format
-        coordinates: `(${site.coordinates[0]},${site.coordinates[1]})`
+        coordinates: `(${site.coordinates[0]},${site.coordinates[1]})`,
+        qr_code: site.id // Use the site ID as QR code
       };
       delete (supabaseSite as any).lastUpdated;
-      
-      // Remove ID to let PostgreSQL generate UUID
-      if (supabaseSite.id && typeof supabaseSite.id === 'string' && supabaseSite.id.startsWith('SITE-')) {
-        delete (supabaseSite as any).id;
-      }
+      delete (supabaseSite as any).qrCode;
 
       const { data, error } = await supabase
         .from('sites')
@@ -366,9 +409,16 @@ export class SupabaseRegistrationService {
       const transformedData: Site = {
         ...data,
         coordinates,
-        lastUpdated: data.last_updated
+        lastUpdated: data.last_updated,
+        qrCode: `SITE-${data.id}` // Update QR code with actual database-generated ID
       };
       delete (transformedData as any).last_updated;
+      
+      // Update the QR code in the database with the actual ID
+      await supabase
+        .from('sites')
+        .update({ qr_code: `SITE-${data.id}` })
+        .eq('id', data.id);
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -387,10 +437,12 @@ export class SupabaseRegistrationService {
       const supabaseSite = {
         ...site,
         last_updated: site.lastUpdated,
+        qr_code: site.qrCode,
         // Transform coordinates array to PostgreSQL POINT format
         coordinates: `(${site.coordinates[0]},${site.coordinates[1]})`
       };
       delete (supabaseSite as any).lastUpdated;
+      delete (supabaseSite as any).qrCode;
 
       const { data, error } = await supabase
         .from('sites')
@@ -417,9 +469,11 @@ export class SupabaseRegistrationService {
       const transformedData: Site = {
         ...data,
         coordinates,
-        lastUpdated: data.last_updated
+        lastUpdated: data.last_updated,
+        qrCode: data.qr_code
       };
       delete (transformedData as any).last_updated;
+      delete (transformedData as any).qr_code;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -448,6 +502,95 @@ export class SupabaseRegistrationService {
     } catch (error) {
       console.error('Error deleting site:', error);
       return { success: false, error: 'Failed to delete site' };
+    }
+  }
+
+  // Bulk Operations
+  static async bulkCreateEmployees(employees: Employee[]): Promise<{ success: boolean; data?: Employee[]; error?: string; errors?: string[] }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      const supabaseEmployees = employees.map(employee => ({
+        ...employee,
+        last_updated: employee.lastUpdated,
+        blood_group: employee.bloodGroup,
+        created_at: employee.createdAt,
+        qr_code: `EMP-${employee.id}` // Use the actual UUID for QR code
+      }));
+
+      // Clean up camelCase properties
+      supabaseEmployees.forEach(emp => {
+        delete (emp as any).lastUpdated;
+        delete (emp as any).bloodGroup;
+        delete (emp as any).createdAt;
+        delete (emp as any).qrCode;
+      });
+
+      const { data, error } = await supabase
+        .from('employees')
+        .insert(supabaseEmployees)
+        .select();
+
+      if (error) {
+        console.error('Error bulk creating employees in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      // Transform snake_case back to camelCase
+      const transformedData: Employee[] = (data || []).map(employee => ({
+        ...employee,
+        lastUpdated: employee.last_updated,
+        qrCode: `EMP-${employee.id}`
+      }));
+
+      return { success: true, data: transformedData };
+    } catch (error) {
+      console.error('Error bulk creating employees:', error);
+      return { success: false, error: 'Failed to bulk create employees' };
+    }
+  }
+
+  static async bulkCreateEquipment(equipment: Equipment[]): Promise<{ success: boolean; data?: Equipment[]; error?: string; errors?: string[] }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      const supabaseEquipment = equipment.map(eq => ({
+        ...eq,
+        last_updated: eq.lastUpdated,
+        qr_code: `EQP-${eq.id}` // Use the actual UUID for QR code
+      }));
+
+      // Clean up camelCase properties
+      supabaseEquipment.forEach(eq => {
+        delete (eq as any).lastUpdated;
+        delete (eq as any).qrCode;
+      });
+
+      const { data, error } = await supabase
+        .from('equipment')
+        .insert(supabaseEquipment)
+        .select();
+
+      if (error) {
+        console.error('Error bulk creating equipment in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      // Transform snake_case back to camelCase
+      const transformedData: Equipment[] = (data || []).map(eq => ({
+        ...eq,
+        lastUpdated: eq.last_updated,
+        qrCode: `EQP-${eq.id}`
+      }));
+
+      return { success: true, data: transformedData };
+    } catch (error) {
+      console.error('Error bulk creating equipment:', error);
+      return { success: false, error: 'Failed to bulk create equipment' };
     }
   }
 }

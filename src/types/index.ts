@@ -45,6 +45,7 @@ export interface Material {
   createdAt: string;
   lastUpdated: string;
   use?: string;
+  accessLevel?: 'basic' | 'restricted' | 'admin';
 }
 
 export interface Site {
@@ -56,6 +57,7 @@ export interface Site {
   manager: string;
   lastUpdated: string;
   type?: string;
+  qrCode: string;
 }
 
 export interface TimeLog {
