@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Edit, Printer, MapPin, User, Wrench, Package, Building, Phone, Mail, Calendar } from 'lucide-react';
 import { generateQRCode } from '../../utils/qrCodeUtils';
 import { DataStorage } from '../../utils/dataStorage';
-import { generateEmployeeIDCard } from '../../utils/employeeIDCardGenerator';
+import { generateEmployeeIDCard, downloadEmployeeIDCard } from '../../utils/employeeIDCardGenerator';
 import { generateIDCardPDF } from '../../utils/pdfUtils';
 
 interface ProfileViewProps {
@@ -41,19 +41,19 @@ const ProfileView: React.FC<ProfileViewProps> = ({ entity, entityType, onClose, 
 
   const handlePrint = () => {
     if (entityType === 'employee') {
-      generateEmployeeIDCard(entity, qrCodeImage);
+      generateEmployeeIDCard(entity, qrCodeImage, entity.companyId || '');
     } else {
       generateIDCardPDF(entity, qrCodeImage, entityType);
     }
   };
 
   const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = qrCodeImage;
-    link.download = `${entityType}-${entity.id}-qrcode.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (entityType === 'employee') {
+      downloadEmployeeIDCard(entity, qrCodeImage, entity.companyId || '');
+    } else {
+      // fallback to print for other types
+      generateIDCardPDF(entity, qrCodeImage, entityType);
+    }
   };
 
   const getSiteName = (siteId: string) => {
@@ -211,6 +211,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ entity, entityType, onClose, 
                           <h4 className="text-sm font-medium text-gray-500 mb-1">Type</h4>
                           <p className="text-gray-900">{entity.type || 'Not specified'}</p>
                         </div>
+                        {entity.oldId && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500 mb-1">Legacy ID</h4>
+                            <p className="text-gray-900 font-mono bg-yellow-100 px-2 py-1 rounded text-yellow-800">{entity.oldId}</p>
+                          </div>
+                        )}
                         {entity.bloodGroup && (
                           <div>
                             <h4 className="text-sm font-medium text-gray-500 mb-1">Blood Group</h4>
@@ -262,6 +268,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ entity, entityType, onClose, 
                           <h4 className="text-sm font-medium text-gray-500 mb-1">Status</h4>
                           <p className="text-gray-900">{entity.status}</p>
                         </div>
+                        {entity.oldId && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500 mb-1">Legacy ID</h4>
+                            <p className="text-gray-900 font-mono bg-yellow-100 px-2 py-1 rounded text-yellow-800">{entity.oldId}</p>
+                          </div>
+                        )}
                         {entity.serialNumber && (
                           <div>
                             <h4 className="text-sm font-medium text-gray-500 mb-1">Serial Number</h4>
@@ -310,6 +322,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ entity, entityType, onClose, 
                           <h4 className="text-sm font-medium text-gray-500 mb-1">Status</h4>
                           <p className="text-gray-900">{entity.status}</p>
                         </div>
+                        {entity.oldId && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500 mb-1">Legacy ID</h4>
+                            <p className="text-gray-900 font-mono bg-yellow-100 px-2 py-1 rounded text-yellow-800">{entity.oldId}</p>
+                          </div>
+                        )}
                       </div>
 
                       {entity.use && (

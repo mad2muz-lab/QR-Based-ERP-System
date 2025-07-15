@@ -588,13 +588,13 @@ const MapView: React.FC = () => {
           </div>
         </div>
 
-        <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6">
+        <div className="relative rounded-xl p-2">
           <div 
             ref={mapContainerRef}
-            className="relative bg-white rounded-lg p-4 shadow-inner overflow-hidden"
+            className="relative bg-white rounded-lg p-2 overflow-hidden"
             onClick={handleMapClick}
           >
-            <svg viewBox="0 0 800 600" className="w-full h-auto max-h-96">
+            <svg viewBox="0 0 800 600" className="w-full h-auto max-h-[500px]">
               {/* Render KSA provinces */}
               {ksaGeoData.features.map((feature: any, index: number) => {
                 const provinceName = feature.properties.name_en;

@@ -148,7 +148,7 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(item => {
-        const searchableFields = ['name', 'id', 'type', 'department', 'position', 'model', 'province', 'manager'];
+        const searchableFields = ['name', 'id', 'oldId', 'type', 'department', 'position', 'model', 'province', 'manager'];
         return searchableFields.some(field => 
           item[field] && item[field].toString().toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -322,6 +322,12 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
             </th>
             <th 
               className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('oldId')}
+            >
+              Legacy ID {sortField === 'oldId' && (sortDirection === 'asc' ? '↑' : '↓')}
+            </th>
+            <th 
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
               onClick={() => handleSort('name')}
             >
               Name {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -376,6 +382,12 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
             </th>
             <th 
               className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('oldId')}
+            >
+              Legacy ID {sortField === 'oldId' && (sortDirection === 'asc' ? '↑' : '↓')}
+            </th>
+            <th 
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
               onClick={() => handleSort('name')}
             >
               Name {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -427,6 +439,12 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
               onClick={() => handleSort('id')}
             >
               ID {sortField === 'id' && (sortDirection === 'asc' ? '↑' : '↓')}
+            </th>
+            <th 
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort('oldId')}
+            >
+              Legacy ID {sortField === 'oldId' && (sortDirection === 'asc' ? '↑' : '↓')}
             </th>
             <th 
               className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -574,6 +592,7 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
               </td>
             )}
             <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.id}</td>
+            <td className="px-4 py-3 text-sm text-gray-500">{item.oldId}</td>
             <td className="px-4 py-3">
               <div className="flex items-center">
                 {item.photo ? (
@@ -647,6 +666,7 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
               </td>
             )}
             <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.id}</td>
+            <td className="px-4 py-3 text-sm text-gray-500">{item.oldId}</td>
             <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
             <td className="px-4 py-3 text-sm text-gray-500">{item.type}</td>
             <td className="px-4 py-3 text-sm text-gray-500">{item.model}</td>
@@ -709,6 +729,7 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
               </td>
             )}
             <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.id}</td>
+            <td className="px-4 py-3 text-sm text-gray-500">{item.oldId}</td>
             <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
             <td className="px-4 py-3 text-sm text-gray-500">{item.type}</td>
             <td className="px-4 py-3 text-sm text-gray-500">{item.quantity} {item.unit}</td>

@@ -270,11 +270,46 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({
       logs: filterLogs()
     };
 
-    DataStorage.downloadReportCSV(data, `${reportType}-${entityType}-report-${selectedDate}.csv`);
+    // Use the downloadReportAsCSV method directly to avoid localStorage dependency
+    DataStorage.downloadReportAsCSV(data, `${reportType}-${entityType}-report-${selectedDate}.csv`);
   };
 
   const downloadLogs = () => {
-    DataStorage.downloadLogsCSV();
+    // Use the actual logs data being displayed instead of DataStorage
+    const allLogsForExport = [
+      ...employeeLogs.map(log => ({
+        'Log ID': log.id,
+        'Entity ID': log.employeeId,
+        'Entity Type': 'employee',
+        'Action': log.action,
+        'Timestamp': new Date(log.timestamp).toLocaleString(),
+        'Site': log.site,
+        'Notes': log.notes || '',
+        'Location': log.location || ''
+      })),
+      ...equipmentLogs.map(log => ({
+        'Log ID': log.id,
+        'Entity ID': log.equipmentId,
+        'Entity Type': 'equipment',
+        'Action': log.action,
+        'Timestamp': new Date(log.timestamp).toLocaleString(),
+        'Site': log.site,
+        'Notes': log.notes || '',
+        'Status': log.status || ''
+      })),
+      ...materialLogs.map(log => ({
+        'Log ID': log.id,
+        'Entity ID': log.materialId,
+        'Entity Type': 'material',
+        'Action': log.action,
+        'Timestamp': new Date(log.timestamp).toLocaleString(),
+        'Site': log.site,
+        'Notes': log.notes || '',
+        'Quantity': log.quantity || ''
+      }))
+    ];
+    
+    DataStorage.downloadCSV(allLogsForExport, 'Logs.csv');
   };
   return (
     <div className="space-y-6">
@@ -517,7 +552,12 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({
                 log.entityType === 'equipment' ? equipment.find(e => e.id === log.entityId) :
                 log.entityType === 'material' ? materials.find(m => m.id === log.entityId) :
                 null;
-
+              const entityName =
+                entity?.name ||
+                log.employeeName || log.employee_name ||
+                log.equipmentName || log.equipment_name ||
+                log.materialName || log.material_name ||
+                log.entityId;
               return (
                 <div key={log.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <div className={`w-3 h-3 rounded-full ${
@@ -525,7 +565,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({
                   }`} />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">
-                      {entity?.name || log.entityId} - {log.action.replace('-', ' ').toUpperCase()}
+                      {log.action.replace('-', ' ').toUpperCase()} • {entityName}
                     </p>
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
                       <span>{format(parseISO(String(log.timestamp)), 'MMM dd, yyyy HH:mm')}</span>

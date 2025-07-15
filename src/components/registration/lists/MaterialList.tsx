@@ -66,6 +66,9 @@ const MaterialList: React.FC<MaterialListProps> = ({ materials, sites, onEdit, o
               <div><span className="font-medium">Quantity:</span> {material.quantity} {material.unit}</div>
               <div><span className="font-medium">Site:</span> {getSiteName(material.site)}</div>
               <div><span className="font-medium">ID:</span> <code className="bg-gray-100 px-1 rounded">{material.id}</code></div>
+              {material.oldId && (
+                <div><span className="font-medium">Legacy ID:</span> <code className="bg-yellow-100 px-1 rounded text-yellow-800">{material.oldId}</code></div>
+              )}
               {material.use && (
                 <div><span className="font-medium">Use:</span> {material.use}</div>
               )}

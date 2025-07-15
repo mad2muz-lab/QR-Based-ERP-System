@@ -33,6 +33,8 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const currentUser = AuthManager.getCurrentUser();
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'developer';
+  // Allow custom locations for all users
+  const canAddCustomLocation = true;
 
   // Filter cities based on search term
   useEffect(() => {
@@ -168,7 +170,7 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
                   <div className="px-4 py-8 text-center text-gray-500">
                     <MapPin className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p>No cities found matching "{searchTerm}"</p>
-                    {isAdmin && (
+                    {canAddCustomLocation && (
                       <button
                         onClick={() => setShowCustomForm(true)}
                         className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
@@ -180,8 +182,8 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
                 )}
               </div>
 
-              {/* Add Custom Location Button for Admins */}
-              {isAdmin && (
+              {/* Add Custom Location Button for All Users */}
+              {canAddCustomLocation && (
                 <div className="p-3 border-t border-gray-200 bg-gray-50">
                   <button
                     onClick={() => setShowCustomForm(true)}

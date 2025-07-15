@@ -49,7 +49,8 @@ export class LogManager {
       time: now.toTimeString().split(' ')[0], // HH:MM:SS format
       timestamp: now.toISOString(),
       notes,
-      location
+      location,
+      oldId: employee.oldId // Include old ID for audit trail
     };
 
     // Use OfflineDataManager to handle local storage and sync queuing
@@ -86,7 +87,8 @@ export class LogManager {
       site,
       status,
       notes,
-      location
+      location,
+      oldId: equipment.oldId // Include old ID for audit trail
     };
 
     const operationId = await OfflineDataManager.createEquipmentLog(equipmentLog);
@@ -110,21 +112,27 @@ export class LogManager {
     notes?: string,
     location?: [number, number]
   ): Promise<string> {
+    // Ensure quantity is a number
+    const numericQuantity = Number(quantity);
+    if (isNaN(numericQuantity) || numericQuantity <= 0) {
+      throw new Error('Invalid quantity: must be a positive number');
+    }
     const now = new Date();
     const materialLog: MaterialLog = {
-      id: `mat-log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      materialId: material.id,
-      materialName: material.name,
-      materialType: material.type,
-      action,
-      quantity,
+        id: `mat-log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        materialId: material.id,
+        materialName: material.name,
+        materialType: material.type,
+        action,
+        quantity: numericQuantity,
       date: now.toISOString().split('T')[0],
       time: now.toTimeString().split(' ')[0],
       timestamp: now.toISOString(),
       site,
       status,
       notes,
-      location
+      location,
+      oldId: material.oldId // Include old ID for audit trail
     };
 
     // Create the material log first
@@ -140,12 +148,13 @@ export class LogManager {
       if (materialIndex !== -1) {
         // Update material quantity based on action
         const currentMaterial = materials[materialIndex];
-        let newQuantity = currentMaterial.quantity || 0;
+        // Ensure quantity is treated as a number (localStorage might store it as string)
+        let newQuantity = parseInt(String(currentMaterial.quantity || 0), 10);
         
         if (action === 'material-in') {
-          newQuantity += quantity;
+          newQuantity += numericQuantity;
         } else {
-          newQuantity = Math.max(0, newQuantity - quantity);
+          newQuantity = Math.max(0, newQuantity - numericQuantity);
         }
         
         // Update status based on new quantity
@@ -167,7 +176,7 @@ export class LogManager {
         // Update material using OfflineDataManager to ensure Supabase sync
         await OfflineDataManager.updateMaterial(updatedMaterial);
         
-        console.log(`Material quantity updated: ${material.name} - ${action} (${quantity}) - New quantity: ${newQuantity}`);
+        console.log(`Material quantity updated: ${material.name} - ${action} (${numericQuantity}) - New quantity: ${newQuantity}`);
       } else {
         console.warn(`Material not found for quantity update: ${material.id}`);
       }
@@ -181,7 +190,7 @@ export class LogManager {
       detail: { materialLog, action }
     }));
     
-    console.log(`Material log created: ${material.name} - ${action} (${quantity}) at ${site}`);
+    console.log(`Material log created: ${material.name} - ${action} (${numericQuantity}) at ${site}`);
     return operationId;
   }
 

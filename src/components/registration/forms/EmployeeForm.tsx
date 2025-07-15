@@ -1,19 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { User, Camera, Trash2, AlertCircle } from 'lucide-react';
+import { User, Camera, Trash2, AlertCircle, X } from 'lucide-react';
 import { Employee } from '../../../types';
 import { employeeTypes, EmployeeTypeManager } from '../../../data/materialTypes';
 import { DataStorage } from '../../../utils/dataStorage';
 import { AuthManager } from '../../../utils/authUtils';
 import PhotoCapture from '../PhotoCapture';
 import { generateQRCode } from '../../../utils/qrCodeUtils';
+import { SupabaseRegistrationService } from '../../../utils/supabaseRegistrationService';
 
 interface EmployeeFormProps {
   sites: any[];
   onSubmit: (employee: Omit<Employee, 'createdAt' | 'qrCode'>, isEdit?: boolean) => void;
   initialData?: Employee | null;
+  onClose?: () => void;
 }
 
-const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialData }) => {
+interface Company {
+  id: string;
+  name: string;
+  logourl?: string;
+}
+
+const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialData, onClose }) => {
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -26,7 +34,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
     status: 'active' as 'active' | 'inactive',
     photo: '',
     email: '',
-    phone: ''
+    phone: '',
+    oldId: '',
+    companyId: ''
   });
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showCustomType, setShowCustomType] = useState(false);
@@ -37,6 +47,8 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [qrCodeImage, setQrCodeImage] = useState<string>('');
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const isEditMode = !!initialData;
 
@@ -54,7 +66,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
         status: initialData.status || 'active',
         photo: initialData.photo || '',
         email: initialData.email || '',
-        phone: initialData.phone || ''
+        phone: initialData.phone || '',
+        oldId: initialData.oldId || '',
+        companyId: initialData.companyId || ''
       });
       
       const allTypes = EmployeeTypeManager.getAllEmployeeTypesWithCodes();
@@ -77,7 +91,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
         status: 'active',
         photo: '',
         email: '',
-        phone: ''
+        phone: '',
+        oldId: '',
+        companyId: ''
       });
       setShowCustomType(false);
       setIdError('');
@@ -128,6 +144,11 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
   useEffect(() => {
     loadDepartments();
     setCurrentUser(AuthManager.getCurrentUser());
+    // Fetch companies from Supabase
+    SupabaseRegistrationService.getCompanies().then(result => {
+      if (result.success && result.data) setCompanies(result.data);
+      else setCompanies([]);
+    });
   }, []);
 
   const loadDepartments = () => {
@@ -177,28 +198,19 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
       const { customType, ...finalData } = employeeData;
       
       onSubmit(finalData, isEditMode);
-      
-      // Reset form for next employee
-      setFormData({
-        id: '',
-        name: '',
-        type: '',
-        customType: '',
-        department: '',
-        position: '',
-        bloodGroup: '',
-        site: '',
-        status: 'active',
-        photo: '',
-        email: '',
-        phone: ''
-      });
-      setShowCustomType(false);
-      setIdError('');
+      setMessage({ type: 'success', text: isEditMode ? 'Employee updated successfully!' : 'Employee added successfully!' });
+      // Only reset form if not editing
+      if (!isEditMode) {
+        setFormData({
+          id: '', name: '', type: '', customType: '', department: '', position: '', bloodGroup: '', site: '', status: 'active', photo: '', email: '', phone: '', oldId: '', companyId: ''
+        });
+        setShowCustomType(false);
+        setIdError('');
+      }
       
     } catch (error) {
-      console.error('Error submitting employee:', error);
-      alert('Failed to register employee. Please try again.');
+      setMessage({ type: 'error', text: 'Failed to register employee. Please try again.' });
+      setIsSubmitting(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -235,16 +247,29 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
 
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6 w-full max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto px-2 sm:px-6 md:px-8">
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-0 right-0 mt-2 mr-2 text-gray-400 hover:text-gray-700"
+          aria-label="Close"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      )}
+      {message && (
+        <div className={`mb-4 px-4 py-2 rounded text-sm font-medium ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{message.text}</div>
+      )}
       <div className="flex items-center space-x-3 mb-6">
         <User className="w-6 h-6 text-blue-600" />
         <h3 className="text-lg font-semibold text-gray-900">Register New Employee</h3>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Employee ID Input */}
-          <div className="md:col-span-2">
+          <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Employee ID *
             </label>
@@ -252,7 +277,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
               type="text"
               value={formData.id}
               onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base ${
                 idError ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter Employee ID (e.g., EMP-001)"
@@ -281,12 +306,26 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Old Employee ID (Optional)</label>
+            <input
+              type="text"
+              value={formData.oldId}
+              onChange={(e) => setFormData({ ...formData, oldId: e.target.value })}
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+              placeholder="Enter legacy employee ID from previous system"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Enter the employee ID from your previous system for backward compatibility and audit purposes.
+            </div>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Employee Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               required
             />
           </div>
@@ -300,7 +339,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
                   value={formData.customType}
                   onChange={(e) => setFormData({ ...formData, customType: e.target.value })}
                   placeholder="Enter custom employee type"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   required
                 />
                 <button
@@ -308,14 +347,14 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
                   onClick={() => setShowCustomType(false)}
                   className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
                 >
-                 总裁
+                  Cancel
                 </button>
               </div>
             ) : (
               <select
                 value={formData.type}
                 onChange={(e) => handleTypeChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 required
               >
                 <option value="">Select employee type</option>
@@ -334,7 +373,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
                 <select
                   value="other"
                   onChange={(e) => handleDepartmentChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 >
                   <option value="other">Other</option>
                   {departments.map(dept => (
@@ -351,7 +390,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
               <select
                 value={formData.department}
                 onChange={(e) => handleDepartmentChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 required
               >
                 <option value="">Select department</option>
@@ -369,7 +408,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
               type="text"
               value={formData.position}
               onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               required
             />
           </div>
@@ -379,7 +418,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
             <select
               value={formData.bloodGroup}
               onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             >
               <option value="">Select blood group</option>
               <option value="A+">A+</option>
@@ -399,7 +438,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="employee@company.com"
             />
           </div>
@@ -410,9 +449,24 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="000-000-0000"
             />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Company</label>
+            <select
+              value={formData.companyId}
+              onChange={e => setFormData({ ...formData, companyId: e.target.value })}
+              className="border px-3 py-3 rounded w-full text-base"
+              required
+            >
+              <option value="">Select company</option>
+              {companies.map((company: Company) => (
+                <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -420,7 +474,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
             <select
               value={formData.site}
               onChange={(e) => setFormData({ ...formData, site: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               required
             >
               <option value="">Select site</option>
@@ -435,7 +489,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -451,7 +505,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
                 <img
                   src={formData.photo}
                   alt="Employee"
-                  className="w-20 h-20 object-cover rounded-lg border-2 border-gray-300"
+                  className="w-24 h-24 object-cover rounded-lg border-2 border-gray-300"
                 />
                 <button
                   type="button"
@@ -472,11 +526,11 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
                 </button>
               </div>
             </div>
-          ) : (
+          ) :
             <button
               type="button"
               onClick={() => setShowPhotoCapture(true)}
-              className="flex items-center space-x-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors w-full h-32 justify-center"
+              className="flex items-center space-x-2 px-4 py-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors w-full h-32 justify-center"
             >
               <div className="text-center">
                 <Camera className="w-10 h-10 text-gray-400 mx-auto mb-2" />
@@ -484,13 +538,13 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
                 <span className="text-xs text-gray-500 block mt-1">Click to capture or upload</span>
               </div>
             </button>
-          )}
+          }
         </div>
 
         <button
           type="submit"
           disabled={!!idError || (isCheckingId && !isEditMode) || !formData.id.trim() || isSubmitting}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-lg font-semibold mt-2"
         >
           {isSubmitting ? (isEditMode ? 'Updating...' : 'Registering...') : (isEditMode ? 'Update Employee' : 'Register Employee')}
         </button>
@@ -501,7 +555,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
           onPhotoCapture={handlePhotoCapture}
           onClose={() => setShowPhotoCapture(false)}
         />
-        )}
+      )}
     </div>
   );
 };

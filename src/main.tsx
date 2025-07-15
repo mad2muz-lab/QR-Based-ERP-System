@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { offlineSyncManager } from './utils/offlineSync';
+import './utils/materialSyncFix';
 
 // Make offlineSyncManager globally accessible for debugging
 if (typeof window !== 'undefined') {

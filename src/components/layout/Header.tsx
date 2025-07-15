@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Activity, MapPin, QrCode, Users, Shield, LogOut, User, Wrench, Package, Building, Database } from 'lucide-react';
 import { AuthManager } from '../../utils/authUtils';
 
@@ -11,6 +11,21 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser, onLogout, onDatabaseTest }) => {
+  // Company info state
+  const [company, setCompany] = useState<{ name: string; logoUrl?: string } | null>(null);
+
+  useEffect(() => {
+    // Try to get company info from localStorage (used by CompanyManager)
+    try {
+      const companies = JSON.parse(localStorage.getItem('companies') || '[]');
+      if (companies.length > 0) {
+        setCompany({ name: companies[0].name, logoUrl: companies[0].logoUrl });
+      }
+    } catch {
+      setCompany(null);
+    }
+  }, []);
+
   // Define navigation items based on user role
   const getNavItems = () => {
     const items = [
@@ -43,11 +58,16 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser,
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-800 to-blue-600 rounded-lg flex items-center justify-center">
-              <QrCode className="w-6 h-6 text-white" />
+            {/* Company Logo or fallback icon, larger and zoomed */}
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-to-r from-blue-800 to-blue-600 overflow-hidden">
+              {company && company.logoUrl ? (
+                <img src={company.logoUrl} alt="Company Logo" className="w-full h-full object-contain" style={{ objectFit: 'cover' }} />
+              ) : (
+                <QrCode className="w-8 h-8 text-white" />
+              )}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">QR Timecard System</h1>
+              <h1 className="text-xl font-bold text-gray-900">{company ? company.name : 'Company Name'}</h1>
               <p className="text-sm text-gray-500">KSA Operations Dashboard</p>
             </div>
           </div>

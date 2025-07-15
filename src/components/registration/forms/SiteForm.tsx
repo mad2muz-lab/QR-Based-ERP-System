@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building } from 'lucide-react';
+import { Building, X } from 'lucide-react';
 import { Site } from '../../../types';
 import { siteTypes } from '../../../data/materialTypes';
 import SearchableLocationDropdown from '../../common/SearchableLocationDropdown';
@@ -7,9 +7,10 @@ import SearchableLocationDropdown from '../../common/SearchableLocationDropdown'
 interface SiteFormProps {
   onSubmit: (site: Omit<Site, 'id'>, isEdit?: boolean) => void;
   initialData?: Site | null;
+  onClose?: () => void;
 }
 
-const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
+const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) => {
   const isEditMode = !!initialData;
   const [formData, setFormData] = useState({
     name: '',
@@ -22,6 +23,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
     manager: ''
   });
   const [showCustomType, setShowCustomType] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Handle initial data for editing
   useEffect(() => {
@@ -78,21 +80,18 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
     // Remove customType and selectedLocation from the final data
     const { customType, selectedLocation, ...finalData } = siteData;
     
-    console.log("Submitting site with coordinates:", JSON.stringify(finalData.coordinates));
-    onSubmit(finalData, isEditMode);
-    
-    // Reset form
-    setFormData({
-      name: '',
-      type: '',
-      customType: '',
-      selectedLocation: '',
-      coordinates: [0, 0],
-      province: '',
-      address: '',
-      manager: ''
-    });
-    setShowCustomType(false);
+
+    try {
+      onSubmit(finalData, isEditMode);
+      setMessage({ type: 'success', text: isEditMode ? 'Site updated successfully!' : 'Site added successfully!' });
+      // Only reset form if not editing
+      if (!isEditMode) {
+        setFormData({ name: '', type: '', customType: '', selectedLocation: '', coordinates: [0, 0], province: '', address: '', manager: '' });
+        setShowCustomType(false);
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to register site. Please try again.' });
+    }
   };
 
   const handleTypeChange = (value: string) => {
@@ -106,7 +105,6 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
   };
 
   const handleLocationChange = (city: string, coordinates: [number, number], province: string) => {
-    console.log(`Location selected: ${city}, coordinates: [${coordinates[0]}, ${coordinates[1]}], province: ${province}`);
     setFormData({
       ...formData,
       selectedLocation: city,
@@ -117,7 +115,20 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-0 right-0 mt-2 mr-2 text-gray-400 hover:text-gray-700"
+          aria-label="Close"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      )}
+      {message && (
+        <div className={`mb-4 px-4 py-2 rounded text-sm font-medium ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{message.text}</div>
+      )}
       <div className="flex items-center space-x-3 mb-6">
         <Building className="w-6 h-6 text-purple-600" />
         <h3 className="text-lg font-semibold text-gray-900">Register New Site</h3>

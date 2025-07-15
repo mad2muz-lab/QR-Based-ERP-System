@@ -64,7 +64,13 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   const generateQR = async (entity: any) => {
     setIsLoading(true);
     try {
-      const qrData = entity.qrCode || entity.id;
+      // For equipment, prioritize custom_equipment_id for QR codes
+      let qrData;
+      if (entityType === 'equipment' && entity.custom_equipment_id) {
+        qrData = entity.custom_equipment_id;
+      } else {
+        qrData = entity.qrCode || entity.id;
+      }
       const qrImage = await generateQRCode(qrData);
       setQrCodeImage(qrImage);
     } catch (error) {

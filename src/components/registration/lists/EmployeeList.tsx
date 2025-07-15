@@ -72,6 +72,9 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, sites, onEdit, o
               <div><span className="font-medium">Type:</span> {employee.type || 'Not specified'}</div>
               <div><span className="font-medium">Site:</span> {getSiteName(employee.site)}</div>
               <div><span className="font-medium">ID:</span> <code className="bg-gray-100 px-1 rounded">{employee.id}</code></div>
+              {employee.oldId && (
+                <div><span className="font-medium">Legacy ID:</span> <code className="bg-yellow-100 px-1 rounded text-yellow-800">{employee.oldId}</code></div>
+              )}
               {employee.bloodGroup && (
                 <div><span className="font-medium">Blood Group:</span> {employee.bloodGroup}</div>
               )}

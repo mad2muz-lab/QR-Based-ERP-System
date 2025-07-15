@@ -23,7 +23,8 @@ export class SupabaseDataService {
         lastUpdated: employee.last_updated,
         bloodGroup: employee.blood_group,
         createdAt: employee.created_at,
-        qrCode: employee.qr_code
+        qrCode: employee.qr_code,
+        oldId: employee.old_id // Map old_id to oldId
       }));
       
       return transformedData;
@@ -51,7 +52,8 @@ export class SupabaseDataService {
       // Transform snake_case to camelCase for Equipment interface
       const transformedData: Equipment[] = (data || []).map(equipment => ({
         ...equipment,
-        lastUpdated: equipment.last_updated
+        lastUpdated: equipment.last_updated,
+        oldId: equipment.old_id // Map old_id to oldId
       }));
       
       return transformedData;
@@ -82,7 +84,8 @@ export class SupabaseDataService {
         lastUpdated: material.last_updated,
         createdAt: material.created_at || material.createdAt,
         qrCode: material.qr_code,
-        accessLevel: material.access_level
+        accessLevel: material.access_level,
+        oldId: material.old_id // Map old_id to oldId
       }));
       
       return transformedData;

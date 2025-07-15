@@ -242,14 +242,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
     <div className="space-y-6">
       {/* Tab Navigation */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="flex space-x-1 p-1 bg-gray-50 rounded-t-xl">
+        <div className="flex space-x-1 p-1 bg-gray-50 rounded-t-xl overflow-x-auto">
           {tabs.map(tab => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-1 justify-center ${
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-1 justify-center whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-blue-800 text-white shadow-lg'
                     : 'text-gray-600 hover:text-blue-800 hover:bg-blue-50'
@@ -264,110 +264,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
       </div>
 
       {/* Sync Status Panel */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
-              !syncStatus.isOnline ? 'bg-red-100 text-red-800' :
-              syncStatus.isSyncing ? 'bg-blue-100 text-blue-800' :
-              syncStatus.pendingOperations > 0 ? 'bg-yellow-100 text-yellow-800' :
-              'bg-green-100 text-green-800'
-            }`}>
-              {!syncStatus.isOnline ? (
-                <WifiOff className="w-4 h-4" />
-              ) : syncStatus.isSyncing ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : syncStatus.pendingOperations > 0 ? (
-                <Clock className="w-4 h-4" />
-              ) : (
-                <CheckCircle className="w-4 h-4" />
-              )}
-              <span className="text-sm font-medium">
-                {!syncStatus.isOnline ? 'Offline' :
-                 syncStatus.isSyncing ? 'Syncing data...' :
-                 syncStatus.pendingOperations > 0 ? `${syncStatus.pendingOperations} items pending sync` :
-                 'All data synced'}
-              </span>
-            </div>
-            {syncStatus.lastSyncTime && (
-              <span className="text-sm text-gray-500">
-                Last sync: {new Date(syncStatus.lastSyncTime).toLocaleTimeString()}
-              </span>
-            )}
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <DataSourceToggle />
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center">
           <button
             onClick={handleSyncNow}
-            disabled={!syncStatus.isOnline || syncStatus.isSyncing}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              !syncStatus.isOnline || syncStatus.isSyncing
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : syncStatus.pendingOperations > 0
-                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
-                : 'bg-green-600 text-white hover:bg-green-700'
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              syncStatus.isOnline
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
+            disabled={!syncStatus.isOnline || syncStatus.isSyncing}
           >
-            {React.createElement(getSyncButtonIcon(), {
-              className: `w-4 h-4 ${syncStatus.isSyncing ? 'animate-spin' : ''}`
-            })}
+            {React.createElement(getSyncButtonIcon(), { className: 'w-5 h-5' })}
             <span>{getSyncButtonText()}</span>
           </button>
-        </div>
-        {syncStatus.errors.length > 0 && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center space-x-2 text-red-800">
-              <AlertTriangle className="w-4 h-4" />
-              <span className="text-sm font-medium">
-                {syncStatus.errors.length} sync error{syncStatus.errors.length > 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="mt-1 text-xs text-red-600">
-              Click the sync button to retry failed operations
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Data Source Indicator */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
-              dataSource === 'supabase' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-            }`}>
-              <Database className="w-4 h-4" />
-              <span className="text-sm font-medium">
-                Data Source: {dataSource === 'supabase' ? 'Supabase Database' : 'Local Storage'}
-              </span>
-            </div>
-            {isLoadingData && (
-              <div className="flex items-center space-x-2 text-blue-600">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Loading data...</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
-            <DataSourceToggle className="mr-4" />
-            <button
-              onClick={loadData}
-              disabled={isLoadingData}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                isLoadingData
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
-              <span>Refresh Data</span>
-            </button>
-          </div>
+          <span className={`text-xs ${syncStatus.isOnline ? 'text-green-600' : 'text-red-600'}`}>{syncStatus.isOnline ? 'Online' : 'Offline'}</span>
         </div>
       </div>
 
       {activeTab === 'overview' && (
         <>
-          {/* Main Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Main Statistics Cards - Responsive grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatsCard
               title="Active Employees"
               value={`${activeEmployees}/${totalEmployees}`}
@@ -475,7 +394,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                       log.entityType === 'equipment' ? equipment.find(e => e.id === log.entityId) :
                       log.entityType === 'material' ? materials.find(m => m.id === log.entityId) :
                       sites.find(s => s.id === log.entityId);
-
+                    const entityName =
+                      entity?.name ||
+                      log.employeeName || log.employee_name ||
+                      log.equipmentName || log.equipment_name ||
+                      log.materialName || log.material_name ||
+                      log.entityId;
                     return (
                       <div key={log.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                         <div className={`w-2 h-2 rounded-full ${
@@ -483,7 +407,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                         }`} />
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-900">
-                            {entity?.name || log.entityId} - {log.action.replace('-', ' ').toUpperCase()}
+                            {log.action.replace('-', ' ').toUpperCase()} • {entityName}
                           </p>
                           <div className="flex items-center space-x-2 text-xs text-gray-500">
                             <span>{new Date(log.timestamp).toLocaleTimeString()}</span>

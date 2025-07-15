@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Wrench, AlertCircle } from 'lucide-react';
+import { Wrench, AlertCircle, X } from 'lucide-react';
 import { Equipment } from '../../../types';
 import { equipmentCategories } from '../../../data/materialTypes';
 import { DataStorage } from '../../../utils/dataStorage';
+import { EquipmentMigration } from '../../../utils/equipmentMigration';
 
 interface EquipmentFormProps {
   sites: any[];
   onSubmit: (equipment: Omit<Equipment, 'id' | 'createdAt' | 'qrCode'>, isEdit?: boolean) => void;
   initialData?: Equipment | null;
+  onClose?: () => void;
 }
 
-const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialData }) => {
+const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialData, onClose }) => {
   const [formData, setFormData] = useState({
-    id: '',
+    custom_equipment_id: '',
     name: '',
     type: '',
     customType: '',
@@ -20,17 +22,19 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     serialNumber: '',
     site: '',
     status: 'available' as 'available' | 'in-use' | 'maintenance' | 'down',
+    oldId: '',
   });
   const [showCustomType, setShowCustomType] = useState(false);
-  const [idError, setIdError] = useState('');
+  const [customIdError, setCustomIdError] = useState('');
   const [isCheckingId, setIsCheckingId] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const isEditMode = !!initialData;
 
   useEffect(() => {
     if (initialData) {
       setFormData({
-        id: initialData.id || '',
+        custom_equipment_id: initialData.custom_equipment_id || '',
         name: initialData.name || '',
         type: initialData.type || '',
         customType: '',
@@ -38,6 +42,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
         serialNumber: initialData.serialNumber || '',
         site: initialData.site || '',
         status: initialData.status || 'available',
+        oldId: initialData.oldId || '',
       });
       
       const allTypes = getAllEquipmentTypes();
@@ -48,60 +53,50 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
       }
     } else {
       setFormData({
-        id: '',
+        custom_equipment_id: '',
         name: '',
         type: '',
         customType: '',
         model: '',
         serialNumber: '',
         site: '',
-        status: 'available'
+        status: 'available',
+        oldId: ''
       });
       setShowCustomType(false);
-      setIdError('');
+      setCustomIdError('');
     }
   }, [initialData]);
 
   useEffect(() => {
-    if (formData.id.trim() === '') {
-      setIdError('');
+    if (formData.custom_equipment_id.trim() === '') {
+      setCustomIdError('');
       return;
     }
 
-    // Skip validation for edit mode
-    if (isEditMode) {
-      setIdError('');
-      return;
-    }
-
-    // Validate EQP- prefix
-    if (!formData.id.startsWith('EQP-')) {
-      setIdError('Equipment ID must start with "EQP-" (e.g., EQP-001)');
-      return;
-    }
-
-    // Validate format: EQP- followed by alphanumeric characters
-    const idPattern = /^EQP-[A-Za-z0-9]+$/;
-    if (!idPattern.test(formData.id)) {
-      setIdError('Equipment ID must follow format: EQP-XXX (e.g., EQP-001, EQP-ABC)');
+    // Validate custom equipment ID format
+    const validation = EquipmentMigration.validateCustomEquipmentId(formData.custom_equipment_id);
+    if (!validation.valid) {
+      setCustomIdError(validation.error || 'Invalid format');
       return;
     }
 
     setIsCheckingId(true);
     const timeoutId = setTimeout(() => {
-      const existingEquipment = DataStorage.loadEquipment();
-      const isDuplicate = existingEquipment.some(eq => eq.id === formData.id);
+      // Check uniqueness (exclude current equipment if editing)
+      const excludeId = isEditMode ? initialData?.id : undefined;
+      const isUnique = EquipmentMigration.isCustomEquipmentIdUnique(formData.custom_equipment_id, excludeId);
       
-      if (isDuplicate) {
-        setIdError('Equipment ID already exists. Please choose a different ID.');
+      if (!isUnique) {
+        setCustomIdError('Custom Equipment ID already exists. Please choose a different ID.');
       } else {
-        setIdError('');
+        setCustomIdError('');
       }
       setIsCheckingId(false);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.id, isEditMode]);
+  }, [formData.custom_equipment_id, isEditMode, initialData?.id]);
 
 
 
@@ -109,12 +104,12 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     e.preventDefault();
     
     // Validate required fields
-    if (!formData.id.trim()) {
-      setIdError('Equipment ID is required');
+    if (!formData.custom_equipment_id.trim()) {
+      setCustomIdError('Custom Equipment ID is required');
       return;
     }
 
-    if (idError) {
+    if (customIdError) {
       return;
     }
     
@@ -126,21 +121,18 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     
     const { customType, ...finalData } = equipmentData;
     
-    onSubmit(finalData, isEditMode);
-    
-    // Reset form for next equipment
-    setFormData({
-      id: '',
-      name: '',
-      type: '',
-      customType: '',
-      model: '',
-      serialNumber: '',
-      site: '',
-      status: 'available',
-    });
-    setShowCustomType(false);
-    setIdError('');
+    try {
+      onSubmit(finalData, isEditMode);
+      setMessage({ type: 'success', text: isEditMode ? 'Equipment updated successfully!' : 'Equipment added successfully!' });
+      // Only reset form if not editing
+      if (!isEditMode) {
+        setFormData({ custom_equipment_id: '', name: '', type: '', customType: '', model: '', serialNumber: '', site: '', status: 'available', oldId: '' });
+        setShowCustomType(false);
+        setCustomIdError('');
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to register equipment. Please try again.' });
+    }
   };
 
   const handleTypeChange = (value: string) => {
@@ -162,7 +154,20 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
   };
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-0 right-0 mt-2 mr-2 text-gray-400 hover:text-gray-700"
+          aria-label="Close"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      )}
+      {message && (
+        <div className={`mb-4 px-4 py-2 rounded text-sm font-medium ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{message.text}</div>
+      )}
       <div className="flex items-center space-x-3 mb-6">
         <Wrench className="w-6 h-6 text-green-600" />
         <h3 className="text-lg font-semibold text-gray-900">Register New Equipment</h3>
@@ -170,40 +175,56 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Equipment ID Input */}
+          {/* Custom Equipment ID Input */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Equipment ID *
+              Custom Equipment ID *
             </label>
             <input
               type="text"
-              value={formData.id}
-              onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+              value={formData.custom_equipment_id}
+              onChange={(e) => setFormData({ ...formData, custom_equipment_id: e.target.value.toUpperCase() })}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                idError ? 'border-red-500' : 'border-gray-300'
+                customIdError ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter Equipment ID (e.g., EQP-001)"
+              placeholder="Enter Custom Equipment ID (e.g., EQP-001, DRILL-A1)"
               required
-              disabled={isEditMode}
+              maxLength={10}
             />
             {isCheckingId && (
               <div className="text-sm text-blue-600 mt-1">
                 Checking availability...
               </div>
             )}
-            {idError && (
+            {customIdError && (
               <div className="text-sm text-red-600 mt-1 flex items-center">
                 <AlertCircle className="w-4 h-4 mr-1" />
-                {idError}
+                {customIdError}
               </div>
             )}
-            {!idError && formData.id && !isCheckingId && !isEditMode && (
+            {!customIdError && formData.custom_equipment_id && !isCheckingId && (
               <div className="text-sm text-green-600 mt-1">
-                ✓ ID is available
+                ✓ Custom ID is available
               </div>
             )}
             <div className="text-xs text-gray-500 mt-1">
-              Equipment ID must start with "EQP-" followed by alphanumeric characters (e.g., EQP-001, EQP-ABC).
+              Custom Equipment ID: 1-10 characters, uppercase letters, numbers, and dashes only (e.g., EQP-001, DRILL-A1).
+              <br />
+              <span className="text-blue-600">Note: A unique system ID will be auto-generated for this equipment.</span>
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Old Equipment ID (Optional)</label>
+            <input
+              type="text"
+              value={formData.oldId}
+              onChange={(e) => setFormData({ ...formData, oldId: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter legacy equipment ID from previous system"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Enter the equipment ID from your previous system for backward compatibility and audit purposes.
             </div>
           </div>
 

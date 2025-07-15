@@ -1,0 +1,1 @@
+import{P as r}from"./index-oUFVPpyJ.js";const i=(e,o)=>{const c=r.unparse(e),n=new Blob([c],{type:"text/csv;charset=utf-8;"}),t=document.createElement("a"),s=URL.createObjectURL(n);t.setAttribute("href",s),t.setAttribute("download",o),t.style.visibility="hidden",document.body.appendChild(t),t.click(),document.body.removeChild(t)};export{i as e};

@@ -514,6 +514,36 @@ export class OfflineSyncManager {
           }
           break;
           
+        case 'materialLog':
+          switch (type) {
+            case 'create':
+              result = await SupabaseRegistrationService.createMaterialLog(data);
+              break;
+            default:
+              throw new Error(`Unsupported operation type: ${type} for materialLog`);
+          }
+          break;
+          
+        case 'employeeLog':
+          switch (type) {
+            case 'create':
+              result = await SupabaseRegistrationService.createEmployeeLog(data);
+              break;
+            default:
+              throw new Error(`Unsupported operation type: ${type} for employeeLog`);
+          }
+          break;
+          
+        case 'equipmentLog':
+          switch (type) {
+            case 'create':
+              result = await SupabaseRegistrationService.createEquipmentLog(data);
+              break;
+            default:
+              throw new Error(`Unsupported operation type: ${type} for equipmentLog`);
+          }
+          break;
+          
         default:
           throw new Error(`Unsupported entity type: ${entityType}`);
       }

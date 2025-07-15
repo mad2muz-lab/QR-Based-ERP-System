@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package } from 'lucide-react';
+import { Package, X } from 'lucide-react';
 import { Material } from '../../../types';
 import { materialCategories } from '../../../data/materialTypes';
 
@@ -7,9 +7,10 @@ interface MaterialFormProps {
   sites: any[];
   onSubmit: (material: Omit<Material, 'id' | 'createdAt' | 'qrCode'>) => void;
   initialData?: Material | null;
+  onClose?: () => void;
 }
 
-const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialData }) => {
+const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialData, onClose }) => {
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -18,9 +19,12 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     quantity: 0,
     site: '',
     use: '',
-    status: 'available' as 'available' | 'low-stock' | 'out-of-stock'
+    status: 'available' as 'available' | 'low-stock' | 'out-of-stock',
+    oldId: '',
+    accessLevel: 'basic' as 'basic' | 'restricted' | 'admin'
   });
   const [showCustomType, setShowCustomType] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Handle initial data for editing
   useEffect(() => {
@@ -34,7 +38,8 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
         site: initialData.site || '',
         use: initialData.use || '',
         status: initialData.status || 'available',
-        accessLevel: initialData.accessLevel || 'basic'
+        accessLevel: initialData.accessLevel || 'basic',
+        oldId: initialData.oldId || ''
       });
       
       // Check if we need to show custom type
@@ -55,7 +60,8 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
         site: '',
         use: '',
         status: 'available',
-        accessLevel: 'basic'
+        accessLevel: 'basic',
+        oldId: ''
       });
       setShowCustomType(false);
     }
@@ -66,28 +72,21 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     
     const materialData = {
       ...formData,
-      type: showCustomType ? formData.customType : formData.type,
+      type: (showCustomType ? formData.customType : formData.type) as any,
       lastUpdated: new Date().toISOString()
     };
     
     // Remove customType from the final data
     const { customType, ...finalData } = materialData;
     
-    onSubmit(finalData);
-    
-    // Reset form
-    setFormData({
-      name: '',
-      type: '',
-      customType: '',
-      unit: '',
-      quantity: 0,
-      site: '',
-      use: '',
-      status: 'available',
-      accessLevel: 'basic'
-    });
-    setShowCustomType(false);
+    try {
+      onSubmit(finalData);
+      setMessage({ type: 'success', text: 'Material added successfully!' });
+      setFormData({ name: '', type: '', customType: '', unit: '', quantity: 0, site: '', use: '', status: 'available', accessLevel: 'basic', oldId: '' });
+      setShowCustomType(false);
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to register material. Please try again.' });
+    }
   };
 
   const handleTypeChange = (value: string) => {
@@ -106,7 +105,20 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
   };
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-0 right-0 mt-2 mr-2 text-gray-400 hover:text-gray-700"
+          aria-label="Close"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      )}
+      {message && (
+        <div className={`mb-4 px-4 py-2 rounded text-sm font-medium ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{message.text}</div>
+      )}
       <div className="flex items-center space-x-3 mb-6">
         <Package className="w-6 h-6 text-orange-600" />
         <h3 className="text-lg font-semibold text-gray-900">Register New Material</h3>
@@ -123,6 +135,20 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Old Material ID (Optional)</label>
+            <input
+              type="text"
+              value={formData.oldId}
+              onChange={(e) => setFormData({ ...formData, oldId: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter legacy material ID from previous system"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              Enter the material ID from your previous system for backward compatibility and audit purposes.
+            </div>
           </div>
 
           <div>

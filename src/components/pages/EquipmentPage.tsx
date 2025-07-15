@@ -46,7 +46,8 @@ const EquipmentPage: React.FC = () => {
   const filterAndSortEquipment = () => {
     let filtered = equipment.filter(eq => {
       const matchesSearch = eq.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           eq.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (eq.custom_equipment_id && eq.custom_equipment_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                           (eq.oldId && eq.oldId.toLowerCase().includes(searchTerm.toLowerCase())) ||
                            eq.model.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = !typeFilter || eq.type === typeFilter;
       const matchesStatus = !statusFilter || eq.status === statusFilter;
@@ -216,9 +217,9 @@ const EquipmentPage: React.FC = () => {
               <tr>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('id')}
+                  onClick={() => handleSort('custom_equipment_id')}
                 >
-                  Equipment ID {sortField === 'id' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  Equipment ID {sortField === 'custom_equipment_id' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -253,7 +254,7 @@ const EquipmentPage: React.FC = () => {
               {currentEquipment.map((eq) => (
                 <tr key={eq.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{eq.id}</div>
+                    <div className="text-sm font-medium text-gray-900 font-mono">{eq.custom_equipment_id || eq.id}</div>
                     {eq.serialNumber && (
                       <div className="text-xs text-gray-500">SN: {eq.serialNumber}</div>
                     )}

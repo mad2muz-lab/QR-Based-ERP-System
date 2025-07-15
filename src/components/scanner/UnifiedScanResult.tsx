@@ -172,7 +172,7 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Equipment ID:</span>
-                  <span className="ml-2 text-gray-600 font-mono">{scanResult.entity.id}</span>
+                  <span className="ml-2 text-gray-600 font-mono">{scanResult.entity.custom_equipment_id || scanResult.entity.id}</span>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Status:</span>
@@ -300,7 +300,7 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                   type="number"
                   min="1"
                   value={materialQuantity}
-                  onChange={(e) => setMaterialQuantity(parseInt(e.target.value) || 1)}
+                  onChange={(e) => setMaterialQuantity(Number(e.target.value) || 1)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter quantity"
                 />

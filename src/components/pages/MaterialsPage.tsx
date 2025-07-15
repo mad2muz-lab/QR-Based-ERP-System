@@ -69,6 +69,7 @@ const MaterialsPage: React.FC = () => {
     let filtered = materials.filter(material => {
       const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            material.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (material.oldId && material.oldId.toLowerCase().includes(searchTerm.toLowerCase())) ||
                            material.type.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = !categoryFilter || material.type === categoryFilter;
       const matchesStatus = !statusFilter || material.status === statusFilter;

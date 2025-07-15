@@ -18,10 +18,13 @@ export interface Employee {
   photo?: string;
   email?: string;
   phone?: string;
+  oldId?: string; // Legacy ID from previous system
+  companyId?: string;
 }
 
 export interface Equipment {
-  id: string;
+  id: string; // Auto-generated UUID (primary key)
+  custom_equipment_id: string; // User-defined unique identifier
   name: string;
   type: string;
   model: string;
@@ -31,6 +34,8 @@ export interface Equipment {
   createdAt: string;
   lastUpdated: string;
   serialNumber?: string;
+  oldId?: string; // Legacy ID from previous system
+  companyId?: string;
 }
 
 export interface Material {
@@ -46,6 +51,8 @@ export interface Material {
   lastUpdated: string;
   use?: string;
   accessLevel?: 'basic' | 'restricted' | 'admin';
+  oldId?: string; // Legacy ID from previous system
+  companyId?: string;
 }
 
 export interface Site {
@@ -85,6 +92,7 @@ export interface EmployeeLog {
   timestamp: string;
   notes?: string;
   location?: [number, number];
+  oldId?: string; // Legacy ID from previous system
 }
 
 export interface EquipmentLog {
@@ -100,6 +108,7 @@ export interface EquipmentLog {
   status: string;
   notes?: string;
   location?: [number, number];
+  oldId?: string; // Legacy ID from previous system
 }
 
 export interface MaterialLog {
@@ -116,6 +125,7 @@ export interface MaterialLog {
   status: string;
   notes?: string;
   location?: [number, number];
+  oldId?: string; // Legacy ID from previous system
 }
 
 export interface Province {

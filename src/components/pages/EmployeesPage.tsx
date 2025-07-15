@@ -47,6 +47,7 @@ const EmployeesPage: React.FC = () => {
     let filtered = employees.filter(employee => {
       const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            employee.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (employee.oldId && employee.oldId.toLowerCase().includes(searchTerm.toLowerCase())) ||
                            employee.position.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesDepartment = !departmentFilter || employee.department === departmentFilter;
       const matchesStatus = !statusFilter || employee.status === statusFilter;

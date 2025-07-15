@@ -71,6 +71,9 @@ const EquipmentList: React.FC<EquipmentListProps> = ({ equipment, sites, onEdit,
               )}
               <div><span className="font-medium">Site:</span> {getSiteName(eq.site)}</div>
               <div><span className="font-medium">ID:</span> <code className="bg-gray-100 px-1 rounded">{eq.id}</code></div>
+              {eq.oldId && (
+                <div><span className="font-medium">Legacy ID:</span> <code className="bg-yellow-100 px-1 rounded text-yellow-800">{eq.oldId}</code></div>
+              )}
             </div>
 
             <div className="flex space-x-2">

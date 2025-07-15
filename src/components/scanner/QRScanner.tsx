@@ -140,7 +140,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     
     const parsed = parseQRCode(qrData);
     
-    if (!parsed.type) {
+    if (!parsed.type || parsed.type === null) {
       setError('Invalid QR code format');
       return;
     }
@@ -175,10 +175,44 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     }> = [];
     let entityType = parsed.type;
 
-    // Find the entity based on type and ID
-    switch (parsed.type) {
-      case 'employee':
+    // Handle unknown QR codes by detecting entity type
+    if (parsed.type === 'unknown') {
+      // Check equipment first (most likely for custom IDs)
+      entity = (equipment as any[]).find((eq: any) => 
+        eq.custom_equipment_id === parsed.id || eq.id === parsed.id
+      );
+      if (entity) {
+        entityType = 'equipment';
+      } else {
+        // Check other entity types
         entity = (employees as any[]).find((emp: any) => emp.id === parsed.id);
+        if (entity) {
+          entityType = 'employee';
+        } else {
+          entity = (materials as any[]).find((mat: any) => mat.id === parsed.id);
+          if (entity) {
+            entityType = 'material';
+          } else {
+            entity = (sites as any[]).find((site: any) => site.id === parsed.id);
+            if (entity) {
+              entityType = 'site';
+            }
+          }
+        }
+      }
+      
+      if (!entity) {
+        setError(`No entity found with ID: ${parsed.id}`);
+        return;
+      }
+    }
+
+    // Find the entity based on type and ID
+    switch (entityType) {
+      case 'employee':
+        if (!entity) {
+          entity = (employees as any[]).find((emp: any) => emp.id === parsed.id);
+        }
         if (entity) {
           // Check current status from recent employee logs
           const employeeLogs = allLogs.employeeLogs || allLogs || [];
@@ -203,7 +237,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
             
             // Add current shift info to scan result
             setScanResult({
-              type: parsed.type,
+              type: entityType,
               entity,
               currentStatus,
               actions,
@@ -223,7 +257,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
             }];
             
             setScanResult({
-              type: parsed.type,
+              type: entityType,
               entity,
               currentStatus,
               actions
@@ -247,15 +281,26 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
         break;
 
       case 'equipment':
-        entity = (equipment as any[]).find((eq: any) => eq.id === parsed.id);
+        // Find equipment by custom_equipment_id first, then by id
+        if (!entity) {
+          entity = (equipment as any[]).find((eq: any) => 
+            eq.custom_equipment_id === parsed.id || eq.id === parsed.id
+          );
+        }
         if (entity) {
           // Check current status from recent equipment logs
           const equipmentLogs = allLogs.equipmentLogs || allLogs || [];
           
-
+          // Use the equipment's UUID for log filtering, regardless of how it was found
+          const equipmentUUID = entity.id;
           
           const recentLog = equipmentLogs
-            .filter((log: any) => log.entity_id === parsed.id || log.entityId === parsed.id || log.equipmentId === parsed.id || log.equipment_id === parsed.id)
+            .filter((log: any) => 
+              log.entity_id === equipmentUUID || log.entityId === equipmentUUID || 
+              log.equipmentId === equipmentUUID || log.equipment_id === equipmentUUID ||
+              // Also check for custom_equipment_id in logs for backward compatibility
+              log.entity_id === parsed.id || log.entityId === parsed.id
+            )
             .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
           
           const isInUse = recentLog?.action === 'start-use';
@@ -281,7 +326,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           }
           
           setScanResult({
-            type: parsed.type,
+            type: entityType,
             entity,
             currentStatus,
             actions
@@ -314,7 +359,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           ];
           
           setScanResult({
-            type: parsed.type,
+            type: entityType,
             entity,
             currentStatus,
             actions
@@ -337,7 +382,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           }];
           
           setScanResult({
-            type: parsed.type,
+            type: entityType,
             entity,
             currentStatus: 'active',
             actions

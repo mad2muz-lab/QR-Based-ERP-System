@@ -18,9 +18,10 @@ export const generateQRCode = async (data: string): Promise<string> => {
 };
 
 export const parseQRCode = (qrData: string): {
-  type: 'employee' | 'equipment' | 'material' | 'site' | null;
+  type: 'employee' | 'equipment' | 'material' | 'site' | 'unknown' | null;
   id: string;
 } => {
+  // Check for standard prefixes first
   if (qrData.startsWith('EMP-')) {
     return { type: 'employee', id: qrData };
   } else if (qrData.startsWith('EQP-')) {
@@ -30,7 +31,27 @@ export const parseQRCode = (qrData: string): {
   } else if (qrData.startsWith('SITE-')) {
     return { type: 'site', id: qrData };
   }
-  return { type: null, id: qrData };
+  
+  // For custom equipment IDs, check against equipment database
+  // Import modules dynamically to avoid circular dependencies
+  try {
+    const { DataStorage } = require('./dataStorage');
+    const equipment = DataStorage.loadEquipment();
+    
+    // Check if the QR data matches any custom_equipment_id or id
+    const matchingEquipment = equipment.find(eq => 
+      eq.custom_equipment_id === qrData || eq.id === qrData
+    );
+    
+    if (matchingEquipment) {
+      return { type: 'equipment', id: qrData };
+    }
+  } catch (error) {
+    console.warn('Could not check equipment database for custom ID:', error);
+  }
+  
+  // Return as unknown type so the scanner can check all entity types
+  return { type: 'unknown', id: qrData };
 };
 
 export const generateEntityId = (type: 'employee' | 'equipment' | 'material' | 'site'): string => {

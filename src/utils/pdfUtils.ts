@@ -13,6 +13,10 @@ export const generateIDCardPDF = (entityData: any, qrCodeImage: string, entityTy
   const pageWidth = isIDCard ? '85.60mm' : '210mm';
   const pageHeight = isIDCard ? '53.98mm' : '297mm';
 
+  // Company info
+  const companyName = entityData.companyName || entityData.company || '';
+  const companyLogo = entityData.companyLogo || entityData.logoUrl || '';
+
   const printContent = `
     <!DOCTYPE html>
     <html>
@@ -25,190 +29,170 @@ export const generateIDCardPDF = (entityData: any, qrCodeImage: string, entityTy
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
-        
         body {
           margin: 0;
           padding: 0;
           font-family: 'Arial', sans-serif;
           width: ${pageWidth};
           height: ${pageHeight};
-          background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-          color: ${isIDCard ? 'white' : 'black'};
+          background: #f4f6fa;
+          color: #222;
           box-sizing: border-box;
           position: relative;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
-        
-        ${isIDCard ? `
         .card-container {
           width: 100%;
           height: 100%;
-          display: flex;
-          flex-direction: column;
-          position: relative;
-        }
-        
-        .header {
-          background: rgba(255, 255, 255, 0.15);
-          padding: 2mm;
-          text-align: center;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .company-logo {
-          font-size: 8px;
-          font-weight: bold;
-          margin: 0;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        
-        .main-content {
-          flex: 1;
-          display: flex;
-          padding: 2mm;
-          gap: 2mm;
-        }
-        
-        .photo-section {
-          flex: 0 0 18mm;
+          background: #fff;
+          border-radius: 3mm;
+          box-shadow: 0 2px 8px rgba(30,58,138,0.10);
           display: flex;
           flex-direction: column;
           align-items: center;
-        }
-        
-        .employee-photo {
-          width: 16mm;
-          height: 20mm;
-          background: white;
-          border-radius: 1mm;
+          justify-content: flex-start;
+          position: relative;
           overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .header-section {
+          width: 100%;
+          min-height: 13mm;
+          background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+          color: #fff;
+          text-align: center;
+          font-size: 8pt;
+          font-weight: bold;
+          border-radius: 3mm 3mm 0 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1mm;
+          padding: 2mm 0 1mm 0;
+        }
+        .company-logo {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5mm;
+        }
+        .logo-img {
+          width: 10mm;
+          height: 10mm;
+          object-fit: contain;
+          border-radius: 2mm;
+          background: #fff;
+          margin-bottom: 1mm;
+        }
+        .company-name-text {
+          font-size: 8pt;
+          font-weight: bold;
+          color: #fff;
+          margin-bottom: 0.5mm;
+          text-transform: uppercase;
+          letter-spacing: 0.5mm;
+        }
+        .main-content {
+          flex: 1;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          padding: 2mm 2mm 0 2mm;
+        }
+        .photo-section {
+          width: 22mm;
+          height: 26mm;
+          background: #f3f4f6;
+          border-radius: 2mm;
+          overflow: hidden;
+          border: 1.5px solid #e5e7eb;
           display: flex;
           align-items: center;
           justify-content: center;
+          margin-bottom: 2mm;
         }
-        
-        .employee-photo img {
+        .employee-photo {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
-        
         .no-photo {
-          color: #666;
-          font-size: 6px;
+          color: #9ca3af;
+          font-size: 7pt;
           text-align: center;
         }
-        
-        .info-section {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          padding-left: 1mm;
-        }
-        
-        .employee-details {
-          font-size: 6px;
-          line-height: 1.4;
-        }
-        
-        .detail-row {
-          margin: 0.5mm 0;
-          display: flex;
-        }
-        
-        .detail-label {
-          font-weight: bold;
-          width: 12mm;
-          opacity: 0.9;
-        }
-        
-        .detail-value {
-          font-weight: normal;
-          flex: 1;
-        }
-        
-        .employee-name {
-          font-size: 7px;
-          font-weight: bold;
-          margin-bottom: 1mm;
-          text-transform: uppercase;
-        }
-        
         .qr-section {
-          position: absolute;
-          bottom: 2mm;
-          right: 2mm;
-          width: 15mm;
-          height: 15mm;
-        }
-        
-        .qr-code {
           width: 100%;
-          height: 100%;
-          background: white;
-          padding: 0.5mm;
-          border-radius: 1mm;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin: 2mm 0 0 0;
+        }
+        .qr-code {
+          width: 24mm;
+          height: 24mm;
+          background: #fff;
+          padding: 1mm;
+          border-radius: 2mm;
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.08);
         }
-        
         .qr-code img {
           width: 100%;
           height: 100%;
           object-fit: contain;
         }
-        ` : `
-        .label-container {
+        .info-section {
           width: 100%;
-          height: 100%;
+          margin: 2mm 0 0 0;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          padding: 20mm;
+        }
+        .employee-name {
+          font-size: 9pt;
+          font-weight: bold;
+          color: #1f2937;
           text-align: center;
+          margin-bottom: 1mm;
+          text-transform: uppercase;
         }
-        
-        .label-title {
-          font-size: 24px;
+        .employee-title {
+          font-size: 7pt;
+          color: #2563eb;
+          text-align: center;
+          margin-bottom: 1mm;
+        }
+        .employee-details {
+          font-size: 6pt;
+          color: #374151;
+          margin-bottom: 1mm;
+          width: 90%;
+        }
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 0.5mm;
+        }
+        .detail-label {
           font-weight: bold;
-          margin-bottom: 10mm;
-          color: #1e3a8a;
         }
-        
-        .label-qr {
-          width: 80mm;
-          height: 80mm;
-          margin: 10mm 0;
-          border: 2px solid #1e3a8a;
-          padding: 5mm;
+        .detail-value {
+          text-align: right;
         }
-        
-        .label-qr img {
+        .footer-section {
           width: 100%;
-          height: 100%;
-          object-fit: contain;
+          text-align: center;
+          font-size: 7pt;
+          color: #2563eb;
+          margin: 0.5mm 0 0 0;
+          padding-bottom: 1mm;
         }
-        
-        .label-info {
-          font-size: 14px;
-          margin-top: 10mm;
-        }
-        
-        .label-id {
-          font-family: monospace;
-          font-size: 16px;
-          font-weight: bold;
-          margin: 5mm 0;
-          color: #1e3a8a;
-        }
-        `}
-        
         @media print {
           body {
             -webkit-print-color-adjust: exact;
@@ -218,66 +202,37 @@ export const generateIDCardPDF = (entityData: any, qrCodeImage: string, entityTy
       </style>
     </head>
     <body>
-      ${isIDCard ? `
       <div class="card-container">
-        <div class="header">
-          <div class="company-logo">QR Timecard System</div>
+        <div class="header-section">
+          <div class="company-logo">
+            ${companyLogo ? `<img src="${companyLogo}" class="logo-img" alt="Logo" />` : ''}
+            <div class="company-name-text">${companyName || ''}</div>
+          </div>
         </div>
-        
         <div class="main-content">
           <div class="photo-section">
-            <div class="employee-photo">
-              ${entityData.photo ? 
-                `<img src="${entityData.photo}" alt="Employee Photo" />` : 
-                `<div class="no-photo">No Photo</div>`
-              }
+            ${entityData.photo ? `<img src="${entityData.photo}" alt="Employee Photo" class="employee-photo" />` : `<div class="no-photo">EMPLOYEE<br>PHOTO</div>`}
+          </div>
+          <div class="qr-section">
+            <div class="qr-code">
+              <img src="${qrCodeImage}" alt="QR Code" />
             </div>
           </div>
-          
           <div class="info-section">
             <div class="employee-name">${entityData.name}</div>
+            <div class="employee-title">${entityData.position || ''}</div>
             <div class="employee-details">
-              <div class="detail-row">
-                <span class="detail-label">ID:</span>
-                <span class="detail-value">${entityData.id}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Dept:</span>
-                <span class="detail-value">${entityData.department || 'N/A'}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Position:</span>
-                <span class="detail-value">${entityData.position || 'N/A'}</span>
-              </div>
-              ${entityData.bloodGroup ? `
-              <div class="detail-row">
-                <span class="detail-label">Blood:</span>
-                <span class="detail-value">${entityData.bloodGroup}</span>
-              </div>
-              ` : ''}
+              <div class="detail-row"><span class="detail-label">ID No</span><span class="detail-value">${entityData.oldId || entityData.id || ''}</span></div>
+              <div class="detail-row"><span class="detail-label">Dept</span><span class="detail-value">${entityData.department || ''}</span></div>
+              <div class="detail-row"><span class="detail-label">Blood</span><span class="detail-value">${entityData.bloodGroup || 'N/A'}</span></div>
+              <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${entityData.email || 'Not provided'}</span></div>
+              <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">${entityData.phone || 'Not provided'}</span></div>
             </div>
           </div>
         </div>
-        
-        <div class="qr-section">
-          <div class="qr-code">
-            <img src="${qrCodeImage}" alt="QR Code" />
-          </div>
+        <div class="footer-section">
         </div>
       </div>
-      ` : `
-      <div class="label-container">
-        <div class="label-title">${entityData.name}</div>
-        <div class="label-qr">
-          <img src="${qrCodeImage}" alt="QR Code" />
-        </div>
-        <div class="label-id">${entityData.id}</div>
-        <div class="label-info">
-          ${entityType.charAt(0).toUpperCase() + entityType.slice(1)} QR Code<br>
-          Scan for ${entityType} operations
-        </div>
-      </div>
-      `}
     </body>
     </html>
   `;
