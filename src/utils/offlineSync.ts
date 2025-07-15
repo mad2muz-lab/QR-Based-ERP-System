@@ -253,6 +253,75 @@ export class OfflineSyncManager {
     
     // For main entity types, use SupabaseRegistrationService to ensure proper transformations
     if (['employee', 'equipment', 'material', 'site'].includes(entityType)) {
+      // --- PATCH: Transform material entity updates to snake_case ---
+      if (entityType === 'material' && (type === 'update' || type === 'create')) {
+        const transformed = { ...data };
+        if (transformed.createdAt !== undefined) {
+          transformed.created_at = transformed.createdAt;
+          delete transformed.createdAt;
+        }
+        if (transformed.lastUpdated !== undefined) {
+          transformed.last_updated = transformed.lastUpdated;
+          delete transformed.lastUpdated;
+        }
+        if (transformed.qrCode !== undefined) {
+          transformed.qr_code = transformed.qrCode;
+          delete transformed.qrCode;
+        }
+        if (transformed.accessLevel !== undefined) {
+          transformed.access_level = transformed.accessLevel;
+          delete transformed.accessLevel;
+        }
+        if (transformed.oldId !== undefined) {
+          transformed.old_id = transformed.oldId;
+          delete transformed.oldId;
+        }
+        if (transformed.unit !== undefined) {
+          transformed.unit = transformed.unit;
+        }
+        if (transformed.status !== undefined) {
+          transformed.status = transformed.status;
+        }
+        if (transformed.type !== undefined) {
+          transformed.type = transformed.type;
+        }
+        if (transformed.site !== undefined) {
+          transformed.site = transformed.site;
+        }
+        if (transformed.use !== undefined) {
+          transformed.use = transformed.use;
+        }
+        if (transformed.quantity !== undefined) {
+          transformed.quantity = transformed.quantity;
+        }
+        // Add any other field mappings as needed
+        try {
+          if (type === 'update') {
+            const { error } = await supabase
+              .from('materials')
+              .update(transformed)
+              .eq('id', entityId);
+            if (error) {
+              console.error('❌ Supabase material update error:', error, transformed);
+              throw error;
+            }
+          } else if (type === 'create') {
+            const { error } = await supabase
+              .from('materials')
+              .insert([transformed]);
+            if (error) {
+              console.error('❌ Supabase material create error:', error, transformed);
+              throw error;
+            }
+          }
+          console.log(`✅ Material ${type} synced to Supabase:`, transformed);
+          return;
+        } catch (err) {
+          console.error('❌ Exception syncing material entity:', err);
+          throw err;
+        }
+      }
+      // --- END PATCH ---
       return this.syncEntityOperation(operation);
     }
     
@@ -346,8 +415,6 @@ export class OfflineSyncManager {
         // Convert camelCase to snake_case for log-specific fields
         if (transformed.employeeId !== undefined) {
           const employeeUuid = this.getUuidForCustomId(transformed.employeeId);
-          // Use UUID if available, otherwise use the original employeeId
-          // This allows logs to sync even if the employee hasn't been synced yet
           transformed.employee_id = employeeUuid || transformed.employeeId;
           delete transformed.employeeId;
         }
@@ -357,8 +424,6 @@ export class OfflineSyncManager {
         }
         if (transformed.equipmentId !== undefined) {
           const equipmentUuid = this.getUuidForCustomId(transformed.equipmentId);
-          // Use UUID if available, otherwise use the original equipmentId
-          // This allows logs to sync even if the equipment hasn't been synced yet
           transformed.equipment_id = equipmentUuid || transformed.equipmentId;
           delete transformed.equipmentId;
         }
@@ -372,8 +437,6 @@ export class OfflineSyncManager {
         }
         if (transformed.materialId !== undefined) {
           const materialUuid = this.getUuidForCustomId(transformed.materialId);
-          // Use UUID if available, otherwise use the original materialId
-          // This allows logs to sync even if the material hasn't been synced yet
           transformed.material_id = materialUuid || transformed.materialId;
           delete transformed.materialId;
         }
@@ -385,7 +448,11 @@ export class OfflineSyncManager {
           transformed.material_type = transformed.materialType;
           delete transformed.materialType;
         }
-        
+        // --- PATCH: Map oldId to old_id and remove oldId ---
+        if (transformed.oldId !== undefined) {
+          transformed.old_id = transformed.oldId;
+          delete transformed.oldId;
+        }
         // Handle location conversion for logs
         if (transformed.location && Array.isArray(transformed.location)) {
           transformed.location = `(${transformed.location[0]},${transformed.location[1]})`;

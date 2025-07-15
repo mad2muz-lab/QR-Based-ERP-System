@@ -172,18 +172,14 @@ export class OfflineDataManager {
     try {
       const materials = DataStorage.loadMaterials();
       const index = materials.findIndex(mat => mat.id === material.id);
-      
       if (index !== -1) {
         materials[index] = { ...material, lastUpdated: new Date().toISOString() };
         DataStorage.saveMaterials(materials);
-
         // Dispatch custom event to notify other components
         window.dispatchEvent(new CustomEvent('materialUpdated', {
           detail: { material: materials[index], action: 'update' }
         }));
-
         // Also dispatch a storage event manually to ensure MaterialsPage refreshes
-        // Since storage events don't fire within the same window, we simulate it
         setTimeout(() => {
           window.dispatchEvent(new StorageEvent('storage', {
             key: 'qr_system_materials',
@@ -192,19 +188,19 @@ export class OfflineDataManager {
             storageArea: localStorage
           }));
         }, 100);
-
-        const operationId = offlineSyncManager.queueOperation({
-          type: 'update',
-          entityType: 'material',
-          entityId: material.id,
-          data: material,
-          priority: 'medium'
-        });
-
-        return operationId;
       } else {
-        throw new Error('Material not found');
+        // Not found locally, skip local update but still queue for Supabase sync
+        console.warn(`Material not found locally for update: ${material.id}. Will still sync to Supabase.`);
       }
+      // Always queue the update operation for Supabase
+      const operationId = offlineSyncManager.queueOperation({
+        type: 'update',
+        entityType: 'material',
+        entityId: material.id,
+        data: material,
+        priority: 'medium'
+      });
+      return operationId;
     } catch (error) {
       console.error('Failed to update material:', error);
       throw error;

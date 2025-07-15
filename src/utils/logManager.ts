@@ -142,43 +142,108 @@ export class LogManager {
     try {
       // Load current materials from storage
       const { DataStorage } = await import('./dataStorage');
-      const materials = DataStorage.loadMaterials();
-      const materialIndex = materials.findIndex(m => m.id === material.id);
-      
+      let materials = DataStorage.loadMaterials();
+      let materialIndex = materials.findIndex(m => m.id === material.id);
+      let updatedMaterial;
       if (materialIndex !== -1) {
         // Update material quantity based on action
         const currentMaterial = materials[materialIndex];
-        // Ensure quantity is treated as a number (localStorage might store it as string)
         let newQuantity = parseInt(String(currentMaterial.quantity || 0), 10);
-        
         if (action === 'material-in') {
           newQuantity += numericQuantity;
         } else {
           newQuantity = Math.max(0, newQuantity - numericQuantity);
         }
-        
-        // Update status based on new quantity
-         let newStatus: 'available' | 'low-stock' | 'out-of-stock' = 'available';
-         if (newQuantity === 0) {
-           newStatus = 'out-of-stock';
-         } else if (newQuantity < 50) {
-           newStatus = 'low-stock';
-         }
-        
-        // Create updated material object
-        const updatedMaterial = {
+        let newStatus: 'available' | 'low-stock' | 'out-of-stock' = 'available';
+        if (newQuantity === 0) {
+          newStatus = 'out-of-stock';
+        } else if (newQuantity < 50) {
+          newStatus = 'low-stock';
+        }
+        updatedMaterial = {
           ...currentMaterial,
           quantity: newQuantity,
           status: newStatus,
           lastUpdated: now.toISOString()
         };
-        
-        // Update material using OfflineDataManager to ensure Supabase sync
         await OfflineDataManager.updateMaterial(updatedMaterial);
-        
         console.log(`Material quantity updated: ${material.name} - ${action} (${numericQuantity}) - New quantity: ${newQuantity}`);
       } else {
-        console.warn(`Material not found for quantity update: ${material.id}`);
+        // Not found locally, fetch from Supabase to get current quantity
+        try {
+          const { supabase } = await import('./supabaseClient');
+          if (!supabase) {
+            // Fallback if supabase is not configured
+            updatedMaterial = {
+              id: material.id,
+              name: material.name,
+              type: material.type,
+              unit: material.unit,
+              site: material.site,
+              quantity: action === 'material-in' ? numericQuantity : 0,
+              status: (action === 'material-in' ? (numericQuantity < 50 ? 'low-stock' : 'available') : 'out-of-stock') as 'available' | 'low-stock' | 'out-of-stock',
+              lastUpdated: now.toISOString(),
+              qrCode: material.qrCode || material.id,
+              createdAt: material.createdAt || now.toISOString()
+            };
+            await OfflineDataManager.updateMaterial(updatedMaterial);
+            console.warn(`Supabase not configured. Queued minimal update for material: ${material.id}`);
+          } else {
+            const { data: supabaseMaterial, error } = await supabase
+              .from('materials')
+              .select('*')
+              .eq('id', material.id)
+              .single();
+            let baseQuantity = 0;
+            if (supabaseMaterial && !error) {
+              baseQuantity = parseInt(String(supabaseMaterial.quantity || 0), 10);
+            } else {
+              console.warn(`Material not found in Supabase for update: ${material.id}. Will use minimal update.`);
+            }
+            let newQuantity = baseQuantity;
+            if (action === 'material-in') {
+              newQuantity += numericQuantity;
+            } else {
+              newQuantity = Math.max(0, newQuantity - numericQuantity);
+            }
+            let newStatus: 'available' | 'low-stock' | 'out-of-stock' = 'available';
+            if (newQuantity === 0) {
+              newStatus = 'out-of-stock';
+            } else if (newQuantity < 50) {
+              newStatus = 'low-stock';
+            }
+            updatedMaterial = {
+              id: material.id,
+              name: material.name,
+              type: material.type,
+              unit: material.unit,
+              site: material.site,
+              quantity: newQuantity,
+              status: newStatus,
+              lastUpdated: now.toISOString(),
+              qrCode: material.qrCode || material.id,
+              createdAt: material.createdAt || now.toISOString()
+            };
+            await OfflineDataManager.updateMaterial(updatedMaterial);
+            console.warn(`Material not found locally. Fetched from Supabase and queued update for material: ${material.id}`);
+          }
+        } catch (fetchError) {
+          // If fetch fails, fallback to minimal update
+          updatedMaterial = {
+            id: material.id,
+            name: material.name,
+            type: material.type,
+            unit: material.unit,
+            site: material.site,
+            quantity: action === 'material-in' ? numericQuantity : 0,
+            status: (action === 'material-in' ? (numericQuantity < 50 ? 'low-stock' : 'available') : 'out-of-stock') as 'available' | 'low-stock' | 'out-of-stock',
+            lastUpdated: now.toISOString(),
+            qrCode: material.qrCode || material.id,
+            createdAt: material.createdAt || now.toISOString()
+          };
+          await OfflineDataManager.updateMaterial(updatedMaterial);
+          console.error(`Failed to fetch material from Supabase. Queued minimal update for material: ${material.id}`, fetchError);
+        }
       }
     } catch (error) {
       console.error('Failed to update material quantity:', error);

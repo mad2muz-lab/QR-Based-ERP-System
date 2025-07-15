@@ -54,6 +54,7 @@ export interface Database {
           timestamp: string
           notes: string | null
           location: string | null
+          old_id: string | null
         }
         Insert: {
           id?: string
@@ -67,6 +68,7 @@ export interface Database {
           timestamp?: string
           notes?: string | null
           location?: string | null
+          old_id?: string | null
         }
         Update: {
           id?: string
@@ -80,6 +82,7 @@ export interface Database {
           timestamp?: string
           notes?: string | null
           location?: string | null
+          old_id?: string | null
         }
       }
       equipment_logs: {
@@ -96,6 +99,7 @@ export interface Database {
           status: string
           notes: string | null
           location: string | null
+          old_id: string | null
         }
         Insert: {
           id?: string
@@ -110,6 +114,7 @@ export interface Database {
           status: string
           notes?: string | null
           location?: string | null
+          old_id?: string | null
         }
         Update: {
           id?: string
@@ -124,6 +129,7 @@ export interface Database {
           status?: string
           notes?: string | null
           location?: string | null
+          old_id?: string | null
         }
       }
       material_logs: {
@@ -141,6 +147,7 @@ export interface Database {
           status: string
           notes: string | null
           location: string | null
+          old_id: string | null
         }
         Insert: {
           id?: string
@@ -156,6 +163,7 @@ export interface Database {
           status: string
           notes?: string | null
           location?: string | null
+          old_id?: string | null
         }
         Update: {
           id?: string
@@ -171,6 +179,7 @@ export interface Database {
           status?: string
           notes?: string | null
           location?: string | null
+          old_id?: string | null
         }
       }
       // Add other tables (employees, equipment, materials, sites, etc.) here

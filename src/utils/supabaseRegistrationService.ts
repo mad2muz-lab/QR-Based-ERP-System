@@ -679,13 +679,13 @@ export class SupabaseRegistrationService {
         material_name: materialLog.materialName,
         material_type: materialLog.materialType,
         created_at: materialLog.createdAt,
-        old_id: materialLog.oldId // Handle oldId field
+        old_id: materialLog.oldId // Use snake_case for DB
       };
       delete (supabaseMaterialLog as any).materialId;
       delete (supabaseMaterialLog as any).materialName;
       delete (supabaseMaterialLog as any).materialType;
       delete (supabaseMaterialLog as any).createdAt;
-      delete (supabaseMaterialLog as any).oldId;
+      delete (supabaseMaterialLog as any).oldId; // Remove camelCase property
 
       const { data, error } = await supabase
         .from('material_logs')
@@ -720,12 +720,12 @@ export class SupabaseRegistrationService {
         employee_id: employeeLog.employeeId,
         employee_name: employeeLog.employeeName,
         created_at: employeeLog.createdAt,
-        old_id: employeeLog.oldId // Handle oldId field
+        old_id: employeeLog.oldId // Use snake_case for DB
       };
       delete (supabaseEmployeeLog as any).employeeId;
       delete (supabaseEmployeeLog as any).employeeName;
       delete (supabaseEmployeeLog as any).createdAt;
-      delete (supabaseEmployeeLog as any).oldId;
+      delete (supabaseEmployeeLog as any).oldId; // Remove camelCase property
 
       const { data, error } = await supabase
         .from('employee_logs')
@@ -761,13 +761,13 @@ export class SupabaseRegistrationService {
         equipment_name: equipmentLog.equipmentName,
         equipment_type: equipmentLog.equipmentType,
         created_at: equipmentLog.createdAt,
-        old_id: equipmentLog.oldId // Handle oldId field
+        old_id: equipmentLog.oldId // Use snake_case for DB
       };
       delete (supabaseEquipmentLog as any).equipmentId;
       delete (supabaseEquipmentLog as any).equipmentName;
       delete (supabaseEquipmentLog as any).equipmentType;
       delete (supabaseEquipmentLog as any).createdAt;
-      delete (supabaseEquipmentLog as any).oldId;
+      delete (supabaseEquipmentLog as any).oldId; // Remove camelCase property
 
       const { data, error } = await supabase
         .from('equipment_logs')
