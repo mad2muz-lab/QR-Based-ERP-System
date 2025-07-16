@@ -87,7 +87,7 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
       <div className="flex justify-start">
         <button
           onClick={onBack}
-          className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm sm:text-base"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Scanner</span>
@@ -96,15 +96,15 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
       
       {/* Unregistered Employee Handler */}
       {scanResult.type === 'unregistered_employee' && (
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 p-6 rounded-t-xl border-2 border-red-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-red-100 rounded-lg shadow-sm">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 p-4 sm:p-6 rounded-t-xl border-2 border-red-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="p-2 sm:p-3 bg-red-100 rounded-lg shadow-sm">
+                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-red-900">Employee Not Registered</h3>
-                <p className="text-sm text-red-700">Employee ID: {scanResult.entityId}</p>
+                <h3 className="text-lg sm:text-xl font-bold text-red-900">Employee Not Registered</h3>
+                <p className="text-xs sm:text-sm text-red-700">Employee ID: {scanResult.entityId}</p>
               </div>
             </div>
           </div>
@@ -120,13 +120,13 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
               <EntityIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900">{scanResult.entity.name}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-gray-900">{scanResult.entity.name}</h3>
               <p className="text-xs sm:text-sm text-gray-600 capitalize">{scanResult.type} • {scanResult.entity.site}</p>
             </div>
           </div>
           
           {scanResult.currentStatus && (
-            <div className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getStatusColor(scanResult.currentStatus)}`}>
+            <div className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getStatusColor(scanResult.currentStatus)}`}> 
               {scanResult.currentStatus.replace('-', ' ').toUpperCase()}
             </div>
           )}
@@ -136,9 +136,9 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
 
       {/* Entity Details */}
       {scanResult.type !== 'unregistered_employee' && (
-      <div className="px-6">
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="grid grid-cols-2 gap-4 text-sm">
+      <div className="px-2 sm:px-6">
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
             {scanResult.type === 'employee' && (
               <>
                 <div>
@@ -225,18 +225,16 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
 
       {/* Current Shift Info for Employees */}
       {scanResult.type === 'employee' && scanResult.currentShift && (
-        <div className="px-6">
-          <div className={`p-4 rounded-lg border-2 ${scanResult.currentShift.isOvertime ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
-            <div className="flex items-center space-x-3 mb-3">
+        <div className="px-2 sm:px-6">
+          <div className={`p-3 sm:p-4 rounded-lg border-2 ${scanResult.currentShift.isOvertime ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}> 
+            <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
               <Clock className={`w-5 h-5 ${scanResult.currentShift.isOvertime ? 'text-orange-600' : 'text-green-600'}`} />
-              <h4 className={`font-semibold ${scanResult.currentShift.isOvertime ? 'text-orange-900' : 'text-green-900'}`}>
-                Current Shift Status
-              </h4>
+              <h4 className={`font-semibold text-xs sm:text-base ${scanResult.currentShift.isOvertime ? 'text-orange-900' : 'text-green-900'}`}>Current Shift Status</h4>
               {scanResult.currentShift.isOvertime && (
                 <AlertTriangle className="w-5 h-5 text-orange-600" />
               )}
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
               <div>
                 <span className="font-medium text-gray-700">Shift Start:</span>
                 <span className="ml-2 text-gray-600">{scanResult.currentShift.startTime.toLocaleTimeString()}</span>
@@ -283,33 +281,33 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
         </div>
       )}
       {/* Actions */}
-      <div className="px-6 pb-6">
-        <h4 className="font-semibold text-gray-900 mb-4">
+      <div className="px-2 sm:px-6 pb-24 sm:pb-6"> {/* Extra bottom padding for mobile safe area */}
+        <h4 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">
           {scanResult.type === 'unregistered_employee' ? 'Required Action:' : 'Available Actions:'}
         </h4>
         
         {showQuantityInput ? (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h5 className="font-medium text-blue-900 mb-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+            <h5 className="font-medium text-blue-900 mb-2 sm:mb-3 text-base sm:text-lg">
               {showQuantityInput === 'material-in' ? 'Add to Inventory' : 'Issue from Inventory'}
             </h5>
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-3">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity ({scanResult.entity.unit})</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Quantity ({scanResult.entity.unit})</label>
                 <input
                   type="number"
                   min="1"
                   value={materialQuantity}
                   onChange={(e) => setMaterialQuantity(Number(e.target.value) || 1)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   placeholder="Enter quantity"
                 />
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => handleQuantitySubmit(showQuantityInput)}
                   disabled={isProcessing}
-                  className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                  className={`w-full sm:w-auto px-4 py-2 text-white rounded-lg transition-colors text-base font-semibold ${
                     isProcessing 
                       ? 'bg-gray-400 cursor-not-allowed' 
                       : 'bg-blue-600 hover:bg-blue-700'
@@ -320,7 +318,7 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                 <button
                   onClick={() => setShowQuantityInput(null)}
                   disabled={isProcessing}
-                  className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                  className={`w-full sm:w-auto px-4 py-2 text-white rounded-lg transition-colors text-base font-semibold ${
                     isProcessing 
                       ? 'bg-gray-400 cursor-not-allowed' 
                       : 'bg-gray-600 hover:bg-gray-700'
@@ -332,7 +330,7 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             {scanResult.actions.map((action: any) => {
               const Icon = action.icon;
               const colorClasses = {
@@ -347,15 +345,15 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                   key={action.id}
                   onClick={() => handleActionClick(action.id)}
                   disabled={isProcessing}
-                  className={`flex items-center space-x-3 p-3 sm:p-4 text-white rounded-lg transition-all duration-200 border-2 ${
+                  className={`w-full flex items-center space-x-3 p-4 text-white rounded-lg transition-all duration-200 border-2 text-base font-semibold ${
                     isProcessing
                       ? 'bg-gray-400 border-gray-400 cursor-not-allowed'
                       : `hover:shadow-lg transform hover:scale-105 ${colorClasses[action.color as keyof typeof colorClasses]}`
                   }`}
                 >
                   <Icon className="w-5 h-5" />
-                  <div className="text-left">
-                    <div className="font-semibold text-sm sm:text-base">
+                  <div className="text-left flex-1">
+                    <div className="font-semibold text-base">
                       {isProcessing ? 'Processing...' : action.label}
                     </div>
                     <div className="text-xs sm:text-sm opacity-90">
