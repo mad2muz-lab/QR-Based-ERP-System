@@ -52,6 +52,64 @@ const QRScanner: React.FC = () => {
     enabled: !scanResult && !isScanning && !isProcessingAction
   });
 
+  // --- SEARCH STATE ---
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [allEntities, setAllEntities] = useState<{ employees: any[]; equipment: any[]; materials: any[] }>({ employees: [], equipment: [], materials: [] });
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Load all entities on mount for search
+  useEffect(() => {
+    (async () => {
+      const [employees, equipment, materials] = await Promise.all([
+        fetchData('employees'),
+        fetchData('equipment'),
+        fetchData('materials'),
+      ]);
+      setAllEntities({ employees, equipment, materials });
+    })();
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    if (!searchQuery) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      const q = searchQuery.toLowerCase();
+      const emp = allEntities.employees.filter(e => e.name?.toLowerCase().includes(q) || e.id?.toLowerCase().includes(q) || e.department?.toLowerCase().includes(q));
+      const eq = allEntities.equipment.filter(e => e.name?.toLowerCase().includes(q) || e.id?.toLowerCase().includes(q) || e.custom_equipment_id?.toLowerCase().includes(q) || e.type?.toLowerCase().includes(q));
+      const mat = allEntities.materials.filter(m => m.name?.toLowerCase().includes(q) || m.id?.toLowerCase().includes(q) || m.type?.toLowerCase().includes(q));
+      setSearchResults([
+        ...emp.map(e => ({ ...e, _entityType: 'employee' })),
+        ...eq.map(e => ({ ...e, _entityType: 'equipment' })),
+        ...mat.map(m => ({ ...m, _entityType: 'material' })),
+      ]);
+      setIsSearching(false);
+    }, 200);
+    // eslint-disable-next-line
+  }, [searchQuery, allEntities]);
+
+  // Simulate QR scan on selection
+  const handleEntitySelect = (entity: any) => {
+    let qrString = '';
+    if (entity._entityType === 'employee') {
+      qrString = entity.id; // EMP-... format
+    } else if (entity._entityType === 'equipment') {
+      qrString = entity.id.startsWith('EQP-') ? entity.id : entity.custom_equipment_id || entity.id;
+    } else if (entity._entityType === 'material') {
+      qrString = entity.id; // MAT-... format
+    }
+    setSearchQuery('');
+    setSearchResults([]);
+    handleScanResult(qrString);
+  };
+
   useEffect(() => {
     checkCameraPermission();
     return () => {
@@ -585,6 +643,56 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
         <div className="px-6 pb-6">
           {!scanResult ? (
             <div className="space-y-6">
+              {/* --- SEARCH FIELD --- */}
+              <div className="mb-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search employee, equipment, or material..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                  autoComplete="off"
+                />
+                {searchQuery && (
+                  <div className="absolute z-50 bg-white border border-gray-200 rounded-lg mt-1 w-full max-h-64 overflow-y-auto shadow-xl">
+                    {isSearching ? (
+                      <div className="p-4 text-gray-500 text-center">Searching...</div>
+                    ) : searchResults.length === 0 ? (
+                      <div className="p-4 text-gray-500 text-center">No results found</div>
+                    ) : (
+                      <>
+                        {/* Grouped results */}
+                        {['employee', 'equipment', 'material'].map(type => {
+                          const group = searchResults.filter(r => r._entityType === type);
+                          if (group.length === 0) return null;
+                          return (
+                            <div key={type}>
+                              <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase bg-gray-50 sticky top-0">{type.charAt(0).toUpperCase() + type.slice(1)}s</div>
+                              {group.map(entity => (
+                                <button
+                                  key={entity.id + (entity.custom_equipment_id || '')}
+                                  onClick={() => handleEntitySelect(entity)}
+                                  className="w-full text-left px-4 py-2 hover:bg-blue-50 flex items-center space-x-3"
+                                >
+                                  {type === 'employee' && <User className="w-4 h-4 text-blue-500" />}
+                                  {type === 'equipment' && <Wrench className="w-4 h-4 text-green-500" />}
+                                  {type === 'material' && <Package className="w-4 h-4 text-orange-500" />}
+                                  <span className="font-medium">{entity.name}</span>
+                                  <span className="ml-2 text-xs text-gray-500">{entity.id}</span>
+                                  {type === 'equipment' && entity.custom_equipment_id && (
+                                    <span className="ml-2 text-xs text-gray-400">({entity.custom_equipment_id})</span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* --- END SEARCH FIELD --- */}
               {error && (
                 <div className={`p-4 rounded-lg border ${
                   error.includes('✅') 
