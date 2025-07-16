@@ -5,20 +5,22 @@ import { Employee, Equipment, Material, Site } from '../types';
 export const generateEmployeeTemplate = () => {
   const template = [
     {
-      'Employee ID': 'EMP-001',
-      'Employee Name': 'John Doe',
-      'Department': 'Construction',
-      'Position': 'Site Engineer',
-      'Site ID': 'site-001',
-      'Status': 'active'
-    },
-    {
-      'Employee ID': 'EMP-002',
-      'Employee Name': 'Jane Smith',
-      'Department': 'Operations',
-      'Position': 'Equipment Operator',
-      'Site ID': 'site-002',
-      'Status': 'active'
+      id: 'EMP-001',
+      name: 'John Doe',
+      type: 'full-time',
+      department: 'Construction',
+      position: 'Site Engineer',
+      blood_group: 'O+',
+      site: 'site-001',
+      qr_code: 'EMP-001',
+      status: 'active',
+      created_at: '2024-01-01T08:00:00Z',
+      last_updated: '2024-01-01T08:00:00Z',
+      photo: 'https://example.com/photo.jpg',
+      email: 'john.doe@example.com',
+      phone: '+966501234567',
+      old_id: 'LEGACY-123',
+      companyId: 'company-001'
     }
   ];
   return template;
@@ -27,22 +29,18 @@ export const generateEmployeeTemplate = () => {
 export const generateEquipmentTemplate = () => {
   const template = [
     {
-      'Equipment ID': 'EQP-001',
-      'Equipment Name': 'Asphalt Paver',
-      'Type': 'Heavy Machinery',
-      'Model': 'CAT AP655F',
-      'Serial Number': 'AP655F-2024-001',
-      'Site ID': 'site-001',
-      'Status': 'available'
-    },
-    {
-      'Equipment ID': 'EQP-002',
-      'Equipment Name': 'Tower Crane',
-      'Type': 'Lifting Equipment',
-      'Model': 'Liebherr 280 EC-H',
-      'Serial Number': 'LH280-2024-002',
-      'Site ID': 'site-002',
-      'Status': 'available'
+      id: 'EQP-001',
+      name: 'Asphalt Paver',
+      type: 'Heavy Machinery',
+      model: 'CAT AP655F',
+      site: 'site-001',
+      qr_code: 'EQP-001',
+      status: 'available',
+      created_at: '2024-01-01T08:00:00Z',
+      last_updated: '2024-01-01T08:00:00Z',
+      serial_number: 'AP655F-2024-001',
+      custom_equipment_id: 'CUST-001',
+      old_id: 'LEGACY-456'
     }
   ];
   return template;
@@ -51,24 +49,20 @@ export const generateEquipmentTemplate = () => {
 export const generateMaterialTemplate = () => {
   const template = [
     {
-      'Material ID': 'MAT-001',
-      'Material Name': 'Bitumen (60/70)',
-      'Type': 'Bituminous Materials',
-      'Unit': 'Tons',
-      'Initial Quantity': 150,
-      'Site ID': 'site-001',
-      'Usage Description': 'Main binder in asphalt mix',
-      'Status': 'available'
-    },
-    {
-      'Material ID': 'MAT-002',
-      'Material Name': 'Steel Reinforcement Bars',
-      'Type': 'Reinforcement & Metals',
-      'Unit': 'Tons',
-      'Initial Quantity': 25,
-      'Site ID': 'site-002',
-      'Usage Description': 'Concrete reinforcement',
-      'Status': 'available'
+      id: 'MAT-001',
+      name: 'Bitumen (60/70)',
+      type: 'Bituminous Materials',
+      unit: 'Tons',
+      site: 'site-001',
+      qr_code: 'MAT-001',
+      quantity: 150,
+      status: 'available',
+      created_at: '2024-01-01T08:00:00Z',
+      last_updated: '2024-01-01T08:00:00Z',
+      use: 'Main binder in asphalt mix',
+      access_level: 'basic',
+      createdAt: '2024-01-01T08:00:00Z',
+      old_id: 'LEGACY-789'
     }
   ];
   return template;
@@ -77,24 +71,15 @@ export const generateMaterialTemplate = () => {
 export const generateSiteTemplate = () => {
   const template = [
     {
-      'Site ID': 'SITE-001',
-      'Site Name': 'Al Khobar Construction Site',
-      'Site Type': 'Construction Site',
-      'Province': 'Eastern Province',
-      'Address': 'Al Khobar, Eastern Province',
-      'Site Manager': 'Ahmed Al-Rashid',
-      'Latitude': 26.2172,
-      'Longitude': 50.2089
-    },
-    {
-      'Site ID': 'SITE-002',
-      'Site Name': 'Riyadh Infrastructure Project',
-      'Site Type': 'Infrastructure Project',
-      'Province': 'Riyadh',
-      'Address': 'King Fahd Road, Riyadh',
-      'Site Manager': 'Mohammed Al-Sabti',
-      'Latitude': 24.7136,
-      'Longitude': 46.6753
+      id: 'SITE-001',
+      name: 'Al Khobar Construction Site',
+      province: 'Eastern Province',
+      coordinates: '(50.2089,26.2172)',
+      address: 'Al Khobar, Eastern Province',
+      manager: 'Ahmed Al-Rashid',
+      last_updated: '2024-01-01T08:00:00Z',
+      type: 'Construction Site',
+      qr_code: 'SITE-001'
     }
   ];
   return template;
@@ -182,19 +167,28 @@ export const downloadEmployeeTemplate = () => {
   const worksheet = XLSX.utils.json_to_sheet(template);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Employee Template');
-  
+
   // Add instructions sheet
   const instructions = [
-    { 'Field': 'Employee ID', 'Description': 'Unique identifier for employee (must start with EMP-)', 'Required': 'Yes', 'Example': 'EMP-001' },
-    { 'Field': 'Employee Name', 'Description': 'Full name of the employee', 'Required': 'Yes', 'Example': 'John Doe' },
-    { 'Field': 'Department', 'Description': 'Employee department', 'Required': 'Yes', 'Example': 'Construction, Operations, Maintenance' },
-    { 'Field': 'Position', 'Description': 'Job position/title', 'Required': 'Yes', 'Example': 'Site Engineer, Operator' },
-    { 'Field': 'Site ID', 'Description': 'ID of the site where employee works', 'Required': 'Yes', 'Example': 'site-001' },
-    { 'Field': 'Status', 'Description': 'Employee status', 'Required': 'Yes', 'Example': 'active, inactive' }
+    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'EMP-001' },
+    { Field: 'name', Description: 'Full name of the employee', Required: 'Yes', Example: 'John Doe' },
+    { Field: 'type', Description: 'Employment type', Required: 'No', Example: 'full-time, part-time, contract' },
+    { Field: 'department', Description: 'Employee department', Required: 'Yes', Example: 'Construction, Operations, Maintenance' },
+    { Field: 'position', Description: 'Job position/title', Required: 'Yes', Example: 'Site Engineer, Operator' },
+    { Field: 'blood_group', Description: 'Blood group', Required: 'No', Example: 'O+, A+, B+' },
+    { Field: 'site', Description: 'ID of the site where employee works', Required: 'Yes', Example: 'site-001' },
+    { Field: 'qr_code', Description: 'Employee QR code (auto-generated if blank)', Required: 'No', Example: 'EMP-001' },
+    { Field: 'status', Description: 'Employee status', Required: 'Yes', Example: 'active, inactive' },
+    { Field: 'created_at', Description: 'Creation date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
+    { Field: 'last_updated', Description: 'Last update date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
+    { Field: 'photo', Description: 'Photo URL', Required: 'No', Example: 'https://example.com/photo.jpg' },
+    { Field: 'email', Description: 'Email address', Required: 'No', Example: 'john.doe@example.com' },
+    { Field: 'phone', Description: 'Phone number', Required: 'No', Example: '+966501234567' },
+    { Field: 'old_id', Description: 'Legacy/old system ID (if any)', Required: 'No', Example: 'LEGACY-123' },
+    { Field: 'companyId', Description: 'Company UUID (if multi-company setup)', Required: 'No', Example: 'company-001' }
   ];
   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
   XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
-  
   XLSX.writeFile(workbook, 'employee_template.xlsx');
 };
 
@@ -203,19 +197,23 @@ export const downloadEquipmentTemplate = () => {
   const worksheet = XLSX.utils.json_to_sheet(template);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Equipment Template');
-  
+
   const instructions = [
-    { 'Field': 'Equipment ID', 'Description': 'Unique identifier for equipment (must start with EQP-)', 'Required': 'Yes', 'Example': 'EQP-001' },
-    { 'Field': 'Equipment Name', 'Description': 'Name of the equipment', 'Required': 'Yes', 'Example': 'Asphalt Paver' },
-    { 'Field': 'Type', 'Description': 'Equipment category', 'Required': 'Yes', 'Example': 'Heavy Machinery, Lifting Equipment' },
-    { 'Field': 'Model', 'Description': 'Equipment model', 'Required': 'Yes', 'Example': 'CAT AP655F' },
-    { 'Field': 'Serial Number', 'Description': 'Equipment serial number', 'Required': 'No', 'Example': 'AP655F-2024-001' },
-    { 'Field': 'Site ID', 'Description': 'ID of the site where equipment is located', 'Required': 'Yes', 'Example': 'site-001' },
-    { 'Field': 'Status', 'Description': 'Equipment status', 'Required': 'Yes', 'Example': 'available, in-use, maintenance' }
+    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'EQP-001' },
+    { Field: 'name', Description: 'Name of the equipment', Required: 'Yes', Example: 'Asphalt Paver' },
+    { Field: 'type', Description: 'Equipment category', Required: 'Yes', Example: 'Heavy Machinery, Lifting Equipment' },
+    { Field: 'model', Description: 'Equipment model', Required: 'Yes', Example: 'CAT AP655F' },
+    { Field: 'site', Description: 'ID of the site where equipment is located', Required: 'Yes', Example: 'site-001' },
+    { Field: 'qr_code', Description: 'Equipment QR code (auto-generated if blank)', Required: 'No', Example: 'EQP-001' },
+    { Field: 'status', Description: 'Equipment status', Required: 'Yes', Example: 'available, in-use, maintenance, down' },
+    { Field: 'created_at', Description: 'Creation date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
+    { Field: 'last_updated', Description: 'Last update date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
+    { Field: 'serial_number', Description: 'Equipment serial number', Required: 'No', Example: 'AP655F-2024-001' },
+    { Field: 'custom_equipment_id', Description: 'User-defined unique identifier', Required: 'No', Example: 'CUST-001' },
+    { Field: 'old_id', Description: 'Legacy/old system ID (if any)', Required: 'No', Example: 'LEGACY-456' }
   ];
   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
   XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
-  
   XLSX.writeFile(workbook, 'equipment_template.xlsx');
 };
 
@@ -224,20 +222,25 @@ export const downloadMaterialTemplate = () => {
   const worksheet = XLSX.utils.json_to_sheet(template);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Material Template');
-  
+
   const instructions = [
-    { 'Field': 'Material ID', 'Description': 'Unique identifier for material (leave blank for auto-generation)', 'Required': 'No', 'Example': 'MAT-001' },
-    { 'Field': 'Material Name', 'Description': 'Name of the material', 'Required': 'Yes', 'Example': 'Bitumen (60/70)' },
-    { 'Field': 'Type', 'Description': 'Material category', 'Required': 'Yes', 'Example': 'Bituminous Materials, Aggregates' },
-    { 'Field': 'Unit', 'Description': 'Unit of measurement', 'Required': 'Yes', 'Example': 'Tons, Pieces, Liters' },
-    { 'Field': 'Initial Quantity', 'Description': 'Starting quantity', 'Required': 'Yes', 'Example': '150' },
-    { 'Field': 'Site ID', 'Description': 'ID of the site where material is stored', 'Required': 'Yes', 'Example': 'site-001' },
-    { 'Field': 'Usage Description', 'Description': 'How the material is used', 'Required': 'No', 'Example': 'Main binder in asphalt mix' },
-    { 'Field': 'Status', 'Description': 'Material status', 'Required': 'Yes', 'Example': 'available, low-stock, out-of-stock' }
+    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'MAT-001' },
+    { Field: 'name', Description: 'Name of the material', Required: 'Yes', Example: 'Bitumen (60/70)' },
+    { Field: 'type', Description: 'Material category', Required: 'Yes', Example: 'Bituminous Materials, Aggregates' },
+    { Field: 'unit', Description: 'Unit of measurement', Required: 'Yes', Example: 'Tons, Pieces, Liters' },
+    { Field: 'site', Description: 'ID of the site where material is stored', Required: 'Yes', Example: 'site-001' },
+    { Field: 'qr_code', Description: 'Material QR code (auto-generated if blank)', Required: 'No', Example: 'MAT-001' },
+    { Field: 'quantity', Description: 'Current quantity', Required: 'Yes', Example: '150' },
+    { Field: 'status', Description: 'Material status', Required: 'Yes', Example: 'available, low-stock, out-of-stock' },
+    { Field: 'created_at', Description: 'Creation date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
+    { Field: 'last_updated', Description: 'Last update date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
+    { Field: 'use', Description: 'How the material is used', Required: 'No', Example: 'Main binder in asphalt mix' },
+    { Field: 'access_level', Description: 'Access level for material', Required: 'No', Example: 'basic, restricted, admin' },
+    { Field: 'createdAt', Description: 'Legacy/old system createdAt (if any)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
+    { Field: 'old_id', Description: 'Legacy/old system ID (if any)', Required: 'No', Example: 'LEGACY-789' }
   ];
   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
   XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
-  
   XLSX.writeFile(workbook, 'material_template.xlsx');
 };
 
@@ -246,20 +249,20 @@ export const downloadSiteTemplate = () => {
   const worksheet = XLSX.utils.json_to_sheet(template);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Site Template');
-  
+
   const instructions = [
-    { 'Field': 'Site ID', 'Description': 'Unique identifier for the site', 'Required': 'Yes', 'Example': 'site-001, site-002' },
-    { 'Field': 'Site Name', 'Description': 'Name of the site', 'Required': 'Yes', 'Example': 'Al Khobar Construction Site' },
-    { 'Field': 'Site Type', 'Description': 'Type of site', 'Required': 'Yes', 'Example': 'Construction Site, Infrastructure Project' },
-    { 'Field': 'Province', 'Description': 'KSA Province', 'Required': 'Yes', 'Example': 'Riyadh, Eastern Province, Makkah' },
-    { 'Field': 'Address', 'Description': 'Site address', 'Required': 'Yes', 'Example': 'Al Khobar, Eastern Province' },
-    { 'Field': 'Site Manager', 'Description': 'Name of site manager', 'Required': 'Yes', 'Example': 'Ahmed Al-Rashid' },
-    { 'Field': 'Latitude', 'Description': 'GPS latitude coordinate', 'Required': 'Yes', 'Example': '26.2172' },
-    { 'Field': 'Longitude', 'Description': 'GPS longitude coordinate', 'Required': 'Yes', 'Example': '50.2089' }
+    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'SITE-001' },
+    { Field: 'name', Description: 'Name of the site', Required: 'Yes', Example: 'Al Khobar Construction Site' },
+    { Field: 'province', Description: 'KSA Province', Required: 'Yes', Example: 'Riyadh, Eastern Province, Makkah' },
+    { Field: 'coordinates', Description: 'GPS coordinates as (longitude,latitude)', Required: 'No', Example: '(50.2089,26.2172)' },
+    { Field: 'address', Description: 'Site address', Required: 'Yes', Example: 'Al Khobar, Eastern Province' },
+    { Field: 'manager', Description: 'Name of site manager', Required: 'Yes', Example: 'Ahmed Al-Rashid' },
+    { Field: 'last_updated', Description: 'Last update date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
+    { Field: 'type', Description: 'Type of site', Required: 'No', Example: 'Construction Site, Infrastructure Project' },
+    { Field: 'qr_code', Description: 'Site QR code (auto-generated if blank)', Required: 'No', Example: 'SITE-001' }
   ];
   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
   XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
-  
   XLSX.writeFile(workbook, 'site_template.xlsx');
 };
 
@@ -275,37 +278,36 @@ export const importEmployeesFromExcel = (file: File): Promise<Partial<Employee>[
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
         const employees = jsonData.map((row: any, index: number) => {
-          const employeeId = row['Employee ID'];
-          
-          // Validate Employee ID is provided
-          if (!employeeId || !employeeId.trim()) {
-            throw new Error(`Row ${index + 2}: Employee ID is required`);
+          // Use exact DB column names
+          const id = row['id'] || '';
+          const name = row['name'] || '';
+          const department = row['department'] || '';
+          const position = row['position'] || '';
+          const site = row['site'] || '';
+          const status = row['status'] || 'active';
+          // Required fields check
+          if (!name || !department || !position || !site) {
+            throw new Error(`Row ${index + 2}: Missing required fields (name, department, position, site)`);
           }
-          
-          // Validate Employee ID format
-          if (!employeeId.startsWith('EMP-')) {
-            throw new Error(`Row ${index + 2}: Employee ID must start with "EMP-" (found: ${employeeId})`);
-          }
-          
-          const idPattern = /^EMP-[A-Za-z0-9]+$/;
-          if (!idPattern.test(employeeId)) {
-            throw new Error(`Row ${index + 2}: Employee ID must follow format EMP-XXX (found: ${employeeId})`);
-          }
-          
           return {
-            id: employeeId,
-            name: row['Employee Name'],
-            department: row['Department'],
-            position: row['Position'],
-            site: row['Site ID'],
-            status: row['Status'] || 'active',
-            type: row['Employee Type'] || '',
-            bloodGroup: row['Blood Group'] || '',
-            email: row['Email'] || '',
-            phone: row['Phone'] || ''
+            id: id,
+            name: name,
+            type: row['type'] || '',
+            department: department,
+            position: position,
+            blood_group: row['blood_group'] || '',
+            site: site,
+            qr_code: row['qr_code'] || '',
+            status: status,
+            created_at: row['created_at'] || '',
+            last_updated: row['last_updated'] || '',
+            photo: row['photo'] || '',
+            email: row['email'] || '',
+            phone: row['phone'] || '',
+            old_id: row['old_id'] || '',
+            companyId: row['companyId'] || ''
           };
         });
-        
         resolve(employees);
       } catch (error) {
         reject(error);
@@ -326,34 +328,31 @@ export const importEquipmentFromExcel = (file: File): Promise<Partial<Equipment>
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
         const equipment = jsonData.map((row: any, index: number) => {
-          const equipmentId = row['Equipment ID'];
-          
-          // Validate Equipment ID is provided
-          if (!equipmentId || !equipmentId.trim()) {
-            throw new Error(`Row ${index + 2}: Equipment ID is required`);
+          const id = row['id'] || '';
+          const name = row['name'] || '';
+          const type = row['type'] || '';
+          const model = row['model'] || '';
+          const site = row['site'] || '';
+          const status = row['status'] || 'available';
+          // Required fields check
+          if (!name || !type || !model || !site) {
+            throw new Error(`Row ${index + 2}: Missing required fields (name, type, model, site)`);
           }
-          
-          // Validate Equipment ID format
-          if (!equipmentId.startsWith('EQP-')) {
-            throw new Error(`Row ${index + 2}: Equipment ID must start with "EQP-" (found: ${equipmentId})`);
-          }
-          
-          const idPattern = /^EQP-[A-Za-z0-9]+$/;
-          if (!idPattern.test(equipmentId)) {
-            throw new Error(`Row ${index + 2}: Equipment ID must follow format EQP-XXX (found: ${equipmentId})`);
-          }
-          
           return {
-            id: equipmentId,
-            name: row['Equipment Name'],
-            type: row['Type'],
-            model: row['Model'],
-            serialNumber: row['Serial Number'],
-            site: row['Site ID'],
-            status: row['Status'] || 'available'
+            id: id,
+            name: name,
+            type: type,
+            model: model,
+            site: site,
+            qr_code: row['qr_code'] || '',
+            status: status,
+            created_at: row['created_at'] || '',
+            last_updated: row['last_updated'] || '',
+            serial_number: row['serial_number'] || '',
+            custom_equipment_id: row['custom_equipment_id'] || '',
+            old_id: row['old_id'] || ''
           };
         });
-        
         resolve(equipment);
       } catch (error) {
         reject(error);
@@ -373,17 +372,34 @@ export const importMaterialsFromExcel = (file: File): Promise<Partial<Material>[
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
-        const materials = jsonData.map((row: any) => ({
-          id: row['Material ID'] || undefined,
-          name: row['Material Name'],
-          type: row['Type'],
-          unit: row['Unit'],
-          quantity: row['Initial Quantity'],
-          site: row['Site ID'],
-          use: row['Usage Description'],
-          status: row['Status'] || 'available'
-        }));
-        
+        const materials = jsonData.map((row: any, index: number) => {
+          const id = row['id'] || '';
+          const name = row['name'] || '';
+          const type = row['type'] || '';
+          const unit = row['unit'] || '';
+          const site = row['site'] || '';
+          const status = row['status'] || 'available';
+          // Required fields check
+          if (!name || !type || !unit || !site) {
+            throw new Error(`Row ${index + 2}: Missing required fields (name, type, unit, site)`);
+          }
+          return {
+            id: id,
+            name: name,
+            type: type,
+            unit: unit,
+            site: site,
+            qr_code: row['qr_code'] || '',
+            quantity: row['quantity'] || 0,
+            status: status,
+            created_at: row['created_at'] || '',
+            last_updated: row['last_updated'] || '',
+            use: row['use'] || '',
+            access_level: row['access_level'] || '',
+            createdAt: row['createdAt'] || '',
+            old_id: row['old_id'] || ''
+          };
+        });
         resolve(materials);
       } catch (error) {
         reject(error);
@@ -403,16 +419,28 @@ export const importSitesFromExcel = (file: File): Promise<Partial<Site>[]> => {
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
-        const sites = jsonData.map((row: any) => ({
-          id: row['Site ID'] || undefined,
-          name: row['Site Name'],
-          type: row['Site Type'],
-          province: row['Province'],
-          address: row['Address'],
-          manager: row['Site Manager'],
-          coordinates: [parseFloat(row['Longitude']) || 0, parseFloat(row['Latitude']) || 0] as [number, number]
-        }));
-        
+        const sites = jsonData.map((row: any, index: number) => {
+          const id = row['id'] || '';
+          const name = row['name'] || '';
+          const province = row['province'] || '';
+          const address = row['address'] || '';
+          const manager = row['manager'] || '';
+          // Required fields check
+          if (!name || !province || !address || !manager) {
+            throw new Error(`Row ${index + 2}: Missing required fields (name, province, address, manager)`);
+          }
+          return {
+            id: id,
+            name: name,
+            province: province,
+            coordinates: row['coordinates'] || '',
+            address: address,
+            manager: manager,
+            last_updated: row['last_updated'] || '',
+            type: row['type'] || '',
+            qr_code: row['qr_code'] || ''
+          };
+        });
         resolve(sites);
       } catch (error) {
         reject(error);

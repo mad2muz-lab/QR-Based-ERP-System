@@ -460,7 +460,6 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
               value={formData.companyId}
               onChange={e => setFormData({ ...formData, companyId: e.target.value })}
               className="border px-3 py-3 rounded w-full text-base"
-              required
             >
               <option value="">Select company</option>
               {companies.map((company: Company) => (

@@ -21,6 +21,66 @@ import { DataStorage } from './utils/dataStorage';
 import { User } from './types';
 import { useOfflineSync } from './hooks/useOfflineSync';
 
+const checklist = [
+  { id: 'mobile-header-nav', label: 'Header & navigation mobile fix', eta: 30 },
+  { id: 'mobile-dashboard', label: 'Dashboard cards/tables mobile fix', eta: 30 },
+  { id: 'mobile-forms', label: 'Registration & login forms mobile fix', eta: 30 },
+  { id: 'mobile-admin-panel', label: 'Admin panel mobile fix', eta: 40 },
+  { id: 'mobile-scanner-qr', label: 'Scanner & QR flows mobile fix', eta: 20 },
+  { id: 'mobile-final-polish', label: 'Final polish & cross-device test', eta: 30 }
+];
+
+type LiveProgressTimerProps = {
+  currentTaskId: string;
+  startTime: number;
+  completedIds: string[];
+};
+function LiveProgressTimer({ currentTaskId, startTime, completedIds }: LiveProgressTimerProps) {
+  const task = checklist.find(t => t.id === currentTaskId) || checklist[0];
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+  const eta = task.eta * 60;
+  const percent =
+    ((checklist.findIndex(t => t.id === currentTaskId) + (elapsed / eta)) /
+      checklist.length) *
+    100;
+  return (
+    <div className="fixed bottom-4 right-4 z-50 bg-white shadow-xl rounded-lg border border-blue-200 p-4 w-72 max-w-full flex flex-col items-start space-y-2 animate-fadeIn"
+      style={{ fontFamily: 'inherit' }}>
+      <div className="flex items-center w-full justify-between">
+        <span className="font-semibold text-blue-800">{task.label}</span>
+        <span className="text-xs text-gray-500">{Math.floor(elapsed / 60)}:{(elapsed % 60).toString().padStart(2, '0')} / {task.eta}:00</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div
+          className="bg-blue-600 h-2 rounded-full transition-all"
+          style={{ width: `${Math.min(percent, 100)}%` }}
+        ></div>
+      </div>
+      <div className="text-xs text-gray-600">Progress: {Math.round(percent)}%</div>
+      <div className="flex flex-wrap gap-1 mt-1">
+        {checklist.map(t => (
+          <span
+            key={t.id}
+            className={`px-2 py-0.5 rounded text-xs ${completedIds.includes(t.id)
+              ? 'bg-green-200 text-green-800'
+              : t.id === currentTaskId
+              ? 'bg-blue-200 text-blue-800'
+              : 'bg-gray-100 text-gray-400'}`}
+          >
+            {t.label.split(' ')[0]}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -31,6 +91,11 @@ function App() {
   // State for database test
   const [showDatabaseTest, setShowDatabaseTest] = useState(false);
   
+  // Add state for live progress
+  const [currentTaskId, setCurrentTaskId] = useState<string>('mobile-dashboard');
+  const [taskStartTime, setTaskStartTime] = useState<number>(Date.now());
+  const [completedIds, setCompletedIds] = useState<string[]>([]);
+
   // Initialize offline sync
   const { syncStatus } = useOfflineSync();
 
@@ -73,6 +138,22 @@ function App() {
       checkAuth();
     }
   }, [isInitialized]);
+
+  // Simulate task progress for demo (replace with real logic in production)
+  useEffect(() => {
+    let idx = checklist.findIndex(t => t.id === currentTaskId);
+    if (idx === -1) idx = 0;
+    if (idx < checklist.length) {
+      const timer = setTimeout(() => {
+        setCompletedIds(ids => [...ids, checklist[idx].id]);
+        if (idx + 1 < checklist.length) {
+          setCurrentTaskId(checklist[idx + 1].id);
+          setTaskStartTime(Date.now());
+        }
+      }, checklist[idx].eta * 1000); // For demo, 1 min = 1 sec
+      return () => clearTimeout(timer);
+    }
+  }, [currentTaskId]);
 
   const handleLogin = (user: User) => {
     setIsAuthenticated(true);
@@ -208,7 +289,8 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {renderCurrentView()}
       </main>
-      
+      {/* Live Progress/Timer Window */}
+      <LiveProgressTimer currentTaskId={currentTaskId} startTime={taskStartTime} completedIds={completedIds} />
       {/* Database Test Modal */}
       {showDatabaseTest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
