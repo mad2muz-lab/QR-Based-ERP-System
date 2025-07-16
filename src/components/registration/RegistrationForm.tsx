@@ -1099,14 +1099,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
       {/* Tab Navigation */}
       {!isLoading && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="flex space-x-1 p-1 bg-gray-50 rounded-t-xl">
+          <div className="flex space-x-1 p-1 bg-gray-50 rounded-t-xl overflow-x-auto">
             {tabs.map(tab => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-1 justify-center ${
+                  className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 justify-center whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'bg-blue-800 text-white shadow-lg'
                       : 'text-gray-600 hover:text-blue-800 hover:bg-blue-50'
