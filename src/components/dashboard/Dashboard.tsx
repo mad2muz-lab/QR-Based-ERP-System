@@ -286,7 +286,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
       {activeTab === 'overview' && (
         <>
           {/* Main Statistics Cards - Responsive grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <StatsCard
               title="Active Employees"
               value={`${activeEmployees}/${totalEmployees}`}
@@ -322,54 +322,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
           </div>
 
           {/* Secondary Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Today's Activity</h3>
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">Today's Activity</h3>
                 <Clock className="w-5 h-5 text-blue-600" />
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-2">{todayLogs}</div>
-                <p className="text-sm text-gray-600">Total activities logged today</p>
+                <div className="text-2xl md:text-3xl font-bold text-blue-600 mb-2">{todayLogs}</div>
+                <p className="text-xs md:text-sm text-gray-600">Total activities logged today</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Material Status</h3>
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">Material Status</h3>
                 <Package className="w-5 h-5 text-orange-600" />
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-gray-600">Available:</span>
                   <span className="font-medium text-green-600">{materials.filter(m => m.status === 'available').length}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-gray-600">Low Stock:</span>
                   <span className="font-medium text-yellow-600">{lowStockMaterials}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-gray-600">Out of Stock:</span>
                   <span className="font-medium text-red-600">{outOfStockMaterials}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Equipment Status</h3>
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">Equipment Status</h3>
                 <Wrench className="w-5 h-5 text-green-600" />
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-gray-600">Available:</span>
                   <span className="font-medium text-green-600">{equipment.filter(e => e.status === 'available').length}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-gray-600">In Use:</span>
                   <span className="font-medium text-blue-600">{activeEquipment}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-gray-600">Maintenance:</span>
                   <span className="font-medium text-yellow-600">{maintenanceEquipment}</span>
                 </div>
@@ -378,10 +378,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
           </div>
 
           {/* Recent Activity and Site Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">Recent Activity</h3>
                 <TrendingUp className="w-5 h-5 text-blue-600" />
               </div>
               <div className="space-y-3 max-h-80 overflow-y-auto">
@@ -389,7 +389,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                   <p className="text-gray-500 text-center py-4">No recent activity</p>
                 ) : (
                   recentLogs.map((log) => {
-                    const entity = 
+                    const entity =
                       log.entityType === 'employee' ? employees.find(e => e.id === log.entityId) :
                       log.entityType === 'equipment' ? equipment.find(e => e.id === log.entityId) :
                       log.entityType === 'material' ? materials.find(m => m.id === log.entityId) :
@@ -401,12 +401,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                       log.materialName || log.material_name ||
                       log.entityId;
                     return (
-                      <div key={log.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <div key={log.id} className="flex items-center space-x-3 p-2 md:p-3 bg-gray-50 rounded-lg">
                         <div className={`w-2 h-2 rounded-full ${
                           log.action.includes('in') || log.action.includes('start') ? 'bg-green-500' : 'bg-red-500'
                         }`} />
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-xs md:text-sm font-medium text-gray-900">
                             {log.action.replace('-', ' ').toUpperCase()} • {entityName}
                           </p>
                           <div className="flex items-center space-x-2 text-xs text-gray-500">
@@ -428,9 +428,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Site Overview</h3>
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">Site Overview</h3>
                 <Building className="w-5 h-5 text-purple-600" />
               </div>
               <div className="space-y-3 max-h-80 overflow-y-auto">
@@ -438,9 +438,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                   <p className="text-gray-500 text-center py-4">No sites registered</p>
                 ) : (
                   siteStats.map((site) => (
-                    <div key={site.id} className="p-3 bg-gray-50 rounded-lg">
+                    <div key={site.id} className="p-2 md:p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-gray-900">{site.name}</h4>
+                        <h4 className="font-medium text-sm md:text-base text-gray-900">{site.name}</h4>
                         <span className="text-xs text-gray-500">{site.province}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs">
@@ -475,18 +475,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
 
           {/* Alerts Section */}
           {(lowStockMaterials > 0 || outOfStockMaterials > 0 || maintenanceEquipment > 0) && (
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
               <div className="flex items-center space-x-3 mb-4">
                 <AlertTriangle className="w-6 h-6 text-yellow-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Alerts & Notifications</h3>
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">Alerts & Notifications</h3>
               </div>
               <div className="space-y-3">
                 {outOfStockMaterials > 0 && (
                   <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border border-red-200">
                     <AlertTriangle className="w-5 h-5 text-red-600" />
                     <div>
-                      <p className="font-medium text-red-900">Critical: {outOfStockMaterials} materials out of stock</p>
-                      <p className="text-sm text-red-700">Immediate restocking required</p>
+                      <p className="font-medium text-sm md:text-base text-red-900">Critical: {outOfStockMaterials} materials out of stock</p>
+                      <p className="text-xs md:text-sm text-red-700">Immediate restocking required</p>
                     </div>
                   </div>
                 )}
@@ -494,8 +494,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                   <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                     <AlertTriangle className="w-5 h-5 text-yellow-600" />
                     <div>
-                      <p className="font-medium text-yellow-900">Warning: {lowStockMaterials} materials running low</p>
-                      <p className="text-sm text-yellow-700">Consider restocking soon</p>
+                      <p className="font-medium text-sm md:text-base text-yellow-900">Warning: {lowStockMaterials} materials running low</p>
+                      <p className="text-xs md:text-sm text-yellow-700">Consider restocking soon</p>
                     </div>
                   </div>
                 )}
@@ -503,8 +503,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                   <div className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
                     <Wrench className="w-5 h-5 text-orange-600" />
                     <div>
-                      <p className="font-medium text-orange-900">Maintenance: {maintenanceEquipment} equipment units need attention</p>
-                      <p className="text-sm text-orange-700">Schedule maintenance to avoid downtime</p>
+                      <p className="font-medium text-sm md:text-base text-orange-900">Maintenance: {maintenanceEquipment} equipment units need attention</p>
+                      <p className="text-xs md:text-sm text-orange-700">Schedule maintenance to avoid downtime</p>
                     </div>
                   </div>
                 )}

@@ -113,20 +113,20 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
 
       {/* Entity Header */}
       {scanResult.type !== 'unregistered_employee' && (
-      <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-t-xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-white rounded-lg shadow-sm">
-              <EntityIcon className="w-6 h-6 text-blue-600" />
+      <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 sm:p-6 rounded-t-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="p-2 sm:p-3 bg-white rounded-lg shadow-sm">
+              <EntityIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">{scanResult.entity.name}</h3>
-              <p className="text-sm text-gray-600 capitalize">{scanResult.type} • {scanResult.entity.site}</p>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">{scanResult.entity.name}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 capitalize">{scanResult.type} • {scanResult.entity.site}</p>
             </div>
           </div>
           
           {scanResult.currentStatus && (
-            <div className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(scanResult.currentStatus)}`}>
+            <div className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getStatusColor(scanResult.currentStatus)}`}>
               {scanResult.currentStatus.replace('-', ' ').toUpperCase()}
             </div>
           )}
@@ -332,7 +332,7 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {scanResult.actions.map((action: any) => {
               const Icon = action.icon;
               const colorClasses = {
@@ -347,18 +347,18 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                   key={action.id}
                   onClick={() => handleActionClick(action.id)}
                   disabled={isProcessing}
-                  className={`flex items-center space-x-3 p-4 text-white rounded-lg transition-all duration-200 border-2 ${
-                    isProcessing 
-                      ? 'bg-gray-400 border-gray-400 cursor-not-allowed' 
+                  className={`flex items-center space-x-3 p-3 sm:p-4 text-white rounded-lg transition-all duration-200 border-2 ${
+                    isProcessing
+                      ? 'bg-gray-400 border-gray-400 cursor-not-allowed'
                       : `hover:shadow-lg transform hover:scale-105 ${colorClasses[action.color as keyof typeof colorClasses]}`
                   }`}
                 >
                   <Icon className="w-5 h-5" />
                   <div className="text-left">
-                    <div className="font-semibold">
+                    <div className="font-semibold text-sm sm:text-base">
                       {isProcessing ? 'Processing...' : action.label}
                     </div>
-                    <div className="text-sm opacity-90">
+                    <div className="text-xs sm:text-sm opacity-90">
                       {isProcessing ? 'Please wait' : action.description}
                     </div>
                   </div>

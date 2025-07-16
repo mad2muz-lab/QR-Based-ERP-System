@@ -1,12 +1,10 @@
 import React from 'react';
-import { DivideIcon as LucideIcon } from 'lucide-react';
-
 interface StatsCardProps {
-  title: string;
-  value: string | number;
-  icon?: LucideIcon; // ✅ Optional icon
-  change?: string;
-  changeType?: 'increase' | 'decrease' | 'neutral';
+   title: string;
+   value: string | number;
+   icon?: React.ElementType;
+   change?: string;
+   changeType?: 'increase' | 'decrease' | 'neutral';
   color?: 'blue' | 'green' | 'yellow' | 'red';
 }
 
@@ -33,11 +31,11 @@ const StatsCard: React.FC<StatsCardProps> = ({
   };
 
   return (
-    <div className={`p-6 rounded-xl border-2 ${colorClasses[color]} transition-all duration-300 hover:shadow-lg hover:scale-105`}>
+    <div className={`p-4 sm:p-6 rounded-xl border-2 ${colorClasses[color]} transition-all duration-300 hover:shadow-lg hover:scale-105`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium opacity-75">{title}</p>
-          <p className="text-3xl font-bold mt-1">{value}</p>
+          <p className="text-2xl sm:text-3xl font-bold mt-1">{value}</p>
           {change && (
             <div className="flex items-center mt-2">
               <span className={`text-xs font-medium ${

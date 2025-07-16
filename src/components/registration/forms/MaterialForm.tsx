@@ -125,14 +125,14 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Material Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
@@ -143,7 +143,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
               type="text"
               value={formData.oldId}
               onChange={(e) => setFormData({ ...formData, oldId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter legacy material ID from previous system"
             />
             <div className="text-xs text-gray-500 mt-1">
@@ -160,7 +160,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
                   value={formData.customType}
                   onChange={(e) => setFormData({ ...formData, customType: e.target.value })}
                   placeholder="Enter custom material type"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
                 <button
@@ -175,7 +175,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
               <select
                 value={formData.type}
                 onChange={(e) => handleTypeChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
                 <option value="">Select material type</option>
@@ -192,7 +192,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
             <select
               value={formData.unit}
               onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="">Select unit</option>
@@ -217,7 +217,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
               step="0.01"
               value={formData.quantity}
               onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
@@ -227,7 +227,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
             <select
               value={formData.site}
               onChange={(e) => setFormData({ ...formData, site: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="">Select site</option>
@@ -243,7 +243,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
               value={formData.use}
               onChange={(e) => setFormData({ ...formData, use: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Describe how this material is used..."
             />
           </div>

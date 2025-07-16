@@ -1,23 +1,21 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Activity, MapPin, QrCode, Users, Shield, LogOut, User, Wrench, Package, Building, Database, Menu, WifiOff, Wifi } from 'lucide-react';
 import { AuthManager } from '../../utils/authUtils';
 
 interface HeaderProps {
-  currentView: string;
-  onViewChange: (view: string) => void;
   currentUser?: any;
   onLogout?: () => void;
-  onDatabaseTest?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser, onLogout, onDatabaseTest }) => {
-  // Company info state
+const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
   const [company, setCompany] = useState<{ name: string; logoUrl?: string } | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Try to get company info from localStorage (used by CompanyManager)
     try {
       const companies = JSON.parse(localStorage.getItem('companies') || '[]');
       if (companies.length > 0) {
@@ -40,26 +38,22 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser,
     };
   }, []);
 
-  // Define navigation items based on user role
   const getNavItems = () => {
     const items = [
-      { id: 'dashboard', label: 'Dashboard', icon: Activity, minAccessLevel: 'operator' }, // Level 3
-      { id: 'scan', label: 'QR Scanner', icon: QrCode, minAccessLevel: 'operator' },      // Level 3
+      { path: '/', label: 'Dashboard', icon: Activity, minAccessLevel: 'operator' },
+      { path: '/scan', label: 'QR Scanner', icon: QrCode, minAccessLevel: 'operator' },
     ];
 
-    // Add registration for manager and above (Level 2+)
     if (AuthManager.hasPermission('manager')) {
-      items.push({ id: 'register', label: 'Register', icon: Users, minAccessLevel: 'manager' });
+      items.push({ path: '/register', label: 'Register', icon: Users, minAccessLevel: 'manager' });
     }
     
-    // Add map view for operator and above (Level 3+)
     if (AuthManager.hasPermission('operator')) {
-      items.push({ id: 'map', label: 'Map View', icon: MapPin, minAccessLevel: 'operator' });
+      items.push({ path: '/map', label: 'Map View', icon: MapPin, minAccessLevel: 'operator' });
     }
     
-    // Add admin panel for admin and developer (Level 1+)
     if (AuthManager.hasPermission('admin')) {
-      items.push({ id: 'admin', label: 'Admin Panel', icon: Shield, minAccessLevel: 'admin' });
+      items.push({ path: '/admin', label: 'Admin Panel', icon: Shield, minAccessLevel: 'admin' });
     }
     
     return items;
@@ -70,10 +64,8 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser,
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Top row: logo, company, hamburger, online status */}
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-3">
-            {/* Company Logo or fallback icon, larger and zoomed */}
             <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-to-r from-blue-800 to-blue-600 overflow-hidden">
               {company && company.logoUrl ? (
                 <img src={company.logoUrl} alt="Company Logo" className="w-full h-full object-contain" style={{ objectFit: 'cover' }} />
@@ -86,7 +78,6 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser,
               <p className="text-sm text-gray-500">KSA Operations Dashboard</p>
             </div>
           </div>
-          {/* Hamburger menu for mobile */}
           <div className="flex items-center space-x-2 sm:hidden">
             <button
               onClick={() => setNavOpen(!navOpen)}
@@ -96,7 +87,6 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser,
               <Menu className="w-7 h-7" />
             </button>
           </div>
-          {/* Online/offline indicator */}
           <div className="flex items-center space-x-2">
             {isOnline ? (
               <span className="flex items-center text-green-600 text-xs"><Wifi className="w-4 h-4 mr-1" />Online</span>
@@ -105,17 +95,16 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser,
             )}
           </div>
         </div>
-        {/* Navigation and user info row (desktop) */}
         <div className="hidden sm:flex items-center justify-between py-2">
           <nav className="flex space-x-1 w-full">
             {navItems.map(item => {
               const Icon = item.icon;
               return (
                 <button
-                  key={item.id}
-                  onClick={() => onViewChange(item.id)}
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    currentView === item.id
+                    location.pathname === item.path
                       ? 'bg-blue-800 text-white shadow-lg transform scale-105'
                       : 'text-gray-600 hover:text-blue-800 hover:bg-blue-50'
                   }`}
@@ -145,7 +134,6 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser,
             </div>
           )}
         </div>
-        {/* Mobile navigation drawer */}
         {navOpen && (
           <div className="sm:hidden bg-white border-t border-gray-200 py-2 animate-fadeIn">
             <nav className="flex flex-col space-y-2">
@@ -153,10 +141,10 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange, currentUser,
                 const Icon = item.icon;
                 return (
                   <button
-                    key={item.id}
-                    onClick={() => { setNavOpen(false); onViewChange(item.id); }}
+                    key={item.path}
+                    onClick={() => { setNavOpen(false); navigate(item.path); }}
                     className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-all duration-200 ${
-                      currentView === item.id
+                      location.pathname === item.path
                         ? 'bg-blue-800 text-white shadow-lg'
                         : 'text-gray-700 hover:text-blue-800 hover:bg-blue-50'
                     }`}

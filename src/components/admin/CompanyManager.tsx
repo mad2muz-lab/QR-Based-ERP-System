@@ -140,24 +140,24 @@ const CompanyManager: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4">Company Management</h2>
+    <div className="p-4 sm:p-6">
+      <h2 className="text-lg sm:text-xl font-semibold mb-4">Company Management</h2>
       {errorMsg && <div className="text-red-600 mb-2">{errorMsg}</div>}
       <div className="mb-6 flex flex-col md:flex-row md:items-end gap-4">
-        <div>
+        <div className="w-full md:w-auto">
           <label className="block text-sm font-medium mb-1">Company Name</label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="border px-3 py-2 rounded w-64"
+            className="border px-3 py-2 rounded w-full md:w-64"
             placeholder="Enter company name"
             disabled={isLoading}
           />
         </div>
-        <div>
+        <div className="w-full md:w-auto">
           <label className="block text-sm font-medium mb-1">Logo</label>
-          <input type="file" accept="image/*" onChange={handleLogoChange} disabled={isLoading} />
+          <input type="file" accept="image/*" onChange={handleLogoChange} disabled={isLoading} className="w-full" />
           {logoPreview && (
             <img src={logoPreview} alt="Logo preview" className="mt-2 h-12 w-12 object-contain border rounded" />
           )}
@@ -181,41 +181,43 @@ const CompanyManager: React.FC = () => {
           )}
         </div>
       </div>
-      <table className="min-w-full bg-white border rounded">
-        <thead>
-          <tr>
-            <th className="px-4 py-2 border-b">Logo</th>
-            <th className="px-4 py-2 border-b">Name</th>
-            <th className="px-4 py-2 border-b">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {companies.map(company => (
-            <tr key={company.id}>
-              <td className="px-4 py-2 border-b">
-                {company.logoUrl && <img src={company.logoUrl} alt="Logo" className="h-8 w-8 object-contain" />}
-              </td>
-              <td className="px-4 py-2 border-b">{company.name}</td>
-              <td className="px-4 py-2 border-b">
-                <button
-                  onClick={() => handleEdit(company)}
-                  className="text-blue-600 hover:underline mr-2"
-                  disabled={isLoading}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(company.id)}
-                  className="text-red-600 hover:underline"
-                  disabled={isLoading}
-                >
-                  Delete
-                </button>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border rounded">
+          <thead>
+            <tr>
+              <th className="px-2 py-2 sm:px-4 sm:py-2 border-b">Logo</th>
+              <th className="px-2 py-2 sm:px-4 sm:py-2 border-b">Name</th>
+              <th className="px-2 py-2 sm:px-4 sm:py-2 border-b">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {companies.map(company => (
+              <tr key={company.id}>
+                <td className="px-2 py-2 sm:px-4 sm:py-2 border-b">
+                  {company.logoUrl && <img src={company.logoUrl} alt="Logo" className="h-8 w-8 object-contain" />}
+                </td>
+                <td className="px-2 py-2 sm:px-4 sm:py-2 border-b">{company.name}</td>
+                <td className="px-2 py-2 sm:px-4 sm:py-2 border-b">
+                  <button
+                    onClick={() => handleEdit(company)}
+                    className="text-blue-600 hover:underline mr-2"
+                    disabled={isLoading}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(company.id)}
+                    className="text-red-600 hover:underline"
+                    disabled={isLoading}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

@@ -74,7 +74,8 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
     const siteData = {
       ...formData,
       type: showCustomType ? formData.customType : formData.type,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      qrCode: ''
     };
     
     // Remove customType and selectedLocation from the final data
@@ -135,14 +136,14 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Site Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
@@ -156,7 +157,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
                   value={formData.customType}
                   onChange={(e) => setFormData({ ...formData, customType: e.target.value })}
                   placeholder="Enter custom site type"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
                 <button
@@ -171,7 +172,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
               <select
                 value={formData.type}
                 onChange={(e) => handleTypeChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
                 <option value="">Select site type</option>
@@ -210,7 +211,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
               type="text"
               value={formData.manager}
               onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
@@ -223,7 +224,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Enter complete site address..."
             required
           />

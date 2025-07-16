@@ -568,16 +568,16 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6">
-          <div className="text-center mb-6">
-            <div className="flex items-center justify-center space-x-3">
-              <Camera className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-semibold text-gray-900">
+        <div className="p-4 sm:p-6">
+          <div className="text-center mb-4 sm:mb-6">
+            <div className="flex items-center justify-center space-x-2 sm:space-x-3">
+              <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                 Unified QR Scanner
               </h2>
             </div>
-            <p className="text-gray-600 mt-2">
-              Scan any QR code (employee, equipment, material, or site)
+            <p className="text-sm sm:text-base text-gray-600 mt-2">
+              Scan any QR code for employees, equipment, materials, or sites.
             </p>
           </div>
         </div>
@@ -613,22 +613,22 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
               <div className="bg-gray-900 rounded-xl overflow-hidden">
                 <video
                   ref={videoRef}
-                  className="w-full h-64 object-cover"
+                  className="w-full h-48 sm:h-64 object-cover"
                   style={{ display: isScanning ? 'block' : 'none' }}
                 />
                 
                 {!isScanning && (
-                  <div className="h-64 flex items-center justify-center bg-gray-100">
-                    <div className="text-center">
-                      <div className="flex items-center justify-center space-x-2 mb-4">
-                        <User className="w-10 h-10 text-blue-400" />
-                        <Wrench className="w-10 h-10 text-green-400" />
-                        <Package className="w-10 h-10 text-orange-400" />
+                  <div className="h-48 sm:h-64 flex items-center justify-center bg-gray-100">
+                    <div className="text-center p-4">
+                      <div className="flex items-center justify-center space-x-2 mb-2 sm:mb-4">
+                        <User className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400" />
+                        <Wrench className="w-8 h-8 sm:w-10 sm:h-10 text-green-400" />
+                        <Package className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400" />
                       </div>
-                      <p className="text-gray-600 mb-2">Ready to scan any QR code</p>
-                      <p className="text-sm text-gray-500 mb-4">Camera preview will appear here</p>
+                      <p className="text-gray-600 text-sm sm:text-base mb-2">Ready to scan any QR code</p>
+                      <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-4">Camera preview will appear here</p>
                       {cameraPermission === 'denied' && (
-                        <p className="text-red-600 text-sm">
+                        <p className="text-red-600 text-xs sm:text-sm">
                           Camera access denied. Please enable camera permissions in your browser settings.
                         </p>
                       )}
