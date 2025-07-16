@@ -64,13 +64,13 @@ const CompanyManager: React.FC = () => {
       console.error('Supabase Storage upload error:', error);
       return undefined;
     }
-    const { publicUrl } = supabase.storage.from('company-logos').getPublicUrl(fileName).data;
-    if (!publicUrl) {
+    const { data: publicUrlData } = supabase.storage.from('company-logos').getPublicUrl(fileName);
+    if (!publicUrlData.publicUrl) {
       setErrorMsg('Failed to get public URL for uploaded logo.');
       console.error('Supabase Storage public URL missing for:', fileName);
       return undefined;
     }
-    return publicUrl;
+    return publicUrlData.publicUrl;
   };
 
   const handleAddOrUpdate = async () => {
@@ -108,6 +108,7 @@ const CompanyManager: React.FC = () => {
     setLogoPreview(undefined);
     setEditingId(null);
     setIsLoading(false);
+    window.dispatchEvent(new Event('companyUpdated'));
   };
 
   const handleEdit = (company: Company) => {
