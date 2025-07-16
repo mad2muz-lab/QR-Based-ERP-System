@@ -191,6 +191,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
       
       const employeeData = {
         ...formData,
+        companyId: formData.companyId || undefined, // Ensure undefined is sent if not selected
         type: finalType,
         lastUpdated: new Date().toISOString()
       };
