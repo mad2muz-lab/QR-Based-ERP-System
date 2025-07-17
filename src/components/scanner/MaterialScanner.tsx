@@ -199,31 +199,45 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
     }
   };
 
-  const validateOperation = (): string | null => {
+  const validateOperation = async (): Promise<string | null> => {
     if (operation.quantity <= 0) {
       return 'Quantity must be greater than 0';
     }
 
-    if (selectedOperation === 'out' && operation.material.quantity < operation.quantity) {
-      return `Cannot remove ${operation.quantity} ${operation.material.unit}. Only ${operation.material.quantity} ${operation.material.unit} available in stock.`;
+    // Always fetch the latest available quantity from the source before Material OUT
+    if (selectedOperation === 'out') {
+      let latestMaterial: Material | undefined;
+      if (AuthManager.useSupabase()) {
+        try {
+          const supabaseMaterials = await SupabaseDataService.getMaterials();
+          latestMaterial = supabaseMaterials.find(m => m.id === operation.material.id);
+        } catch (e) {
+          return 'Failed to fetch latest material data from server.';
+        }
+      } else {
+        const localMaterials = DataStorage.loadMaterials();
+        latestMaterial = localMaterials.find(m => m.id === operation.material.id);
+      }
+      const availableQty = latestMaterial ? latestMaterial.quantity : 0;
+      if (availableQty < operation.quantity) {
+        return `Cannot remove ${operation.quantity} ${operation.material.unit}. Only ${availableQty} ${operation.material.unit} available in stock.`;
+      }
     }
 
     return null;
   };
 
   const confirmOperation = async () => {
-    const validationError = validateOperation();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    
-
     setIsProcessing(true);
     setError('');
-
     try {
+      const validationError = await validateOperation();
+      if (validationError) {
+        setError(validationError);
+        setIsProcessing(false);
+        return;
+      }
+
       // Ensure we're in Supabase mode for proper sync
       if (!AuthManager.useSupabase()) {
         console.log('Switching to Supabase mode for material operations...');

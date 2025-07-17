@@ -191,9 +191,9 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                   <span className="font-medium text-gray-700">Unit:</span>
                   <span className="ml-2 text-gray-600">{scanResult.entity.unit}</span>
                 </div>
-                <div>
+                <div className="mb-4">
                   <span className="font-medium text-gray-700">Current Stock:</span>
-                  <span className="ml-2 text-gray-600 font-semibold">{scanResult.entity.quantity} {scanResult.entity.unit}</span>
+                  <span className={`ml-2 text-gray-600 font-semibold ${scanResult.entity.quantity <= 0 ? 'text-red-600' : scanResult.entity.quantity < 50 ? 'text-yellow-600' : 'text-green-600'}`}>{scanResult.entity.quantity} {scanResult.entity.unit}</span>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Material ID:</span>
@@ -330,39 +330,31 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {scanResult.actions.map((action: any) => {
-              const Icon = action.icon;
-              const colorClasses = {
-                green: 'bg-green-600 hover:bg-green-700 border-green-600',
-                red: 'bg-red-600 hover:bg-red-700 border-red-600',
-                blue: 'bg-blue-600 hover:bg-blue-700 border-blue-600',
-                orange: 'bg-orange-600 hover:bg-orange-700 border-orange-600'
-              };
-              
-              return (
-                <button
-                  key={action.id}
-                  onClick={() => handleActionClick(action.id)}
-                  disabled={isProcessing}
-                  className={`w-full flex items-center space-x-3 p-4 text-white rounded-lg transition-all duration-200 border-2 text-base font-semibold ${
-                    isProcessing
-                      ? 'bg-gray-400 border-gray-400 cursor-not-allowed'
-                      : `hover:shadow-lg transform hover:scale-105 ${colorClasses[action.color as keyof typeof colorClasses]}`
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <div className="text-left flex-1">
-                    <div className="font-semibold text-base">
-                      {isProcessing ? 'Processing...' : action.label}
-                    </div>
-                    <div className="text-xs sm:text-sm opacity-90">
-                      {isProcessing ? 'Please wait' : action.description}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+          <div className="space-y-3">
+            {scanResult.actions.map((action: any) => (
+              <button
+                key={action.id}
+                onClick={() => {
+                  if (action.id === 'material-out' && scanResult.entity.quantity <= 0) {
+                    alert('Cannot issue material: Stock is zero. Please add inventory first.');
+                    return;
+                  }
+                  handleActionClick(action.id);
+                }}
+                disabled={action.id === 'material-out' && scanResult.entity.quantity <= 0}
+                className={`w-full flex items-center justify-between px-6 py-4 rounded-lg font-semibold text-lg transition-colors
+                  ${action.id === 'material-in' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                  ${action.id === 'material-out' ? (scanResult.entity.quantity <= 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700 text-white') : ''}
+                  ${action.id !== 'material-in' && action.id !== 'material-out' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
+                `}
+              >
+                <span className="flex items-center space-x-3">
+                  {action.icon && <action.icon className="w-6 h-6" />}
+                  <span>{action.label}</span>
+                </span>
+                <span className="text-sm font-normal">{action.description}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>

@@ -4,6 +4,7 @@
 import { OfflineSyncManager } from './offlineSync';
 import { OfflineDataManager } from './offlineDataManager';
 import { Employee, Equipment, Material, EmployeeLog, EquipmentLog, MaterialLog } from '../types';
+import { AuthManager } from './authUtils';
 
 export interface LogEntry {
   entityId: string;
@@ -118,6 +119,32 @@ export class LogManager {
       throw new Error('Invalid quantity: must be a positive number');
     }
     const now = new Date();
+
+    // --- Robust stock validation for material-out ---
+    if (action === 'material-out') {
+      let latestMaterial: Material | undefined;
+      if (AuthManager.useSupabase()) {
+        // Supabase mode
+        try {
+          const { SupabaseDataService } = await import('./supabaseDataService');
+          const supabaseMaterials = await SupabaseDataService.getMaterials();
+          latestMaterial = supabaseMaterials.find(m => m.id === material.id);
+        } catch (e) {
+          throw new Error('Failed to fetch latest material data from server.');
+        }
+      } else {
+        // Local mode
+        const { DataStorage } = await import('./dataStorage');
+        const localMaterials = DataStorage.loadMaterials();
+        latestMaterial = localMaterials.find(m => m.id === material.id);
+      }
+      const availableQty = latestMaterial ? latestMaterial.quantity : 0;
+      if (numericQuantity > availableQty) {
+        throw new Error(`Cannot remove ${numericQuantity} ${material.unit}. Only ${availableQty} ${material.unit} available in stock.`);
+      }
+    }
+    // --- End robust validation ---
+
     const materialLog: MaterialLog = {
         id: `mat-log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         materialId: material.id,

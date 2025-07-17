@@ -622,6 +622,33 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     }
   };
 
+  // Keep hardware scanner input focused when ready to scan
+  useEffect(() => {
+    if (inputRef.current && !scanResult && !isScanning && !isProcessingAction) {
+      inputRef.current.focus();
+    }
+  }, [scanResult, isScanning, isProcessingAction]);
+
+  // Handler for hardware scanner input
+  const handleHardwareInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim();
+    if (value) {
+      handleScanResult(value);
+      e.target.value = '';
+    }
+  };
+
+  // Optionally, handle Enter key for some scanners
+  const handleHardwareKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && inputRef.current) {
+      const value = inputRef.current.value.trim();
+      if (value) {
+        handleScanResult(value);
+        inputRef.current.value = '';
+      }
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -716,6 +743,8 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
                 type="text"
                 className="opacity-0 h-0 w-0 absolute"
                 aria-hidden="true"
+                onChange={handleHardwareInput}
+                onKeyDown={handleHardwareKeyDown}
               />
 
               <div className="bg-gray-900 rounded-xl overflow-hidden">

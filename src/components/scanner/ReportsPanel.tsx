@@ -275,11 +275,12 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({
   };
 
   const downloadLogs = () => {
-    // Use the actual logs data being displayed instead of DataStorage
     const allLogsForExport = [
       ...employeeLogs.map(log => ({
         'Log ID': log.id,
-        'Entity ID': log.employeeId,
+        'Employee ID': log.employee_id || log.employeeId,
+        'Employee Name': log.employee_name,
+        'Department': log.department,
         'Entity Type': 'employee',
         'Action': log.action,
         'Timestamp': new Date(log.timestamp).toLocaleString(),
@@ -289,23 +290,28 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({
       })),
       ...equipmentLogs.map(log => ({
         'Log ID': log.id,
-        'Entity ID': log.equipmentId,
+        'Equipment ID': log.equipment_id || log.equipmentId,
+        'Equipment Name': log.equipment_name,
+        'Equipment Type': log.equipment_type,
         'Entity Type': 'equipment',
         'Action': log.action,
         'Timestamp': new Date(log.timestamp).toLocaleString(),
         'Site': log.site,
-        'Notes': log.notes || '',
-        'Status': log.status || ''
+        'Status': log.status || '',
+        'Notes': log.notes || ''
       })),
       ...materialLogs.map(log => ({
         'Log ID': log.id,
-        'Entity ID': log.materialId,
+        'Material ID': log.material_id || log.materialId,
+        'Material Name': log.material_name,
+        'Material Type': log.material_type,
         'Entity Type': 'material',
         'Action': log.action,
         'Timestamp': new Date(log.timestamp).toLocaleString(),
         'Site': log.site,
-        'Notes': log.notes || '',
-        'Quantity': log.quantity || ''
+        'Quantity': log.quantity || '',
+        'Status': log.status || '',
+        'Notes': log.notes || ''
       }))
     ];
     
