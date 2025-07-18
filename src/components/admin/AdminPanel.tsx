@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Shield, Download, Upload, Trash2, Edit, Plus, Eye, EyeOff, Wrench, AlertCircle, Package } from 'lucide-react';
+import { Users, Shield, Download, Upload, Trash2, Edit, Plus, Eye, EyeOff, Wrench, AlertCircle, Package, Building2, FileText, Save, X, CheckCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthManager } from '../../utils/authUtils';
 import { DataStorage } from '../../utils/dataStorage';
@@ -11,6 +11,8 @@ import { User, Equipment, Material, MaterialLog } from '../../types';
 import DepartmentManager from './DepartmentManager';
 import UnauthorizedAccess from '../common/UnauthorizedAccess';
 import CompanyManager from './CompanyManager';
+import AuditLogViewer from './AuditLogViewer';
+import CostBreakdownManager from './CostBreakdownManager';
 
 
 interface AdminPanelProps {
@@ -28,7 +30,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'departments' | 'equipment' | 'materials' | 'companies'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'departments' | 'equipment' | 'materials' | 'companies' | 'auditlog' | 'costbreakdown'>('users');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
@@ -500,6 +502,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     { id: 'equipment', label: 'Equipment' },
     { id: 'materials', label: 'Materials' },
     { id: 'companies', label: 'Companies' },
+    { id: 'costbreakdown', label: 'Cost Breakdown Structure' },
+    { id: 'auditlog', label: 'Audit Log' },
   ];
 
   return (
@@ -991,6 +995,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           </table>
         </div>
       </div>
+      )}
+
+      {activeTab === 'auditlog' && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <AuditLogViewer />
+        </div>
+      )}
+
+      {activeTab === 'costbreakdown' && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <CostBreakdownManager />
+        </div>
       )}
 
       {/* Create/Edit User Modal */}

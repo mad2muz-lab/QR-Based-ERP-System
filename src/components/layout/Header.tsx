@@ -8,12 +8,24 @@ interface HeaderProps {
   onLogout?: () => void;
 }
 
+const ALL_NAV_ITEMS = [
+  { path: '/', label: 'Dashboard', icon: Activity, page_name: 'dashboard' },
+  { path: '/scan', label: 'QR Scanner', icon: QrCode, page_name: 'equipment_scanner' },
+  { path: '/register', label: 'Register', icon: Users, page_name: 'registration_form' },
+  { path: '/map', label: 'Map View', icon: MapPin, page_name: 'map_view' },
+  { path: '/admin', label: 'Admin Panel', icon: Shield, page_name: 'admin_panel' },
+  { path: '/departments', label: 'Departments', icon: Building, page_name: 'departments' },
+  // Add more as needed
+];
+
 const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
   const [company, setCompany] = useState<{ name: string; logoUrl?: string } | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const [navItems, setNavItems] = useState<typeof ALL_NAV_ITEMS>([]);
+  const [navLoading, setNavLoading] = useState(true);
 
   useEffect(() => {
     try {
@@ -38,28 +50,11 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
     };
   }, []);
 
-  const getNavItems = () => {
-    const items = [
-      { path: '/', label: 'Dashboard', icon: Activity, minAccessLevel: 'operator' },
-      { path: '/scan', label: 'QR Scanner', icon: QrCode, minAccessLevel: 'operator' },
-    ];
-
-    if (AuthManager.hasPermission('manager')) {
-      items.push({ path: '/register', label: 'Register', icon: Users, minAccessLevel: 'manager' });
-    }
-    
-    if (AuthManager.hasPermission('operator')) {
-      items.push({ path: '/map', label: 'Map View', icon: MapPin, minAccessLevel: 'operator' });
-    }
-    
-    if (AuthManager.hasPermission('admin')) {
-      items.push({ path: '/admin', label: 'Admin Panel', icon: Shield, minAccessLevel: 'admin' });
-    }
-    
-    return items;
-  };
-  
-  const navItems = getNavItems();
+  // Remove role-based filtering and always show all nav items
+  useEffect(() => {
+    setNavItems(ALL_NAV_ITEMS);
+    setNavLoading(false);
+  }, [currentUser]);
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -97,23 +92,27 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
         </div>
         <div className="hidden sm:flex items-center justify-between py-2">
           <nav className="flex space-x-1 w-full">
-            {navItems.map(item => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    location.pathname === item.path
-                      ? 'bg-blue-800 text-white shadow-lg transform scale-105'
-                      : 'text-gray-600 hover:text-blue-800 hover:bg-blue-50'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+            {navLoading ? (
+              <div className="flex items-center justify-center w-full"><span className="text-gray-400 text-sm">Loading menu...</span></div>
+            ) : (
+              navItems.map(item => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      location.pathname === item.path
+                        ? 'bg-blue-800 text-white shadow-lg transform scale-105'
+                        : 'text-gray-600 hover:text-blue-800 hover:bg-blue-50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })
+            )}
           </nav>
           {currentUser && (
             <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
@@ -137,23 +136,27 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
         {navOpen && (
           <div className="sm:hidden bg-white border-t border-gray-200 py-2 animate-fadeIn">
             <nav className="flex flex-col space-y-2">
-              {navItems.map(item => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => { setNavOpen(false); navigate(item.path); }}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-all duration-200 ${
-                      location.pathname === item.path
-                        ? 'bg-blue-800 text-white shadow-lg'
-                        : 'text-gray-700 hover:text-blue-800 hover:bg-blue-50'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
+              {navLoading ? (
+                <div className="flex items-center justify-center w-full"><span className="text-gray-400 text-base">Loading menu...</span></div>
+              ) : (
+                navItems.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => { setNavOpen(false); navigate(item.path); }}
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-all duration-200 ${
+                        location.pathname === item.path
+                          ? 'bg-blue-800 text-white shadow-lg'
+                          : 'text-gray-700 hover:text-blue-800 hover:bg-blue-50'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })
+              )}
             </nav>
             {currentUser && (
               <div className="flex flex-col items-start space-y-2 mt-4 border-t border-gray-100 pt-2 px-4">

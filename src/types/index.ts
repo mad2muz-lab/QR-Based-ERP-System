@@ -239,6 +239,35 @@ export interface PageAccess {
   assigned_at: string;
 }
 
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  parent_role_id?: string | null;
+}
+
+export interface RoleWithPermissions extends Role {
+  permissions: string[]; // List of page_names this role can access
+}
+
+export interface RolePageAccess {
+  id: string;
+  role_id: string;
+  page_name: string;
+  can_access: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  lastUpdated: string;
+  type?: string;
+}
+
 // ✅ Re-export constants and types
 export { MATERIAL_TYPES };
-export type { MaterialType };
+export type { MaterialType, Department };

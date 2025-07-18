@@ -22,17 +22,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ element, requiredRole }
       if (authenticated) {
         const user = await AuthManager.getCurrentUser();
         if (user) {
-          const roleHierarchy = {
-            'viewer': 4,
-            'operator': 3,
-            'manager': 2,
-            'admin': 1,
-            'developer': 0
-          };
-          const userLevel = roleHierarchy[user.role as keyof typeof roleHierarchy] || 0;
-          const requiredLevel = roleHierarchy[requiredRole as keyof typeof roleHierarchy] || 0;
-          permission = userLevel <= requiredLevel;
+          // Debug: Print user ID and roles
+          const roles = await AuthManager.getUserRolesWithHierarchy(user.id);
+          console.log('[ProtectedRoute] Current user ID:', user.id, 'Roles:', roles);
+          permission = await AuthManager.canUserAccessPage(user.id, requiredRole);
+          console.log('[ProtectedRoute] Can access page', requiredRole, ':', permission);
+        } else {
+          console.log('[ProtectedRoute] No user found');
         }
+      } else {
+        console.log('[ProtectedRoute] Not authenticated');
       }
       if (mounted) {
         setIsAuthenticated(authenticated);
@@ -51,7 +50,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ element, requiredRole }
     return <Navigate to="/login" />;
   }
   if (!hasPermission) {
-    return <UnauthorizedAccess requiredRole={requiredRole} />;
+    return null; // Do not render the page at all if no access
   }
   return element;
 };

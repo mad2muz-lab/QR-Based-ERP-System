@@ -1,6 +1,8 @@
 import { User, AuthState } from '../types';
 import { DataStorage } from './dataStorage';
 import { SupabaseAuthManager } from './supabaseAuthUtils';
+import { supabase } from './supabaseClient';
+import { Role, RolePageAccess } from '../types';
 
 export class AuthManager {
   private static readonly AUTH_TOKEN_KEY = 'qr_system_auth_token';
@@ -174,5 +176,188 @@ export class AuthManager {
 
   private static generateUserId(): string {
     return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  // --- DB-driven Role & Permission Utilities ---
+
+  /**
+   * Fetch all roles (with hierarchy) for a user from the new roles table.
+   * Returns a flat array of Role objects, including inherited roles (from parent_role_id).
+   */
+  static async getUserRolesWithHierarchy(userId: string): Promise<Role[]> {
+    if (!supabase) return [];
+    // 1. Get all direct roles for the user (use only 'role' text)
+    const { data: userRoles, error: userRolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('is_active', true);
+    if (userRolesError || !userRoles) return [];
+    // 2. Get all roles from roles table
+    const { data: allRoles, error: allRolesError } = await supabase
+      .from('roles')
+      .select('*');
+    if (allRolesError || !allRoles) return [];
+    // 3. For each user role, walk up the parent_role_id chain to collect inherited roles
+    const roleMap: Record<string, Role> = {};
+    allRoles.forEach((r: Role) => { roleMap[r.id] = r; });
+    const collected: Record<string, Role> = {};
+    function collectRoleAndParents(roleId: string) {
+      if (!roleId || collected[roleId]) return;
+      const role = roleMap[roleId];
+      if (role) {
+        collected[roleId] = role;
+        if (role.parent_role_id) collectRoleAndParents(role.parent_role_id);
+      }
+    }
+    userRoles.forEach((ur: any) => {
+      // Find the role in allRoles by name
+      const roleObj = allRoles.find((r: Role) => r.name === ur.role);
+      if (roleObj) collectRoleAndParents(roleObj.id);
+    });
+    return Object.values(collected);
+  }
+
+  /**
+   * Fetch all accessible pages for a user (aggregate all their roles, including inherited roles).
+   * Returns a Set of page names the user can access.
+   */
+  static async getAccessiblePagesForUser(userId: string): Promise<Set<string>> {
+    if (!supabase) return new Set();
+    const roles = await this.getUserRolesWithHierarchy(userId);
+    if (!roles.length) return new Set();
+    const roleIds = roles.map(r => r.id);
+    const { data: pageAccess, error } = await supabase
+      .from('role_page_access')
+      .select('page_name, can_access, role_id')
+      .in('role_id', roleIds);
+    if (error || !pageAccess) return new Set();
+    const accessiblePages = new Set<string>();
+    pageAccess.forEach((pa: any) => {
+      if (pa.can_access) accessiblePages.add(pa.page_name);
+    });
+    return accessiblePages;
+  }
+
+  /**
+   * Utility: Check if a user can access a given page (using DB-driven permissions).
+   */
+  static async canUserAccessPage(userId: string, pageName: string): Promise<boolean> {
+    const accessiblePages = await this.getAccessiblePagesForUser(userId);
+    return accessiblePages.has(pageName);
+  }
+
+  // --- Role Management Utilities ---
+
+  /**
+   * List all roles (with parent/child info)
+   */
+  static async listRoles(): Promise<Role[]> {
+    if (!supabase) return [];
+    const { data, error } = await supabase.from('roles').select('*');
+    if (error || !data) return [];
+    return data;
+  }
+
+  /**
+   * Create a new role
+   */
+  static async createRole(role: Omit<Role, 'id'>, userId?: string): Promise<{ success: boolean; data?: Role; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    const { data, error } = await supabase.from('roles').insert([role]).select().single();
+    if (error) return { success: false, error: error.message };
+    if (userId && data) await this.logAudit({ user_id: userId, action: 'create_role', entity_type: 'role', entity_id: data.id, details: data });
+    return { success: true, data };
+  }
+
+  /**
+   * Update an existing role
+   */
+  static async updateRole(roleId: string, updates: Partial<Omit<Role, 'id'>>, userId?: string): Promise<{ success: boolean; data?: Role; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    const { data, error } = await supabase.from('roles').update(updates).eq('id', roleId).select().single();
+    if (error) return { success: false, error: error.message };
+    if (userId && data) await this.logAudit({ user_id: userId, action: 'update_role', entity_type: 'role', entity_id: roleId, details: updates });
+    return { success: true, data };
+  }
+
+  /**
+   * Delete a role
+   */
+  static async deleteRole(roleId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    const { error } = await supabase.from('roles').delete().eq('id', roleId);
+    if (error) return { success: false, error: error.message };
+    if (userId) await this.logAudit({ user_id: userId, action: 'delete_role', entity_type: 'role', entity_id: roleId });
+    return { success: true };
+  }
+
+  /**
+   * Get all page permissions for a role (action-level)
+   */
+  static async getRolePermissions(roleId: string): Promise<{ page_name: string; can_access: boolean; can_edit: boolean; can_delete: boolean }[]> {
+    if (!supabase) return [];
+    const { data, error } = await supabase.from('role_page_access').select('page_name, can_access, can_edit, can_delete').eq('role_id', roleId);
+    if (error || !data) return [];
+    return data;
+  }
+
+  /**
+   * Update page permissions for a role (action-level, replace all)
+   * Accepts an array of { page_name, can_access, can_edit, can_delete }
+   */
+  static async updateRolePermissions(roleId: string, permissions: { page_name: string; can_access: boolean; can_edit: boolean; can_delete: boolean }[], userId?: string): Promise<{ success: boolean; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    // Remove all existing permissions for this role
+    const { error: delError } = await supabase.from('role_page_access').delete().eq('role_id', roleId);
+    if (delError) return { success: false, error: delError.message };
+    // Insert new permissions
+    if (permissions.length > 0) {
+      const inserts = permissions.map(p => ({ role_id: roleId, ...p }));
+      const { error: insError } = await supabase.from('role_page_access').insert(inserts);
+      if (insError) return { success: false, error: insError.message };
+    }
+    if (userId) await this.logAudit({ user_id: userId, action: 'update_role_permissions', entity_type: 'role_page_access', entity_id: roleId, details: permissions });
+    return { success: true };
+  }
+
+  /**
+   * Assign a role to a user (user_roles table)
+   */
+  static async assignRoleToUser(userId: string, roleId: string, adminId?: string): Promise<{ success: boolean; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    // Find role name for this roleId
+    const { data: roleData, error: roleError } = await supabase.from('roles').select('name').eq('id', roleId).single();
+    if (roleError || !roleData) return { success: false, error: 'Role not found' };
+    const { error } = await supabase.from('user_roles').upsert([{ user_id: userId, role: roleData.name, is_active: true }], { onConflict: 'user_id,role' });
+    if (error) return { success: false, error: error.message };
+    if (adminId) await this.logAudit({ user_id: adminId, action: 'assign_role', entity_type: 'user_role', entity_id: userId, details: { roleId } });
+    return { success: true };
+  }
+
+  /**
+   * List all users (for admin UI)
+   */
+  static async listUsers(): Promise<any[]> {
+    if (!supabase) return [];
+    const { data, error } = await supabase.from('users').select('id, name, email');
+    if (error || !data) return [];
+    return data;
+  }
+
+  /**
+   * Write an audit log entry
+   */
+  static async logAudit({ user_id, action, entity_type, entity_id, details }: { user_id: string; action: string; entity_type: string; entity_id: string; details?: any }) {
+    if (!supabase) return;
+    await supabase.from('audit_log').insert([
+      {
+        user_id,
+        action,
+        entity_type,
+        entity_id,
+        details: details ? JSON.stringify(details) : null,
+      },
+    ]);
   }
 }

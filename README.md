@@ -82,3 +82,26 @@ A modern ERP system for construction and site management, leveraging QR codes fo
 
 ## License
 MIT 
+
+# Role Management UI (Admin Panel)
+
+## Features
+- **Create, edit, and delete roles** (with optional parent/child hierarchy)
+- **Assign page permissions to roles** (checkboxes for each page, save per role)
+- **Assign multiple roles to users** (multi-select, save per user)
+- **All actions are DB-driven and reflected in the UI immediately**
+
+## How to Use
+1. **Roles Table:**
+   - Click "Add Role" to create a new role (set name, description, parent role).
+   - Use Edit/Delete buttons to modify or remove roles.
+2. **Role Page Permissions:**
+   - For each role, check/uncheck pages to grant/revoke access.
+   - Click "Save" to update permissions for that role.
+3. **Assign Roles to Users:**
+   - For each user, select one or more roles from the dropdown.
+   - Changes are saved and reflected in the UI.
+
+## Notes
+- All permissions and assignments are stored in the database and used for access control throughout the app.
+- Only users with admin privileges can access the Role Management UI. 

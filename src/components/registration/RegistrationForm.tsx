@@ -23,7 +23,8 @@ import EmployeeList from './lists/EmployeeList';
 import EquipmentList from './lists/EquipmentList';
 import MaterialList from './lists/MaterialList';
 import SiteList from './lists/SiteList';
-import DepartmentManager from '../admin/DepartmentManager';
+// Remove DepartmentManager import
+// import DepartmentManager from '../admin/DepartmentManager';
 
 // Import page components
 import EmployeesPage from '../pages/EmployeesPage';
@@ -60,7 +61,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
   }
 
   // Fix the activeTab type to include 'departments'
-  const [activeTab, setActiveTab] = useState<'employees' | 'equipment' | 'materials' | 'sites' | 'departments'>('employees');
+  const [activeTab, setActiveTab] = useState<'employees' | 'equipment' | 'materials' | 'sites'>('employees');
   const [activeView, setActiveView] = useState<'form' | 'list'>('form');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -75,8 +76,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
   // Data source management
   const [isLoading, setIsLoading] = useState(false);
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local');
-  const [useSupabase, setUseSupabase] = useState(AuthManager.useSupabase());
-  const [showDepartmentManager, setShowDepartmentManager] = useState(false);
+  const [useSupabase, setUseSupabase] = useState(false); // Start as false, set async
+  // Remove showDepartmentManager state
+  // const [showDepartmentManager, setShowDepartmentManager] = useState(false);
   const [viewMode, setViewMode] = useState<'form' | 'list' | 'unified'>('form');
   const [showQRCode, setShowQRCode] = useState(false);
   const [newEntity, setNewEntity] = useState<{type: string; data: any} | null>(null);
@@ -99,20 +101,20 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
   };
 
   useEffect(() => {
-    loadData();
+    const checkSupabase = async () => {
+      const currentUseSupabase = await AuthManager.useSupabase();
+      setUseSupabase(currentUseSupabase);
+      setDataSource(currentUseSupabase ? 'supabase' : 'local');
+      loadData(currentUseSupabase);
+    };
+    checkSupabase();
   }, []);
 
-  useEffect(() => {
-    const currentUseSupabase = AuthManager.useSupabase();
-    setUseSupabase(currentUseSupabase);
-    setDataSource(currentUseSupabase ? 'supabase' : 'local');
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = async (supabaseOverride?: boolean) => {
     setIsLoading(true);
+    const supabaseMode = typeof supabaseOverride === 'boolean' ? supabaseOverride : useSupabase;
     try {
-      if (useSupabase) {
+      if (supabaseMode) {
         // Load from Supabase
         const [employeesData, equipmentData, materialsData, sitesData] = await Promise.all([
           SupabaseDataService.getEmployees(),
@@ -120,7 +122,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
           SupabaseDataService.getMaterials(),
           SupabaseDataService.getSites()
         ]);
-        
         setEmployees(employeesData);
         setEquipment(equipmentData);
         setMaterials(materialsData);
@@ -901,7 +902,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             }));
             
             // Use Supabase bulk create if available, otherwise fallback to local storage
-            if (AuthManager.useSupabase()) {
+            if (useSupabase) {
               const supabaseResult = await SupabaseRegistrationService.bulkCreateEmployees(processedEmployees);
               result = {
                 success: supabaseResult.success,
@@ -932,7 +933,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             });
             
             // Use Supabase bulk create if available, otherwise fallback to local storage
-            if (AuthManager.useSupabase()) {
+            if (useSupabase) {
               const supabaseResult = await SupabaseRegistrationService.bulkCreateEquipment(processedEquipment);
               result = {
                 success: supabaseResult.success,
@@ -1005,9 +1006,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
     { id: 'equipment', label: 'Equipment', icon: Wrench, count: equipment.length },
     { id: 'materials', label: 'Materials', icon: Package, count: materials.length },
     { id: 'sites', label: 'Sites', icon: Building, count: sites.length },
-    ...(currentUser?.role === 'admin' || currentUser?.role === 'developer' ? [
-      { id: 'departments', label: 'Departments', icon: Building, count: 0 }
-    ] : [])
   ];
 
   return (
@@ -1128,11 +1126,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
 
           {/* Tab Content */}
           <div className="p-6">
-            {/* Department Manager for Admins */}
-            {activeTab === 'departments' && (currentUser?.role === 'admin' || currentUser?.role === 'developer') && (
-              <DepartmentManager onDepartmentUpdate={loadData} />
-            )}
-
             {/* View Toggle Button */}
             {activeTab !== 'departments' && (
               <div className="flex justify-end mb-6">

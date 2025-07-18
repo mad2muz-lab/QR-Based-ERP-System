@@ -11,6 +11,7 @@ import {
   LoadingSpinner,
   LazyComponentErrorBoundary
 } from './components/common/LazyComponents';
+import DepartmentsPage from './components/pages/DepartmentsPage';
 import { User } from './types';
 import LoginForm from './components/auth/LoginForm';
 
@@ -32,76 +33,61 @@ export const AppRoutes = ({ currentUser }: AppRoutesProps): RouteObject[] => [
   {
     path: '/scan',
     element: (
-      <ProtectedRoute
-        requiredRole="operator"
-        element={
-          <LazyComponentErrorBoundary>
-            <Suspense fallback={<LoadingSpinner message="Loading QR Scanner..." />}>
-              <QRScanner />
-            </Suspense>
-          </LazyComponentErrorBoundary>
-        }
-      />
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading QR Scanner..." />}>
+          <QRScanner />
+        </Suspense>
+      </LazyComponentErrorBoundary>
     ),
   },
   {
     path: '/register',
     element: (
-      <ProtectedRoute
-        requiredRole="manager"
-        element={
-          <LazyComponentErrorBoundary>
-            <Suspense fallback={<LoadingSpinner message="Loading Registration Form..." />}>
-              <RegistrationForm currentUser={currentUser || undefined} />
-            </Suspense>
-          </LazyComponentErrorBoundary>
-        }
-      />
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Registration Form..." />}>
+          <RegistrationForm currentUser={currentUser || undefined} />
+        </Suspense>
+      </LazyComponentErrorBoundary>
+    ),
+  },
+  {
+    path: '/departments',
+    element: (
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Departments..." />}>
+          <DepartmentsPage />
+        </Suspense>
+      </LazyComponentErrorBoundary>
     ),
   },
   {
     path: '/map',
     element: (
-      <ProtectedRoute
-        requiredRole="operator"
-        element={
-          <LazyComponentErrorBoundary>
-            <Suspense fallback={<LoadingSpinner message="Loading Map View..." />}>
-              <MapView />
-            </Suspense>
-          </LazyComponentErrorBoundary>
-        }
-      />
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Map View..." />}>
+          <MapView />
+        </Suspense>
+      </LazyComponentErrorBoundary>
     ),
   },
   {
     path: '/admin',
     element: (
-      <ProtectedRoute
-        requiredRole="admin"
-        element={
-          <LazyComponentErrorBoundary>
-            <Suspense fallback={<LoadingSpinner message="Loading Admin Panel..." />}>
-              <AdminPanel currentUser={currentUser || undefined} />
-            </Suspense>
-          </LazyComponentErrorBoundary>
-        }
-      />
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Admin Panel..." />}>
+          <AdminPanel currentUser={currentUser || undefined} />
+        </Suspense>
+      </LazyComponentErrorBoundary>
     ),
   },
   {
     path: '/database-test',
     element: (
-      <ProtectedRoute
-        requiredRole="admin"
-        element={
-          <LazyComponentErrorBoundary>
-            <Suspense fallback={<LoadingSpinner message="Loading Database Test..." />}>
-              <DatabaseConnectionTest />
-            </Suspense>
-          </LazyComponentErrorBoundary>
-        }
-      />
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Database Test..." />}>
+          <DatabaseConnectionTest />
+        </Suspense>
+      </LazyComponentErrorBoundary>
     ),
   },
   {

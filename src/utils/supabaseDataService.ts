@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Employee, Equipment, Material, Site, TimeLog, User } from '../types';
+import { Employee, Equipment, Material, Site, TimeLog, User, Department } from '../types';
 
 export class SupabaseDataService {
   // Fetch all employees from Supabase
@@ -280,6 +280,34 @@ export class SupabaseDataService {
       return data || [];
     } catch (error) {
       console.error('Error fetching users:', error);
+      return [];
+    }
+  }
+
+  // Fetch all departments from Supabase
+  static async getDepartments(): Promise<Department[]> {
+    if (!supabase) return [];
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error fetching departments:', error);
+        return [];
+      }
+      // Transform snake_case to camelCase for Department interface
+      const transformedData: Department[] = (data || []).map((dept: any) => ({
+        id: dept.id,
+        name: dept.name,
+        description: dept.description,
+        createdAt: dept.created_at,
+        lastUpdated: dept.last_updated || dept.created_at,
+        type: dept.type || undefined,
+      }));
+      return transformedData;
+    } catch (error) {
+      console.error('Error fetching departments:', error);
       return [];
     }
   }

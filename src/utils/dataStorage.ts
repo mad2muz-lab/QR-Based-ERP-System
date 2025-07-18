@@ -35,6 +35,7 @@ export class DataStorage {
     maintenanceSchedules: 'qr_system_maintenance_schedules',
     users: 'qr_system_users',
     departments: 'qr_system_departments',
+    costElements: 'qr_system_cost_elements',
     transactionLog: 'qr_system_transaction_log',
     lastSync: 'qr_system_last_sync',
     counters: 'qr_system_counters'
@@ -496,6 +497,19 @@ export class DataStorage {
     }
     
     return departments;
+  }
+
+  // Cost Elements
+  static saveCostElements(costElements: any[]): void {
+    this.saveToCSV(this.STORAGE_KEYS.costElements, costElements);
+  }
+
+  static loadCostElements(): any[] {
+    return this.loadFromCSV<any>(this.STORAGE_KEYS.costElements);
+  }
+
+  static downloadCostElementsCSV(costElements: any[]): void {
+    this.downloadCSV(costElements, 'cost_elements.csv');
   }
 
   // ID Generation
