@@ -69,7 +69,7 @@ export class LogManager {
   // Create equipment log entry
   async createEquipmentLog(
     equipment: Equipment,
-    action: 'start-use' | 'stop-use',
+    action: 'start-use' | 'stop-use' | 'standby-start' | 'standby-end' | 'maintenance-start' | 'maintenance-end',
     site: string,
     status: string,
     notes?: string,
@@ -199,7 +199,7 @@ export class LogManager {
         // Not found locally, fetch from Supabase to get current quantity
         try {
           const { supabase } = await import('./supabaseClient');
-          if (!supabase) {
+          if (!supabase || !supabase.auth) {
             // Fallback if supabase is not configured
             updatedMaterial = {
               id: material.id,

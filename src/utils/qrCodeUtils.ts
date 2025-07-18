@@ -17,10 +17,10 @@ export const generateQRCode = async (data: string): Promise<string> => {
   }
 };
 
-export const parseQRCode = (qrData: string): {
+export const parseQRCode = async (qrData: string): Promise<{
   type: 'employee' | 'equipment' | 'material' | 'site' | 'unknown' | null;
   id: string;
-} => {
+}> => {
   // Check for standard prefixes first
   if (qrData.startsWith('EMP-')) {
     return { type: 'employee', id: qrData };
@@ -35,7 +35,7 @@ export const parseQRCode = (qrData: string): {
   // For custom equipment IDs, check against equipment database
   // Import modules dynamically to avoid circular dependencies
   try {
-    const { DataStorage } = require('./dataStorage');
+    const { DataStorage } = await import('./dataStorage');
     const equipment = DataStorage.loadEquipment();
     
     // Check if the QR data matches any custom_equipment_id or id

@@ -13,25 +13,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [useSupabase, setUseSupabase] = useState(AuthManager.useSupabase());
-  const [supabaseAvailable, setSupabaseAvailable] = useState(false);
-
-  useEffect(() => {
-    // Check if Supabase is configured
-    setSupabaseAvailable(SupabaseAuthManager.isSupabaseConfigured());
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
     try {
-      // Update the useSupabase setting
-      AuthManager.setUseSupabase(useSupabase);
-      
       const result = await AuthManager.login(username, password);
-      
       if (result.success && result.user) {
         onLogin(result.user);
       } else {
@@ -99,22 +87,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
               </button>
             </div>
           </div>
-
-          {supabaseAvailable && (
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="useSupabase"
-                checked={useSupabase}
-                onChange={(e) => setUseSupabase(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="useSupabase" className="text-sm text-gray-700 flex items-center">
-                <Database className="w-4 h-4 mr-1" />
-                Use Supabase authentication
-              </label>
-            </div>
-          )}
 
           <button
             type="submit"

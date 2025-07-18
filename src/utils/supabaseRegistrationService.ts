@@ -788,6 +788,164 @@ export class SupabaseRegistrationService {
     }
   }
 
+  // Maintenance Log Operations
+  static async createMaintenanceLog(maintenanceLog: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      console.log('Creating maintenance log in Supabase:', maintenanceLog);
+      
+      // Transform camelCase to snake_case for Supabase
+      const supabaseMaintenanceLog = {
+        ...maintenanceLog,
+        equipment_id: maintenanceLog.equipment_id,
+        maintenance_type: maintenanceLog.maintenance_type,
+        repair_type: maintenanceLog.repair_type,
+        service_type: maintenanceLog.service_type,
+        status: maintenanceLog.status,
+        description: maintenanceLog.description,
+        technician_notes: maintenanceLog.technician_notes,
+        parts_used: maintenanceLog.parts_used,
+        start_date: maintenanceLog.start_date,
+        completion_date: maintenanceLog.completion_date,
+        completed_by: maintenanceLog.completed_by,
+        estimated_duration_hours: maintenanceLog.estimated_duration_hours,
+        actual_duration_hours: maintenanceLog.actual_duration_hours,
+        cost: maintenanceLog.cost,
+        next_maintenance_date: maintenanceLog.next_maintenance_date,
+        created_at: maintenanceLog.created_at,
+        updated_at: maintenanceLog.updated_at,
+        // New fields
+        equipment_name: maintenanceLog.equipment_name,
+        old_equipment_id: maintenanceLog.old_equipment_id,
+        equipment_type: maintenanceLog.equipment_type,
+        model: maintenanceLog.model,
+        serial_number: maintenanceLog.serial_number,
+        site_assignment: maintenanceLog.site_assignment
+      };
+
+      const { data, error } = await supabase
+        .from('equipment_maintenance_logs')
+        .insert([supabaseMaintenanceLog])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating maintenance log in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Successfully created maintenance log in Supabase:', data);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error creating maintenance log:', error);
+      return { success: false, error: 'Failed to create maintenance log' };
+    }
+  }
+
+  static async updateMaintenanceLog(maintenanceId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      console.log('Updating maintenance log in Supabase:', maintenanceId, updateData);
+      
+      const { data, error } = await supabase
+        .from('equipment_maintenance_logs')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('id', maintenanceId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating maintenance log in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Successfully updated maintenance log in Supabase:', data);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error updating maintenance log:', error);
+      return { success: false, error: 'Failed to update maintenance log' };
+    }
+  }
+
+  // Maintenance Schedule Operations
+  static async createMaintenanceSchedule(maintenanceSchedule: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      console.log('Creating maintenance schedule in Supabase:', maintenanceSchedule);
+      
+      // Transform camelCase to snake_case for Supabase
+      const supabaseMaintenanceSchedule = {
+        ...maintenanceSchedule,
+        equipment_id: maintenanceSchedule.equipment_id,
+        schedule_type: maintenanceSchedule.schedule_type,
+        maintenance_type: maintenanceSchedule.maintenance_type,
+        frequency_days: maintenanceSchedule.frequency_days,
+        last_maintenance_date: maintenanceSchedule.last_maintenance_date,
+        next_maintenance_date: maintenanceSchedule.next_maintenance_date,
+        assigned_technician: maintenanceSchedule.assigned_technician,
+        priority: maintenanceSchedule.priority,
+        description: maintenanceSchedule.description,
+        is_active: maintenanceSchedule.is_active,
+        created_at: maintenanceSchedule.created_at,
+        updated_at: maintenanceSchedule.updated_at
+      };
+
+      const { data, error } = await supabase
+        .from('equipment_maintenance_schedules')
+        .insert([supabaseMaintenanceSchedule])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating maintenance schedule in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Successfully created maintenance schedule in Supabase:', data);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error creating maintenance schedule:', error);
+      return { success: false, error: 'Failed to create maintenance schedule' };
+    }
+  }
+
+  static async updateMaintenanceSchedule(scheduleId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      console.log('Updating maintenance schedule in Supabase:', scheduleId, updateData);
+      
+      const { data, error } = await supabase
+        .from('equipment_maintenance_schedules')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('id', scheduleId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating maintenance schedule in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Successfully updated maintenance schedule in Supabase:', data);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error updating maintenance schedule:', error);
+      return { success: false, error: 'Failed to update maintenance schedule' };
+    }
+  }
+
   // Company Operations
   static async createCompany(company: { name: string; logoUrl?: string }): Promise<{ success: boolean; data?: any; error?: string }> {
     if (!supabase || !AuthManager.useSupabase()) {
@@ -868,6 +1026,48 @@ export class SupabaseRegistrationService {
     } catch (error) {
       console.error('Error fetching companies:', error);
       return { success: false, error: 'Failed to fetch companies' };
+    }
+  }
+
+  // Create a new location with duplicate checking
+  static async createLocationWithDuplicateCheck(location: { city: string, province: string, latitude: number, longitude: number, source?: string }) {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    try {
+      // Check for duplicate
+      const { data: existing, error: selectError } = await supabase
+        .from('locations')
+        .select('*')
+        .eq('city', location.city)
+        .eq('province', location.province)
+        .eq('latitude', location.latitude)
+        .eq('longitude', location.longitude)
+        .maybeSingle();
+      if (selectError) {
+        // If error is not 'no rows', return error
+        if (selectError.code !== 'PGRST116') {
+          return { success: false, error: selectError.message };
+        }
+      }
+      if (existing) {
+        // Duplicate found, return existing
+        return { success: true, data: existing, duplicate: true };
+      }
+      // Insert new location
+      const { data, error } = await supabase
+        .from('locations')
+        .insert([{
+          city: location.city,
+          province: location.province,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          source: location.source || 'custom'
+        }])
+        .select()
+        .single();
+      if (error) return { success: false, error: error.message };
+      return { success: true, data, duplicate: false };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to create location' };
     }
   }
 }

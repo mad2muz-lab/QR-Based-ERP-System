@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import QrScanner from 'qr-scanner';
-import { Camera, Upload, Clock, AlertCircle, CheckCircle, UserPlus, Package, Scan, User, Wrench, Building } from 'lucide-react';
+import { Camera, Upload, Clock, AlertCircle, CheckCircle, UserPlus, Package, Scan, User, Wrench, Building, Pause, AlertTriangle, Settings } from 'lucide-react';
 import TimeTrackingPanel from './TimeTrackingPanel';
 import MaterialScanner from './MaterialScanner';
+// Equipment scanner functionality now integrated directly into main QR scanner
 import { parseQRCode } from '../../utils/qrCodeUtils';
 import { DataStorage } from '../../utils/dataStorage';
 import { getShiftStatus } from '../../utils/timeUtils';
@@ -14,6 +15,8 @@ import { SupabaseDataService } from '../../utils/supabaseDataService';
 import { fetchData, getAllLogs } from '../../utils/dataProxy';
 import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
 import UnifiedScanResult from './UnifiedScanResult';
+import { maintenanceService } from '../../utils/maintenanceService';
+import EquipmentMaintenanceModal from './EquipmentMaintenanceModal';
 
 const QRScanner: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -31,15 +34,21 @@ const QRScanner: React.FC = () => {
     icon?: any;
   } | null>(null);
   const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [lastScannedCode, setLastScannedCode] = useState<string>('');
   const [lastScanTime, setLastScanTime] = useState<number>(0);
+  // Equipment scanner functionality now integrated directly into main QR scanner
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isProcessingRef = useRef<boolean>(false);
+  
+  // Maintenance modal state
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
   
   // Use hardware scanner hook
   useHardwareScanner({
@@ -67,7 +76,44 @@ const QRScanner: React.FC = () => {
         fetchData('equipment'),
         fetchData('materials'),
       ]);
-      setAllEntities({ employees, equipment, materials });
+      
+      // If no equipment exists, create some test equipment
+      if (equipment.length === 0) {
+        console.log('No equipment found, creating test equipment...');
+        const testEquipment: Equipment[] = [
+          {
+            id: 'eqp-001',
+            custom_equipment_id: 'EQP-TEST-001',
+            name: 'Test Excavator',
+            type: 'Excavator',
+            model: 'CAT 320',
+            site: 'Riyadh Site',
+            qrCode: 'EQP-TEST-001',
+            status: 'available' as const,
+            operational_status: 'working' as const,
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          },
+          {
+            id: 'eqp-002',
+            custom_equipment_id: 'EQP-TEST-002',
+            name: 'Test Bulldozer',
+            type: 'Bulldozer',
+            model: 'CAT D6',
+            site: 'Jeddah Site',
+            qrCode: 'EQP-TEST-002',
+            status: 'available' as const,
+            operational_status: 'working' as const,
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          }
+        ];
+        
+        DataStorage.saveEquipment(testEquipment);
+        setAllEntities({ employees, equipment: testEquipment, materials });
+      } else {
+        setAllEntities({ employees, equipment, materials });
+      }
     })();
   }, []);
 
@@ -96,7 +142,7 @@ const QRScanner: React.FC = () => {
   }, [searchQuery, allEntities]);
 
   // Simulate QR scan on selection
-  const handleEntitySelect = (entity: any) => {
+  const handleEntitySelect = async (entity: any) => {
     let qrString = '';
     if (entity._entityType === 'employee') {
       qrString = entity.id; // EMP-... format
@@ -107,7 +153,7 @@ const QRScanner: React.FC = () => {
     }
     setSearchQuery('');
     setSearchResults([]);
-    handleScanResult(qrString);
+    await handleScanResult(qrString);
   };
 
   useEffect(() => {
@@ -196,7 +242,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     setLastScannedCode(qrData);
     setLastScanTime(now);
     
-    const parsed = parseQRCode(qrData);
+    const parsed = await parseQRCode(qrData);
     
     if (!parsed.type || parsed.type === null) {
       setError('Invalid QR code format');
@@ -339,19 +385,25 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
         break;
 
       case 'equipment':
+        // For equipment, implement the new workflow directly here
+        console.log('🔍 Searching for equipment with ID:', parsed.id);
+        console.log('🔍 Available equipment:', equipment);
+        
         // Find equipment by custom_equipment_id first, then by id
         if (!entity) {
           entity = (equipment as any[]).find((eq: any) => 
             eq.custom_equipment_id === parsed.id || eq.id === parsed.id
           );
         }
+        
+        console.log('🔍 Found equipment:', entity);
+        
         if (entity) {
-          // Check current status from recent equipment logs
-          const equipmentLogs = allLogs.equipmentLogs || allLogs || [];
-          
-          // Use the equipment's UUID for log filtering, regardless of how it was found
+          // Check equipment logs to determine current status
+          const equipmentLogs = allLogs.equipmentLogs || [];
           const equipmentUUID = entity.id;
           
+          // Find the most recent equipment log for this equipment
           const recentLog = equipmentLogs
             .filter((log: any) => 
               log.entity_id === equipmentUUID || log.entityId === equipmentUUID || 
@@ -361,32 +413,127 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
             )
             .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
           
-          const isInUse = recentLog?.action === 'start-use';
-          currentStatus = isInUse ? 'in-use' : 'available';
+          console.log('🔍 Recent equipment log:', recentLog);
           
-          if (isInUse) {
-            const usageInfo = getShiftStatus(recentLog.timestamp);
-            actions = [{
-              id: 'stop-use',
-              label: 'Stop Use',
-              description: `End usage (${usageInfo.hoursWorked.toFixed(1)}h used)`,
-              icon: Clock,
-              color: 'red'
-            }];
+          // Determine current status based on recent log
+          let currentStatus = 'available';
+          if (recentLog) {
+            console.log('🔍 Recent log action:', recentLog.action);
+            if (recentLog.action === 'start-use') {
+              currentStatus = 'in_use';
+            } else if (recentLog.action === 'standby-start') {
+              currentStatus = 'standby';
+            } else if (recentLog.action === 'maintenance-start') {
+              currentStatus = 'maintenance';
+            } else if (recentLog.action === 'stop-use' || recentLog.action === 'standby-end' || recentLog.action === 'maintenance-end') {
+              currentStatus = 'available';
+            }
           } else {
-            actions = [{
-              id: 'start-use',
-              label: 'Start Use',
-              description: 'Begin equipment usage',
-              icon: Clock,
-              color: 'green'
-            }];
+            console.log('🔍 No recent log found, using equipment status:', entity.status);
+            // Fallback to equipment's own status if no logs found
+            if (entity.status === 'in-use' || entity.status === 'maintenance' || entity.status === 'standby') {
+              currentStatus = entity.status;
+            }
+          }
+          
+          console.log('🔍 Equipment current status:', currentStatus);
+          
+          // Set up equipment-specific actions based on current status
+          if (currentStatus === 'available') {
+            actions = [
+              {
+                id: 'start_use',
+                label: 'Start Use',
+                description: 'Begin equipment usage',
+                icon: Clock,
+                color: 'green'
+              },
+              {
+                id: 'standby_start',
+                label: 'Start Standby',
+                description: 'Set equipment to standby mode',
+                icon: Pause,
+                color: 'blue'
+              },
+              {
+                id: 'maintenance',
+                label: 'Maintenance',
+                description: 'Start repair or service maintenance',
+                icon: Wrench,
+                color: 'orange'
+              }
+            ];
+          } else if (currentStatus === 'in_use') {
+            // Calculate usage time from the start log
+            let usageHours = 0;
+            if (recentLog) {
+              const startTime = new Date(recentLog.timestamp);
+              const now = new Date();
+              usageHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60); // Convert to hours
+            }
+            
+            actions = [
+              {
+                id: 'stop_use',
+                label: 'Stop Use',
+                description: `End usage (${usageHours.toFixed(1)}h used)`,
+                icon: Clock,
+                color: 'red'
+              }
+            ];
+          } else if (currentStatus === 'standby') {
+            // Calculate standby time from the standby start log
+            let standbyHours = 0;
+            if (recentLog) {
+              const startTime = new Date(recentLog.timestamp);
+              const now = new Date();
+              standbyHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60); // Convert to hours
+            }
+            
+            actions = [
+              {
+                id: 'standby_end',
+                label: 'End Standby',
+                description: `End standby (${standbyHours.toFixed(1)}h in standby)`,
+                icon: Pause,
+                color: 'orange'
+              }
+            ];
+          } else if (currentStatus === 'maintenance') {
+            // Equipment is under maintenance
+            // Check for active maintenance log
+            let hasActiveMaintenanceLog = false;
+            try {
+              const logs = await maintenanceService.getMaintenanceLogs(entity.id);
+              hasActiveMaintenanceLog = logs && logs.length > 0 && logs.some(log => log.status === 'in_progress');
+            } catch {}
+            if (hasActiveMaintenanceLog) {
+              actions = [
+                {
+                  id: 'complete_maintenance',
+                  label: 'Complete Maintenance',
+                  description: 'Mark maintenance as completed',
+                  icon: Wrench,
+                  color: 'blue'
+                }
+              ];
+            } else {
+              actions = [
+                {
+                  id: 'mark_working',
+                  label: 'Mark as Working',
+                  description: 'Mark equipment as operational',
+                  icon: CheckCircle,
+                  color: 'green'
+                }
+              ];
+            }
           }
           
           setScanResult({
             type: entityType,
             entity,
-            currentStatus,
+            currentStatus: currentStatus,
             actions
           });
         } else {
@@ -481,6 +628,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     }
     
     console.log('✅ Action starting:', actionId, 'for', scanResult.type);
+    console.log('✅ Equipment entity:', scanResult.entity);
     isProcessingRef.current = true;
     setIsProcessingAction(true);
 
@@ -523,12 +671,67 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           break;
           
         case 'equipment':
-          if (actionId === 'start-use' || actionId === 'stop-use') {
+          if (actionId === 'start_use') {
+            // Convert start_use to start-use
             operationId = await logManager.createEquipmentLog(
               scanResult.entity,
-              actionId as 'start-use' | 'stop-use',
+              'start-use',
               scanResult.entity.site || 'Unknown',
-              scanResult.entity.status || 'active',
+              'in-use', // Use valid status
+              notes
+            );
+          } else if (actionId === 'stop_use') {
+            // Convert stop_use to stop-use
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'stop-use',
+              scanResult.entity.site || 'Unknown',
+              'available', // Use valid status
+              notes
+            );
+          } else if (actionId === 'standby_start') {
+            // Handle standby start action
+            notes = 'Equipment set to standby mode';
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'standby-start',
+              scanResult.entity.site || 'Unknown',
+              'standby',
+              notes
+            );
+          } else if (actionId === 'standby_end') {
+            // Handle standby end action
+            notes = 'Equipment standby ended';
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'standby-end',
+              scanResult.entity.site || 'Unknown',
+              'available',
+              notes
+            );
+          } else if (actionId === 'maintenance') {
+            // Open maintenance modal for detailed maintenance workflow
+            setSelectedEquipment(scanResult.entity);
+            setIsMaintenanceModalOpen(true);
+            return; // Don't proceed with the action, let the modal handle it
+          } else if (actionId === 'mark_working') {
+            // Handle marking equipment as working
+            notes = 'Equipment marked as operational';
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'maintenance-end',
+              scanResult.entity.site || 'Unknown',
+              'available',
+              notes
+            );
+          } else if (actionId === 'complete_maintenance') {
+            // Handle completing maintenance
+            notes = 'Maintenance completed - equipment ready for use';
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'maintenance-end',
+              scanResult.entity.site || 'Unknown',
+              'available',
               notes
             );
           } else {
@@ -649,9 +852,66 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     }
   };
 
+  // Maintenance modal handlers
+  const handleMaintenanceStart = async (maintenanceData: any) => {
+    try {
+      // Create equipment log for maintenance start
+      const notes = `Maintenance started: ${maintenanceData.description}`;
+      await logManager.createEquipmentLog(
+        selectedEquipment,
+        'maintenance-start',
+        selectedEquipment.site || 'Unknown',
+        'maintenance',
+        notes
+      );
+
+      // Create detailed maintenance log
+      await maintenanceService.startMaintenance(maintenanceData);
+
+      setSuccess('Maintenance started successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Failed to start maintenance:', error);
+      setError('Failed to start maintenance. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const handleMaintenanceComplete = async (maintenanceData: any) => {
+    try {
+      // Create equipment log for maintenance end
+      const notes = `Maintenance completed: ${maintenanceData.description}`;
+      await logManager.createEquipmentLog(
+        selectedEquipment,
+        'maintenance-end',
+        selectedEquipment.site || 'Unknown',
+        'available',
+        notes
+      );
+
+      // Update maintenance log
+      await maintenanceService.completeMaintenance(maintenanceData.maintenanceId, {
+        actual_duration_hours: maintenanceData.actual_duration_hours,
+        cost: maintenanceData.cost,
+        completed_by: maintenanceData.completed_by,
+        technician_notes: maintenanceData.technician_notes,
+        parts_used: maintenanceData.parts_used
+      });
+
+      setSuccess('Maintenance completed successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Failed to complete maintenance:', error);
+      setError('Failed to complete maintenance. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
+      {/* Equipment scanner functionality now integrated directly into main QR scanner */}
+      
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-4 sm:p-6">
           <div className="text-center mb-4 sm:mb-6">
@@ -817,6 +1077,20 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           )}
         </div>
       </div>
+
+      {/* Maintenance Modal */}
+      {selectedEquipment && (
+        <EquipmentMaintenanceModal
+          equipment={selectedEquipment}
+          isOpen={isMaintenanceModalOpen}
+          onClose={() => {
+            setIsMaintenanceModalOpen(false);
+            setSelectedEquipment(null);
+          }}
+          onMaintenanceStart={handleMaintenanceStart}
+          onMaintenanceComplete={handleMaintenanceComplete}
+        />
+      )}
     </div>
   );
 };

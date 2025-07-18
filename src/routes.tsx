@@ -12,6 +12,7 @@ import {
   LazyComponentErrorBoundary
 } from './components/common/LazyComponents';
 import { User } from './types';
+import LoginForm from './components/auth/LoginForm';
 
 interface AppRoutesProps {
   currentUser: User | null;
@@ -101,6 +102,16 @@ export const AppRoutes = ({ currentUser }: AppRoutesProps): RouteObject[] => [
           </LazyComponentErrorBoundary>
         }
       />
+    ),
+  },
+  {
+    path: '/login',
+    element: (
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Login..." />}>
+          <LoginForm onLogin={() => {}} />
+        </Suspense>
+      </LazyComponentErrorBoundary>
     ),
   },
 ];

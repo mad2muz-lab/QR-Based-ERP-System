@@ -31,6 +31,7 @@ export interface Equipment {
   site: string;
   qrCode: string;
   status: 'available' | 'in-use' | 'maintenance' | 'down';
+  operational_status: 'working' | 'not_working' | 'in_use' | 'standby' | 'under_repair' | 'under_service';
   createdAt: string;
   lastUpdated: string;
   serialNumber?: string;
@@ -100,7 +101,7 @@ export interface EquipmentLog {
   equipmentId: string;
   equipmentName: string;
   equipmentType: string;
-  action: 'start-use' | 'stop-use';
+  action: 'start-use' | 'stop-use' | 'standby-start' | 'standby-end' | 'maintenance-start' | 'maintenance-end';
   date: string;
   time: string;
   timestamp: string;
@@ -156,6 +157,86 @@ export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   token: string | null;
+}
+
+// Equipment Maintenance System Types
+export interface EquipmentMaintenanceLog {
+  id: string;
+  equipment_id: string; // This is TEXT in database, not UUID
+  maintenance_type: 'repair' | 'service';
+  repair_type?: 'on_site' | 'yard_repair';
+  service_type?: 'type_a' | 'type_b' | 'type_c';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  description?: string;
+  technician_notes?: string;
+  parts_used?: string;
+  start_date: string;
+  completion_date?: string;
+  completed_by?: string;
+  estimated_duration_hours?: number;
+  actual_duration_hours?: number;
+  cost?: number;
+  next_maintenance_date?: string;
+  created_at: string;
+  updated_at: string;
+  // New fields for reporting
+  equipment_name?: string;
+  old_equipment_id?: string;
+  equipment_type?: string;
+  model?: string;
+  serial_number?: string;
+  site_assignment?: string;
+}
+
+export interface EquipmentMaintenanceSchedule {
+  id: string;
+  equipment_id: string; // This is TEXT in database, not UUID
+  schedule_type: 'preventive' | 'corrective' | 'emergency';
+  maintenance_type: 'repair' | 'service';
+  frequency_days?: number;
+  last_maintenance_date?: string;
+  next_maintenance_date: string;
+  assigned_technician?: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'error' | 'success' | 'maintenance' | 'schedule';
+  entity_type?: 'equipment' | 'employee' | 'material' | 'site';
+  entity_id?: string;
+  is_read: boolean;
+  action_url?: string;
+  created_at: string;
+  expires_at?: string;
+}
+
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: 'technician' | 'manager' | 'admin' | 'viewer';
+  permissions: Record<string, any>;
+  assigned_by?: string;
+  assigned_at: string;
+  is_active: boolean;
+}
+
+export interface PageAccess {
+  id: string;
+  user_id: string;
+  page_name: string;
+  can_access: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  assigned_by?: string;
+  assigned_at: string;
 }
 
 // ✅ Re-export constants and types

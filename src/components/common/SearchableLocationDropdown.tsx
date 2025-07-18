@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, MapPin, Plus, X, Check } from 'lucide-react';
 import { ksaCitiesData, CityData } from '../../data/ksaCitiesData';
+import { SupabaseRegistrationService } from '../../utils/supabaseRegistrationService';
 import { AuthManager } from '../../utils/authUtils';
 
 interface SearchableLocationDropdownProps {
@@ -31,7 +32,7 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const currentUser = AuthManager.getCurrentUser();
+  const currentUser = AuthManager.getCurrentUserSync();
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'developer';
   // Allow custom locations for all users
   const canAddCustomLocation = true;
@@ -68,9 +69,8 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
     setSearchTerm('');
   };
 
-  const handleCustomLocationSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // Remove the event argument from handleCustomLocationSubmit
+  const handleCustomLocationSubmit = async () => {
     if (!customLocation.city || !customLocation.latitude || !customLocation.longitude || !customLocation.province) {
       alert('Please fill in all required fields');
       return;
@@ -82,6 +82,22 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
     if (isNaN(lat) || isNaN(lng)) {
       alert('Please enter valid latitude and longitude values');
       return;
+    }
+
+    // Check if Supabase is enabled
+    const useSupabase = AuthManager.useSupabase ? await AuthManager.useSupabase() : false;
+    if (useSupabase) {
+      const result = await SupabaseRegistrationService.createLocationWithDuplicateCheck({
+        city: customLocation.city,
+        province: customLocation.province,
+        latitude: lat,
+        longitude: lng,
+        source: 'custom'
+      });
+      if (result.duplicate) {
+        alert('This location already exists in the database.');
+      }
+      // Proceed regardless, so the user can use the location for the site
     }
 
     onChange(customLocation.city, [lng, lat], customLocation.province);
@@ -208,7 +224,8 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
                 </button>
               </div>
 
-              <form onSubmit={handleCustomLocationSubmit} className="space-y-3">
+              {/* Replace <form> with <div> and use button onClick */}
+              <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     City Name *
@@ -252,12 +269,6 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
                       required
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Province *
-                  </label>
                   <select
                     value={customLocation.province}
                     onChange={(e) => setCustomLocation({ ...customLocation, province: e.target.value })}
@@ -283,7 +294,8 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
 
                 <div className="flex space-x-3 pt-2">
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleCustomLocationSubmit}
                     className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   >
                     <Check className="w-4 h-4" />
@@ -297,7 +309,7 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
                     Cancel
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           )}
         </div>

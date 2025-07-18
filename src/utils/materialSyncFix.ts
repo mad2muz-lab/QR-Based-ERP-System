@@ -44,18 +44,9 @@ export class MaterialSyncFix {
   private static async ensureSupabaseMode(): Promise<void> {
     console.log('🔍 Checking Supabase mode...');
     
-    const isSupabaseMode = AuthManager.useSupabase();
+    const isSupabaseMode = await AuthManager.useSupabase();
     if (!isSupabaseMode) {
-      console.log('🔄 Enabling Supabase mode...');
-      AuthManager.setUseSupabase(true);
-      
-      // Verify the change
-      const newMode = AuthManager.useSupabase();
-      if (newMode) {
-        console.log('✅ Supabase mode enabled');
-      } else {
-        throw new Error('Failed to enable Supabase mode');
-      }
+      console.log('🔄 Supabase mode not enabled. Material sync may not work properly.');
     } else {
       console.log('✅ Already in Supabase mode');
     }
@@ -247,6 +238,56 @@ export class MaterialSyncFix {
     console.log('🧹 Clearing sync errors...');
     offlineSyncManager.clearErrors();
     console.log('✅ Sync errors cleared');
+  }
+
+  /**
+   * Clear problematic equipment logs from sync queue
+   */
+  static async clearProblematicEquipmentLogs(): Promise<void> {
+    console.log('🧹 Clearing problematic equipment logs from sync queue...');
+    
+    try {
+      // Since we can't directly access the queue, we'll clear all sync errors
+      // and let the sync manager handle the queue automatically
+      console.log('📋 Clearing sync errors and problematic operations...');
+      
+      // Clear all sync errors first
+      offlineSyncManager.clearErrors();
+      
+      // Clear the entire sync queue to remove problematic operations
+      offlineSyncManager.clearSyncQueue();
+      
+      console.log('✅ Sync queue cleared. New operations will be queued with correct status values.');
+      
+    } catch (error) {
+      console.error('❌ Error clearing problematic equipment logs:', error);
+    }
+  }
+
+  /**
+   * Fix sync issues and clear errors
+   */
+  static async fixSyncIssues(): Promise<void> {
+    console.log('🔧 Fixing sync issues...');
+    
+    try {
+      // Clear problematic equipment logs
+      await this.clearProblematicEquipmentLogs();
+      
+      // Clear sync errors
+      this.clearSyncErrors();
+      
+      // Force a sync if online
+      const status = offlineSyncManager.getStatus();
+      if (status.isOnline && status.pendingOperations > 0) {
+        console.log('🔄 Forcing sync after cleanup...');
+        await offlineSyncManager.forcSync();
+      }
+      
+      console.log('✅ Sync issues fixed');
+    } catch (error) {
+      console.error('❌ Error fixing sync issues:', error);
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 // Offline Data Manager
 // Handles local data operations and queuing for sync
 
-import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog } from '../types';
+import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog, EquipmentMaintenanceLog, EquipmentMaintenanceSchedule } from '../types';
 import { DataStorage } from './dataStorage';
 import { offlineSyncManager } from './offlineSync';
 
@@ -492,5 +492,111 @@ export class OfflineDataManager {
     } catch (error) {
       console.error('Failed to cleanup old data:', error);
     }
+  }
+
+  // Maintenance Log Operations
+  static async createMaintenanceLog(maintenanceLog: EquipmentMaintenanceLog): Promise<string> {
+    try {
+      const maintenanceLogs = DataStorage.loadMaintenanceLogs();
+      maintenanceLogs.push(maintenanceLog);
+      DataStorage.saveMaintenanceLogs(maintenanceLogs);
+
+              const operationId = offlineSyncManager.queueOperation({
+          type: 'create',
+          entityType: 'equipment_maintenance_logs',
+          entityId: maintenanceLog.id,
+          data: maintenanceLog,
+          priority: 'high'
+        });
+
+      return operationId;
+    } catch (error) {
+      console.error('Failed to create maintenance log:', error);
+      throw error;
+    }
+  }
+
+  static async updateMaintenanceLog(maintenanceId: string, updateData: Partial<EquipmentMaintenanceLog>): Promise<string> {
+    try {
+      const maintenanceLogs = DataStorage.loadMaintenanceLogs();
+      const index = maintenanceLogs.findIndex(log => log.id === maintenanceId);
+      
+      if (index !== -1) {
+        maintenanceLogs[index] = { ...maintenanceLogs[index], ...updateData, updated_at: new Date().toISOString() };
+        DataStorage.saveMaintenanceLogs(maintenanceLogs);
+
+        const operationId = offlineSyncManager.queueOperation({
+          type: 'update',
+          entityType: 'equipment_maintenance_logs',
+          entityId: maintenanceId,
+          data: maintenanceLogs[index],
+          priority: 'medium'
+        });
+
+        return operationId;
+      } else {
+        throw new Error('Maintenance log not found');
+      }
+    } catch (error) {
+      console.error('Failed to update maintenance log:', error);
+      throw error;
+    }
+  }
+
+  static async getAllMaintenanceLogs(): Promise<EquipmentMaintenanceLog[]> {
+    return DataStorage.loadMaintenanceLogs();
+  }
+
+  // Maintenance Schedule Operations
+  static async createMaintenanceSchedule(maintenanceSchedule: EquipmentMaintenanceSchedule): Promise<string> {
+    try {
+      const maintenanceSchedules = DataStorage.loadMaintenanceSchedules();
+      maintenanceSchedules.push(maintenanceSchedule);
+      DataStorage.saveMaintenanceSchedules(maintenanceSchedules);
+
+              const operationId = offlineSyncManager.queueOperation({
+          type: 'create',
+          entityType: 'equipment_maintenance_schedules',
+          entityId: maintenanceSchedule.id,
+          data: maintenanceSchedule,
+          priority: 'medium'
+        });
+
+      return operationId;
+    } catch (error) {
+      console.error('Failed to create maintenance schedule:', error);
+      throw error;
+    }
+  }
+
+  static async updateMaintenanceSchedule(scheduleId: string, updateData: Partial<EquipmentMaintenanceSchedule>): Promise<string> {
+    try {
+      const maintenanceSchedules = DataStorage.loadMaintenanceSchedules();
+      const index = maintenanceSchedules.findIndex(schedule => schedule.id === scheduleId);
+      
+      if (index !== -1) {
+        maintenanceSchedules[index] = { ...maintenanceSchedules[index], ...updateData, updated_at: new Date().toISOString() };
+        DataStorage.saveMaintenanceSchedules(maintenanceSchedules);
+
+        const operationId = offlineSyncManager.queueOperation({
+          type: 'update',
+          entityType: 'equipment_maintenance_schedules',
+          entityId: scheduleId,
+          data: maintenanceSchedules[index],
+          priority: 'medium'
+        });
+
+        return operationId;
+      } else {
+        throw new Error('Maintenance schedule not found');
+      }
+    } catch (error) {
+      console.error('Failed to update maintenance schedule:', error);
+      throw error;
+    }
+  }
+
+  static async getAllMaintenanceSchedules(): Promise<EquipmentMaintenanceSchedule[]> {
+    return DataStorage.loadMaintenanceSchedules();
   }
 }

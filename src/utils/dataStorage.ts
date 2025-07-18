@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog } from '../types';
+import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog, EquipmentMaintenanceLog, EquipmentMaintenanceSchedule } from '../types';
 import { CSVAppendManager } from './csvAppendUtils';
 
 interface Department {
@@ -31,6 +31,8 @@ export class DataStorage {
     employeeLogs: 'qr_system_employee_logs',
     equipmentLogs: 'qr_system_equipment_logs',
     materialLogs: 'qr_system_material_logs',
+    maintenanceLogs: 'qr_system_maintenance_logs',
+    maintenanceSchedules: 'qr_system_maintenance_schedules',
     users: 'qr_system_users',
     departments: 'qr_system_departments',
     transactionLog: 'qr_system_transaction_log',
@@ -391,6 +393,32 @@ export class DataStorage {
 
   static downloadMaterialLogsCSV(materialLogs: MaterialLog[]): void {
     this.downloadCSV(materialLogs, 'material_logs.csv');
+  }
+
+  // Maintenance Logs
+  static saveMaintenanceLogs(maintenanceLogs: EquipmentMaintenanceLog[]): void {
+    this.saveToCSV(this.STORAGE_KEYS.maintenanceLogs, maintenanceLogs);
+  }
+
+  static loadMaintenanceLogs(): EquipmentMaintenanceLog[] {
+    return this.loadFromCSV<EquipmentMaintenanceLog>(this.STORAGE_KEYS.maintenanceLogs);
+  }
+
+  static downloadMaintenanceLogsCSV(maintenanceLogs: EquipmentMaintenanceLog[]): void {
+    this.downloadCSV(maintenanceLogs, 'maintenance_logs.csv');
+  }
+
+  // Maintenance Schedules
+  static saveMaintenanceSchedules(maintenanceSchedules: EquipmentMaintenanceSchedule[]): void {
+    this.saveToCSV(this.STORAGE_KEYS.maintenanceSchedules, maintenanceSchedules);
+  }
+
+  static loadMaintenanceSchedules(): EquipmentMaintenanceSchedule[] {
+    return this.loadFromCSV<EquipmentMaintenanceSchedule>(this.STORAGE_KEYS.maintenanceSchedules);
+  }
+
+  static downloadMaintenanceSchedulesCSV(maintenanceSchedules: EquipmentMaintenanceSchedule[]): void {
+    this.downloadCSV(maintenanceSchedules, 'maintenance_schedules.csv');
   }
 
   // Combined Logs Helper (for reports that need all logs)

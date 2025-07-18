@@ -6,7 +6,7 @@ import { supabase } from './supabaseClient';
 export interface SyncOperation {
   id: string;
   type: 'create' | 'update' | 'delete';
-  entityType: 'employee' | 'equipment' | 'material' | 'site' | 'timeLog' | 'employeeLog' | 'equipmentLog' | 'materialLog';
+  entityType: 'employee' | 'equipment' | 'material' | 'site' | 'timeLog' | 'employeeLog' | 'equipmentLog' | 'materialLog' | 'equipment_maintenance_logs' | 'equipment_maintenance_schedules';
   entityId: string;
   data: any;
   timestamp: string;
@@ -159,7 +159,8 @@ export class OfflineSyncManager {
         // Entity type priority: entities first, then logs
         const entityTypeOrder = {
           'employee': 4, 'equipment': 4, 'material': 4, 'site': 4,
-          'employeeLog': 1, 'equipmentLog': 1, 'materialLog': 1, 'timeLog': 1
+          'employeeLog': 1, 'equipmentLog': 1, 'materialLog': 1, 'timeLog': 1,
+          'equipment_maintenance_logs': 1, 'equipment_maintenance_schedules': 2
         };
         const entityTypeDiff = (entityTypeOrder[b.entityType] || 2) - (entityTypeOrder[a.entityType] || 2);
         if (entityTypeDiff !== 0) return entityTypeDiff;
@@ -333,6 +334,8 @@ export class OfflineSyncManager {
         case 'employeeLog': return 'employee_logs';
         case 'equipmentLog': return 'equipment_logs';
         case 'materialLog': return 'material_logs';
+        case 'equipment_maintenance_logs': return 'equipment_maintenance_logs';
+        case 'equipment_maintenance_schedules': return 'equipment_maintenance_schedules';
         default: return entityType + 's';
       }
     };
@@ -608,6 +611,32 @@ export class OfflineSyncManager {
               break;
             default:
               throw new Error(`Unsupported operation type: ${type} for equipmentLog`);
+          }
+          break;
+          
+        case 'equipment_maintenance_logs':
+          switch (type) {
+            case 'create':
+              result = await SupabaseRegistrationService.createMaintenanceLog(data);
+              break;
+            case 'update':
+              result = await SupabaseRegistrationService.updateMaintenanceLog(entityId, data);
+              break;
+            default:
+              throw new Error(`Unsupported operation type: ${type} for equipment_maintenance_logs`);
+          }
+          break;
+          
+        case 'equipment_maintenance_schedules':
+          switch (type) {
+            case 'create':
+              result = await SupabaseRegistrationService.createMaintenanceSchedule(data);
+              break;
+            case 'update':
+              result = await SupabaseRegistrationService.updateMaintenanceSchedule(entityId, data);
+              break;
+            default:
+              throw new Error(`Unsupported operation type: ${type} for equipment_maintenance_schedules`);
           }
           break;
           

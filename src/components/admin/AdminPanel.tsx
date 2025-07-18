@@ -60,20 +60,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    loadUsers();
-    loadEquipment();
-    loadMaterials();
+    (async () => {
+      await loadUsers();
+      await loadEquipment();
+      await loadMaterials();
+    })();
   }, []);
 
-  const loadUsers = () => {
-    const loadedUsers = DataStorage.loadUsers();
-    setUsers(loadedUsers);
+  const loadUsers = async () => {
+    if (await AuthManager.useSupabase()) {
+      // Load users from Supabase
+      try {
+        const { data, error } = await supabase!.from('users').select();
+        if (error) throw error;
+        setUsers(data || []);
+      } catch (error) {
+        console.error('Error loading users from Supabase:', error);
+        alert(`Error loading users from Supabase: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setUsers([]);
+      }
+    } else {
+      // Fallback: load users from local storage
+      const loadedUsers = DataStorage.loadUsers();
+      setUsers(loadedUsers);
+    }
   };
 
   const loadMaterials = async () => {
-    const isSupabase = AuthManager.useSupabase();
     try {
-      if (isSupabase) {
+      if (await AuthManager.useSupabase()) {
         const { data } = await supabase!.from('materials').select();
         setMaterials(data || []);
       } else {
@@ -87,9 +102,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   };
 
   const loadEquipment = async () => {
-    const isSupabase = AuthManager.useSupabase();
     try {
-      if (isSupabase) {
+      if (await AuthManager.useSupabase()) {
         const { data } = await supabase!.from('equipment').select();
         setEquipment(data || []);
       } else {
@@ -102,30 +116,66 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     }
   };
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check if username already exists
-    if (users.some(user => user.username === formData.username)) {
-      alert('Username already exists');
+    if (await AuthManager.useSupabase()) {
+      try {
+        const result = await SupabaseAuthManager.createUser({
+          ...formData,
+          isFirstLogin: false
+        });
+        if (result.success && result.user) {
+          await loadUsers();
+          setShowCreateForm(false);
+          resetForm();
+          alert('User created in Supabase!');
+        } else {
+          alert('Failed to create user in Supabase: ' + (result.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Supabase createUser error:', error);
+        alert('Supabase createUser error: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      }
       return;
     }
-
+    // Local fallback
     const newUser = AuthManager.createUser({
       ...formData,
       isFirstLogin: false
     });
-
     setUsers([...users, newUser]);
     setShowCreateForm(false);
     resetForm();
   };
 
-  const handleUpdateUser = (e: React.FormEvent) => {
+  const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!editingUser) return;
-
+    if (await AuthManager.useSupabase()) {
+      try {
+        const result = await SupabaseAuthManager.updateUser(editingUser.id, {
+          username: formData.username,
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          site: formData.site,
+          ...(formData.password && { password: formData.password, isFirstLogin: true })
+        });
+        if (result.success && result.user) {
+          await loadUsers();
+          setEditingUser(null);
+          resetForm();
+          alert('User updated in Supabase!');
+        } else {
+          alert('Failed to update user in Supabase: ' + (result.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Supabase updateUser error:', error);
+        alert('Supabase updateUser error: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      }
+      return;
+    }
+    // Local fallback
     const success = AuthManager.updateUser(editingUser.id, {
       username: formData.username,
       name: formData.name,
@@ -134,7 +184,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       site: formData.site,
       ...(formData.password && { password: formData.password, isFirstLogin: true })
     });
-
     if (success) {
       loadUsers();
       setEditingUser(null);
@@ -142,12 +191,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      const success = AuthManager.deleteUser(userId);
-      if (success) {
-        loadUsers();
+  const handleDeleteUser = async (userId: string) => {
+    const userToDelete = users.find(u => u.id === userId);
+    if (userToDelete && userToDelete.role === 'developer') {
+      alert('Cannot delete the developer user.');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    if (await AuthManager.useSupabase()) {
+      try {
+        const result = await SupabaseAuthManager.deleteUser(userId);
+        if (result.success) {
+          await loadUsers();
+          alert('User deleted from Supabase!');
+        } else {
+          alert('Failed to delete user in Supabase: ' + (result.error || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Supabase deleteUser error: ' + (error instanceof Error ? error.message : 'Unknown error'));
       }
+      return;
+    }
+    // Local fallback
+    const success = AuthManager.deleteUser(userId);
+    if (success) {
+      loadUsers();
     }
   };
 
@@ -224,8 +292,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     setIsLoading(true);
     
     try {
-      const isSupabase = AuthManager.useSupabase();
-      
       if (editingEquipment) {
         // Update existing equipment
         const updatedEquipment: Equipment = {
@@ -234,7 +300,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           lastUpdated: new Date().toISOString()
         };
         
-        if (isSupabase) {
+        if (await AuthManager.useSupabase()) {
           const result = await SupabaseRegistrationService.updateEquipment(updatedEquipment);
           if (result.success && result.data) {
             const updatedList = equipment.map(eq => 
@@ -258,7 +324,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         setEditingEquipment(null);
       } else {
         // Create new equipment
-        if (isSupabase) {
+        if (await AuthManager.useSupabase()) {
           const newEquipment: Equipment = {
             ...equipmentFormData,
             id: '', // Will be generated by Supabase
@@ -308,9 +374,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       setIsLoading(true);
       
       try {
-        const isSupabase = AuthManager.useSupabase();
-        
-        if (isSupabase) {
+        if (await AuthManager.useSupabase()) {
           const result = await SupabaseRegistrationService.deleteEquipment(equipmentId);
           if (result.success) {
             const updatedList = equipment.filter(eq => eq.id !== equipmentId);

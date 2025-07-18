@@ -148,37 +148,52 @@ export class SupabaseAuthManager {
         throw new Error('Failed to create user');
       }
 
-      // Then create user profile
-      const { data: profileData, error: profileError } = await supabase
+      // Wait for trigger to create user profile, then fetch it
+      let profileData = null;
+      let attempts = 0;
+      while (!profileData && attempts < 5) {
+        const { data: userProfile, error: userProfileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+        if (userProfileError) {
+          await new Promise(res => setTimeout(res, 300)); // wait 300ms
+          attempts++;
+        } else {
+          profileData = userProfile;
+        }
+      }
+      if (!profileData) {
+        throw new Error('User profile not found after creation');
+      }
+
+      // Immediately update the user profile with correct role, name, username, site, etc.
+      const { data: updatedProfile, error: updateError } = await supabase
         .from('users')
-        .insert([
-          {
-            id: authData.user.id,
-            username: userData.username,
-            role: userData.role,
-            name: userData.name,
-            email: userData.email,
-            site: userData.site,
-            created_at: new Date().toISOString(),
-          },
-        ])
+        .update({
+          role: userData.role,
+          name: userData.name,
+          username: userData.username,
+          site: userData.site,
+        })
+        .eq('id', authData.user.id)
         .select()
         .single();
-
-      if (profileError) {
-        throw profileError;
+      if (updateError) {
+        throw updateError;
       }
 
       const newUser: User = {
-        id: profileData.id,
-        username: profileData.username,
+        id: updatedProfile.id,
+        username: updatedProfile.username,
         password: '', // We don't store or return passwords
-        role: profileData.role,
-        name: profileData.name,
-        email: profileData.email || '',
-        site: profileData.site,
+        role: updatedProfile.role,
+        name: updatedProfile.name,
+        email: updatedProfile.email || '',
+        site: updatedProfile.site,
         isFirstLogin: true,
-        createdAt: profileData.created_at,
+        createdAt: updatedProfile.created_at,
       };
 
       return { success: true, user: newUser };
@@ -342,6 +357,18 @@ export class SupabaseAuthManager {
     } catch (error: any) {
       console.error('Delete user error:', error);
       return { success: false, error: error.message || 'Failed to delete user' };
+    }
+  }
+
+  // Ping Supabase to check if it's reachable (for online/offline detection)
+  static async pingSupabase(): Promise<boolean> {
+    try {
+      if (!supabase) return false;
+      const { data, error } = await supabase.auth.getSession();
+      if (error) return false;
+      return true;
+    } catch {
+      return false;
     }
   }
 }
