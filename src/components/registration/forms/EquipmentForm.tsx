@@ -4,6 +4,7 @@ import { Equipment } from '../../../types';
 import { equipmentCategories } from '../../../data/materialTypes';
 import { DataStorage } from '../../../utils/dataStorage';
 import { EquipmentMigration } from '../../../utils/equipmentMigration';
+import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
 
 interface EquipmentFormProps {
   sites: any[];
@@ -23,10 +24,14 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     site: '',
     status: 'available' as 'available' | 'in-use' | 'maintenance' | 'down',
     oldId: '',
+    costCenterCode: '',
+    profitCenterCode: ''
   });
   const [showCustomType, setShowCustomType] = useState(false);
   const [customIdError, setCustomIdError] = useState('');
   const [isCheckingId, setIsCheckingId] = useState(false);
+  const [costCenters, setCostCenters] = useState<any[]>([]);
+  const [profitCenters, setProfitCenters] = useState<any[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const isEditMode = !!initialData;
@@ -43,6 +48,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
         site: initialData.site || '',
         status: initialData.status || 'available',
         oldId: initialData.oldId || '',
+        costCenterCode: initialData.costCenterCode || '',
+        profitCenterCode: initialData.profitCenterCode || ''
       });
       
       const allTypes = getAllEquipmentTypes();
@@ -61,12 +68,47 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
         serialNumber: '',
         site: '',
         status: 'available',
-        oldId: ''
+        oldId: '',
+        costCenterCode: '',
+        profitCenterCode: ''
       });
       setShowCustomType(false);
       setCustomIdError('');
     }
   }, [initialData]);
+
+  useEffect(() => {
+    // Load cost centers and profit centers
+    const loadCostProfitCenters = async () => {
+      try {
+        const [costCentersResult, profitCentersResult] = await Promise.all([
+          CostProfitCenterService.getCostCenters(),
+          CostProfitCenterService.getProfitCenters()
+        ]);
+        
+        if (costCentersResult.success && costCentersResult.data) {
+          setCostCenters(costCentersResult.data);
+        } else {
+          // Fallback to mock data
+          setCostCenters(CostProfitCenterService.getMockCostCenters());
+        }
+        
+        if (profitCentersResult.success && profitCentersResult.data) {
+          setProfitCenters(profitCentersResult.data);
+        } else {
+          // Fallback to mock data
+          setProfitCenters(CostProfitCenterService.getMockProfitCenters());
+        }
+      } catch (error) {
+        console.error('Error loading cost/profit centers:', error);
+        // Fallback to mock data
+        setCostCenters(CostProfitCenterService.getMockCostCenters());
+        setProfitCenters(CostProfitCenterService.getMockProfitCenters());
+      }
+    };
+    
+    loadCostProfitCenters();
+  }, []);
 
   useEffect(() => {
     if (formData.custom_equipment_id.trim() === '') {
@@ -116,6 +158,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     const equipmentData = {
       ...formData,
       type: showCustomType ? formData.customType : formData.type,
+      operational_status: 'working' as 'working' | 'not_working' | 'in_use' | 'standby' | 'under_repair' | 'under_service',
       lastUpdated: new Date().toISOString()
     };
     
@@ -126,7 +169,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
       setMessage({ type: 'success', text: isEditMode ? 'Equipment updated successfully!' : 'Equipment added successfully!' });
       // Only reset form if not editing
       if (!isEditMode) {
-        setFormData({ custom_equipment_id: '', name: '', type: '', customType: '', model: '', serialNumber: '', site: '', status: 'available', oldId: '' });
+        setFormData({ custom_equipment_id: '', name: '', type: '', customType: '', model: '', serialNumber: '', site: '', status: 'available', oldId: '', costCenterCode: '', profitCenterCode: '' });
         setShowCustomType(false);
         setCustomIdError('');
       }
@@ -326,6 +369,38 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
               <option value="in-use">In Use</option>
               <option value="maintenance">Maintenance</option>
               <option value="down">Down</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cost Center Code</label>
+            <select
+              value={formData.costCenterCode}
+              onChange={(e) => setFormData({ ...formData, costCenterCode: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select cost center (optional)</option>
+              {costCenters.map((costCenter: any) => (
+                <option key={costCenter.id} value={costCenter.code}>
+                  {costCenter.code} - {costCenter.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Profit Center Code</label>
+            <select
+              value={formData.profitCenterCode}
+              onChange={(e) => setFormData({ ...formData, profitCenterCode: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select profit center (optional)</option>
+              {profitCenters.map((profitCenter: any) => (
+                <option key={profitCenter.id} value={profitCenter.code}>
+                  {profitCenter.code} - {profitCenter.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>

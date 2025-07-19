@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Building, X } from 'lucide-react';
+import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
 import { Site } from '../../../types';
 import { siteTypes } from '../../../data/materialTypes';
 import SearchableLocationDropdown from '../../common/SearchableLocationDropdown';
@@ -20,9 +21,13 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
     coordinates: [0, 0] as [number, number],
     province: '',
     address: '',
-    manager: ''
+    manager: '',
+    costCenterCode: '',
+    profitCenterCode: ''
   });
   const [showCustomType, setShowCustomType] = useState(false);
+  const [costCenters, setCostCenters] = useState<any[]>([]);
+  const [profitCenters, setProfitCenters] = useState<any[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Handle initial data for editing
@@ -36,7 +41,9 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
         coordinates: initialData.coordinates || [0, 0],
         province: initialData.province || '',
         address: initialData.address || '',
-        manager: initialData.manager || ''
+        manager: initialData.manager || '',
+        costCenterCode: initialData.costCenterCode || '',
+        profitCenterCode: initialData.profitCenterCode || ''
       });
       
       // Check if we need to show custom type
@@ -55,11 +62,46 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
         coordinates: [0, 0],
         province: '',
         address: '',
-        manager: ''
+        manager: '',
+        costCenterCode: '',
+        profitCenterCode: ''
       });
       setShowCustomType(false);
     }
   }, [initialData]);
+
+  useEffect(() => {
+    // Load cost centers and profit centers
+    const loadCostProfitCenters = async () => {
+      try {
+        const [costCentersResult, profitCentersResult] = await Promise.all([
+          CostProfitCenterService.getCostCenters(),
+          CostProfitCenterService.getProfitCenters()
+        ]);
+        
+        if (costCentersResult.success && costCentersResult.data) {
+          setCostCenters(costCentersResult.data);
+        } else {
+          // Fallback to mock data
+          setCostCenters(CostProfitCenterService.getMockCostCenters());
+        }
+        
+        if (profitCentersResult.success && profitCentersResult.data) {
+          setProfitCenters(profitCentersResult.data);
+        } else {
+          // Fallback to mock data
+          setProfitCenters(CostProfitCenterService.getMockProfitCenters());
+        }
+      } catch (error) {
+        console.error('Error loading cost/profit centers:', error);
+        // Fallback to mock data
+        setCostCenters(CostProfitCenterService.getMockCostCenters());
+        setProfitCenters(CostProfitCenterService.getMockProfitCenters());
+      }
+    };
+    
+    loadCostProfitCenters();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +129,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
       setMessage({ type: 'success', text: isEditMode ? 'Site updated successfully!' : 'Site added successfully!' });
       // Only reset form if not editing
       if (!isEditMode) {
-        setFormData({ name: '', type: '', customType: '', selectedLocation: '', coordinates: [0, 0], province: '', address: '', manager: '' });
+        setFormData({ name: '', type: '', customType: '', selectedLocation: '', coordinates: [0, 0], province: '', address: '', manager: '', costCenterCode: '', profitCenterCode: '' });
         setShowCustomType(false);
       }
     } catch (error) {
@@ -228,6 +270,40 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
             placeholder="Enter complete site address..."
             required
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cost Center Code</label>
+            <select
+              value={formData.costCenterCode}
+              onChange={(e) => setFormData({ ...formData, costCenterCode: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select cost center (optional)</option>
+              {costCenters.map((costCenter: any) => (
+                <option key={costCenter.id} value={costCenter.code}>
+                  {costCenter.code} - {costCenter.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Profit Center Code</label>
+            <select
+              value={formData.profitCenterCode}
+              onChange={(e) => setFormData({ ...formData, profitCenterCode: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select profit center (optional)</option>
+              {profitCenters.map((profitCenter: any) => (
+                <option key={profitCenter.id} value={profitCenter.code}>
+                  {profitCenter.code} - {profitCenter.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <button

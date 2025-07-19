@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Package, X } from 'lucide-react';
 import { Material } from '../../../types';
 import { materialCategories } from '../../../data/materialTypes';
+import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
 
 interface MaterialFormProps {
   sites: any[];
@@ -21,9 +22,13 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     use: '',
     status: 'available' as 'available' | 'low-stock' | 'out-of-stock',
     oldId: '',
-    accessLevel: 'basic' as 'basic' | 'restricted' | 'admin'
+    accessLevel: 'basic' as 'basic' | 'restricted' | 'admin',
+    costCenterCode: '',
+    profitCenterCode: ''
   });
   const [showCustomType, setShowCustomType] = useState(false);
+  const [costCenters, setCostCenters] = useState<any[]>([]);
+  const [profitCenters, setProfitCenters] = useState<any[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Handle initial data for editing
@@ -39,7 +44,9 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
         use: initialData.use || '',
         status: initialData.status || 'available',
         accessLevel: initialData.accessLevel || 'basic',
-        oldId: initialData.oldId || ''
+        oldId: initialData.oldId || '',
+        costCenterCode: initialData.costCenterCode || '',
+        profitCenterCode: initialData.profitCenterCode || ''
       });
       
       // Check if we need to show custom type
@@ -61,11 +68,46 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
         use: '',
         status: 'available',
         accessLevel: 'basic',
-        oldId: ''
+        oldId: '',
+        costCenterCode: '',
+        profitCenterCode: ''
       });
       setShowCustomType(false);
     }
   }, [initialData]);
+
+  useEffect(() => {
+    // Load cost centers and profit centers
+    const loadCostProfitCenters = async () => {
+      try {
+        const [costCentersResult, profitCentersResult] = await Promise.all([
+          CostProfitCenterService.getCostCenters(),
+          CostProfitCenterService.getProfitCenters()
+        ]);
+        
+        if (costCentersResult.success && costCentersResult.data) {
+          setCostCenters(costCentersResult.data);
+        } else {
+          // Fallback to mock data
+          setCostCenters(CostProfitCenterService.getMockCostCenters());
+        }
+        
+        if (profitCentersResult.success && profitCentersResult.data) {
+          setProfitCenters(profitCentersResult.data);
+        } else {
+          // Fallback to mock data
+          setProfitCenters(CostProfitCenterService.getMockProfitCenters());
+        }
+      } catch (error) {
+        console.error('Error loading cost/profit centers:', error);
+        // Fallback to mock data
+        setCostCenters(CostProfitCenterService.getMockCostCenters());
+        setProfitCenters(CostProfitCenterService.getMockProfitCenters());
+      }
+    };
+    
+    loadCostProfitCenters();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +124,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     try {
       onSubmit(finalData);
       setMessage({ type: 'success', text: 'Material added successfully!' });
-      setFormData({ name: '', type: '', customType: '', unit: '', quantity: 0, site: '', use: '', status: 'available', accessLevel: 'basic', oldId: '' });
+      setFormData({ name: '', type: '', customType: '', unit: '', quantity: 0, site: '', use: '', status: 'available', accessLevel: 'basic', oldId: '', costCenterCode: '', profitCenterCode: '' });
       setShowCustomType(false);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to register material. Please try again.' });
@@ -246,6 +288,38 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
               className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Describe how this material is used..."
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cost Center Code</label>
+            <select
+              value={formData.costCenterCode}
+              onChange={(e) => setFormData({ ...formData, costCenterCode: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select cost center (optional)</option>
+              {costCenters.map((costCenter: any) => (
+                <option key={costCenter.id} value={costCenter.code}>
+                  {costCenter.code} - {costCenter.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Profit Center Code</label>
+            <select
+              value={formData.profitCenterCode}
+              onChange={(e) => setFormData({ ...formData, profitCenterCode: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select profit center (optional)</option>
+              {profitCenters.map((profitCenter: any) => (
+                <option key={profitCenter.id} value={profitCenter.code}>
+                  {profitCenter.code} - {profitCenter.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

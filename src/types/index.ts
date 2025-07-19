@@ -20,6 +20,8 @@ export interface Employee {
   phone?: string;
   oldId?: string; // Legacy ID from previous system
   companyId?: string;
+  costCenterCode?: string; // Cost center code for financial analysis
+  profitCenterCode?: string; // Profit center code for financial analysis
 }
 
 export interface Equipment {
@@ -37,6 +39,8 @@ export interface Equipment {
   serialNumber?: string;
   oldId?: string; // Legacy ID from previous system
   companyId?: string;
+  costCenterCode?: string; // Cost center code for financial analysis
+  profitCenterCode?: string; // Profit center code for financial analysis
 }
 
 export interface Material {
@@ -54,6 +58,8 @@ export interface Material {
   accessLevel?: 'basic' | 'restricted' | 'admin';
   oldId?: string; // Legacy ID from previous system
   companyId?: string;
+  costCenterCode?: string; // Cost center code for financial analysis
+  profitCenterCode?: string; // Profit center code for financial analysis
 }
 
 export interface Site {
@@ -66,6 +72,8 @@ export interface Site {
   lastUpdated: string;
   type?: string;
   qrCode: string;
+  costCenterCode?: string; // Cost center code for financial analysis
+  profitCenterCode?: string; // Profit center code for financial analysis
 }
 
 export interface TimeLog {
@@ -268,6 +276,27 @@ export interface Department {
   type?: string;
 }
 
+// Cost Center and Profit Center interfaces
+export interface CostCenter {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProfitCenter {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ✅ Re-export constants and types
 export { MATERIAL_TYPES };
-export type { MaterialType, Department };
+export type { MaterialType };

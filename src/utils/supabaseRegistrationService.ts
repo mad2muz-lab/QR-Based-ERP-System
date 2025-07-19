@@ -17,13 +17,17 @@ export class SupabaseRegistrationService {
         blood_group: employee.bloodGroup,
         created_at: employee.createdAt,
         qr_code: employee.id, // Use the full employee ID (already includes EMP- prefix)
-        old_id: employee.oldId // Handle oldId field
+        old_id: employee.oldId, // Handle oldId field
+        cost_center_code: employee.costCenterCode, // Handle cost center code
+        profit_center_code: employee.profitCenterCode // Handle profit center code
       };
       delete (supabaseEmployee as any).lastUpdated;
       delete (supabaseEmployee as any).bloodGroup;
       delete (supabaseEmployee as any).createdAt;
       delete (supabaseEmployee as any).qrCode;
       delete (supabaseEmployee as any).oldId;
+      delete (supabaseEmployee as any).costCenterCode;
+      delete (supabaseEmployee as any).profitCenterCode;
 
       const { data, error } = await supabase
         .from('employees')
@@ -41,10 +45,14 @@ export class SupabaseRegistrationService {
         ...data,
         lastUpdated: data.last_updated,
         qrCode: data.id, // QR code uses the full ID
-        oldId: data.old_id // Handle oldId field
+        oldId: data.old_id, // Handle oldId field
+        costCenterCode: data.cost_center_code, // Handle cost center code
+        profitCenterCode: data.profit_center_code // Handle profit center code
       };
       delete (transformedData as any).last_updated;
       delete (transformedData as any).old_id;
+      delete (transformedData as any).cost_center_code;
+      delete (transformedData as any).profit_center_code;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -66,13 +74,17 @@ export class SupabaseRegistrationService {
         blood_group: employee.bloodGroup,
         created_at: employee.createdAt,
         qr_code: employee.qrCode,
-        old_id: employee.oldId // Handle oldId field
+        old_id: employee.oldId, // Handle oldId field
+        cost_center_code: employee.costCenterCode, // Handle cost center code
+        profit_center_code: employee.profitCenterCode // Handle profit center code
       };
       delete (supabaseEmployee as any).lastUpdated;
       delete (supabaseEmployee as any).bloodGroup;
       delete (supabaseEmployee as any).createdAt;
       delete (supabaseEmployee as any).qrCode;
       delete (supabaseEmployee as any).oldId;
+      delete (supabaseEmployee as any).costCenterCode;
+      delete (supabaseEmployee as any).profitCenterCode;
 
       const { data, error } = await supabase
         .from('employees')
@@ -90,10 +102,14 @@ export class SupabaseRegistrationService {
       const transformedData: Employee = {
         ...data,
         lastUpdated: data.last_updated,
-        oldId: data.old_id // Handle oldId field
+        oldId: data.old_id, // Handle oldId field
+        costCenterCode: data.cost_center_code, // Handle cost center code
+        profitCenterCode: data.profit_center_code // Handle profit center code
       };
       delete (transformedData as any).last_updated;
       delete (transformedData as any).old_id;
+      delete (transformedData as any).cost_center_code;
+      delete (transformedData as any).profit_center_code;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -140,7 +156,9 @@ export class SupabaseRegistrationService {
         serial_number: equipment.serialNumber,
         custom_equipment_id: equipment.custom_equipment_id,
         qr_code: equipment.qrCode || equipment.custom_equipment_id, // Use qrCode if available, otherwise use custom_equipment_id
-        old_id: equipment.oldId // Handle oldId field
+        old_id: equipment.oldId, // Handle oldId field
+        cost_center_code: equipment.costCenterCode, // Handle cost center code
+        profit_center_code: equipment.profitCenterCode // Handle profit center code
       };
       // Remove camelCase properties
       delete (supabaseEquipment as any).createdAt;
@@ -148,6 +166,8 @@ export class SupabaseRegistrationService {
       delete (supabaseEquipment as any).serialNumber;
       delete (supabaseEquipment as any).qrCode;
       delete (supabaseEquipment as any).oldId;
+      delete (supabaseEquipment as any).costCenterCode;
+      delete (supabaseEquipment as any).profitCenterCode;
       // Remove id if it's empty (let Supabase generate UUID)
       if (!supabaseEquipment.id) {
         delete (supabaseEquipment as any).id;
@@ -172,12 +192,16 @@ export class SupabaseRegistrationService {
         serialNumber: data.serial_number,
         custom_equipment_id: data.custom_equipment_id,
         qrCode: data.custom_equipment_id, // QR code uses the custom_equipment_id
-        oldId: data.old_id // Handle oldId field
+        oldId: data.old_id, // Handle oldId field
+        costCenterCode: data.cost_center_code, // Handle cost center code
+        profitCenterCode: data.profit_center_code // Handle profit center code
       };
       delete (transformedData as any).created_at;
       delete (transformedData as any).last_updated;
       delete (transformedData as any).serial_number;
       delete (transformedData as any).old_id;
+      delete (transformedData as any).cost_center_code;
+      delete (transformedData as any).profit_center_code;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -288,7 +312,9 @@ export class SupabaseRegistrationService {
         access_level: (material as any).accessLevel || 'basic',
         qr_code: material.qrCode || `MAT-${material.id}`,
         use: material.use || material.type,
-        old_id: material.oldId // Handle oldId field
+        old_id: material.oldId, // Handle oldId field
+        cost_center_code: material.costCenterCode, // Handle cost center code
+        profit_center_code: material.profitCenterCode // Handle profit center code
       };
 
       console.log('📤 Sending create data to Supabase:', supabaseMaterial);
@@ -320,7 +346,9 @@ export class SupabaseRegistrationService {
         qrCode: data.qr_code,
         accessLevel: data.access_level || 'basic',
         use: data.use,
-        oldId: data.old_id // Handle oldId field
+        oldId: data.old_id, // Handle oldId field
+        costCenterCode: data.cost_center_code, // Handle cost center code
+        profitCenterCode: data.profit_center_code // Handle profit center code
       };
 
       return { success: true, data: transformedData };
@@ -368,7 +396,9 @@ export class SupabaseRegistrationService {
         access_level: (material as any).accessLevel || 'basic',
         qr_code: material.qrCode || `MAT-${material.id}`,
         use: material.use || material.type,
-        old_id: material.oldId // Handle oldId field
+        old_id: material.oldId, // Handle oldId field
+        cost_center_code: material.costCenterCode, // Handle cost center code
+        profit_center_code: material.profitCenterCode // Handle profit center code
       };
 
       console.log('📤 Sending update data to Supabase:', supabaseMaterial);
@@ -403,7 +433,9 @@ export class SupabaseRegistrationService {
         qrCode: data.qr_code,
         accessLevel: data.access_level || 'basic',
         use: data.use,
-        oldId: data.old_id // Handle oldId field
+        oldId: data.old_id, // Handle oldId field
+        costCenterCode: data.cost_center_code, // Handle cost center code
+        profitCenterCode: data.profit_center_code // Handle profit center code
       };
 
       return { success: true, data: transformedData };
@@ -449,10 +481,14 @@ export class SupabaseRegistrationService {
         last_updated: site.lastUpdated,
         // Transform coordinates array to PostgreSQL POINT format
         coordinates: `(${site.coordinates[0]},${site.coordinates[1]})`,
-        qr_code: site.id // Use the site ID as QR code
+        qr_code: site.id, // Use the site ID as QR code
+        cost_center_code: site.costCenterCode, // Handle cost center code
+        profit_center_code: site.profitCenterCode // Handle profit center code
       };
       delete (supabaseSite as any).lastUpdated;
       delete (supabaseSite as any).qrCode;
+      delete (supabaseSite as any).costCenterCode;
+      delete (supabaseSite as any).profitCenterCode;
 
       const { data, error } = await supabase
         .from('sites')
@@ -479,9 +515,13 @@ export class SupabaseRegistrationService {
         ...data,
         coordinates,
         lastUpdated: data.last_updated,
-        qrCode: `SITE-${data.id}` // Update QR code with actual database-generated ID
+        qrCode: `SITE-${data.id}`, // Update QR code with actual database-generated ID
+        costCenterCode: data.cost_center_code, // Handle cost center code
+        profitCenterCode: data.profit_center_code // Handle profit center code
       };
       delete (transformedData as any).last_updated;
+      delete (transformedData as any).cost_center_code;
+      delete (transformedData as any).profit_center_code;
       
       // Update the QR code in the database with the actual ID
       await supabase

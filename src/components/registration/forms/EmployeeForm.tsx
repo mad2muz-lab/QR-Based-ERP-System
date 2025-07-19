@@ -7,6 +7,7 @@ import { AuthManager } from '../../../utils/authUtils';
 import PhotoCapture from '../PhotoCapture';
 import { generateQRCode } from '../../../utils/qrCodeUtils';
 import { SupabaseRegistrationService } from '../../../utils/supabaseRegistrationService';
+import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
 
 interface EmployeeFormProps {
   sites: any[];
@@ -36,7 +37,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
     email: '',
     phone: '',
     oldId: '',
-    companyId: ''
+    companyId: '',
+    costCenterCode: '',
+    profitCenterCode: ''
   });
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showCustomType, setShowCustomType] = useState(false);
@@ -48,6 +51,8 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [qrCodeImage, setQrCodeImage] = useState<string>('');
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [costCenters, setCostCenters] = useState<any[]>([]);
+  const [profitCenters, setProfitCenters] = useState<any[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const isEditMode = !!initialData;
@@ -68,7 +73,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
         email: initialData.email || '',
         phone: initialData.phone || '',
         oldId: initialData.oldId || '',
-        companyId: initialData.companyId || ''
+        companyId: initialData.companyId || '',
+        costCenterCode: initialData.costCenterCode || '',
+        profitCenterCode: initialData.profitCenterCode || ''
       });
       
       const allTypes = EmployeeTypeManager.getAllEmployeeTypesWithCodes();
@@ -93,7 +100,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
         email: '',
         phone: '',
         oldId: '',
-        companyId: ''
+        companyId: '',
+        costCenterCode: '',
+        profitCenterCode: ''
       });
       setShowCustomType(false);
       setIdError('');
@@ -149,6 +158,37 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
       if (result.success && result.data) setCompanies(result.data);
       else setCompanies([]);
     });
+    
+    // Load cost centers and profit centers
+    const loadCostProfitCenters = async () => {
+      try {
+        const [costCentersResult, profitCentersResult] = await Promise.all([
+          CostProfitCenterService.getCostCenters(),
+          CostProfitCenterService.getProfitCenters()
+        ]);
+        
+        if (costCentersResult.success && costCentersResult.data) {
+          setCostCenters(costCentersResult.data);
+        } else {
+          // Fallback to mock data
+          setCostCenters(CostProfitCenterService.getMockCostCenters());
+        }
+        
+        if (profitCentersResult.success && profitCentersResult.data) {
+          setProfitCenters(profitCentersResult.data);
+        } else {
+          // Fallback to mock data
+          setProfitCenters(CostProfitCenterService.getMockProfitCenters());
+        }
+      } catch (error) {
+        console.error('Error loading cost/profit centers:', error);
+        // Fallback to mock data
+        setCostCenters(CostProfitCenterService.getMockCostCenters());
+        setProfitCenters(CostProfitCenterService.getMockProfitCenters());
+      }
+    };
+    
+    loadCostProfitCenters();
   }, []);
 
   const loadDepartments = () => {
@@ -202,9 +242,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
       setMessage({ type: 'success', text: isEditMode ? 'Employee updated successfully!' : 'Employee added successfully!' });
       // Only reset form if not editing
       if (!isEditMode) {
-        setFormData({
-          id: '', name: '', type: '', customType: '', department: '', position: '', bloodGroup: '', site: '', status: 'active', photo: '', email: '', phone: '', oldId: '', companyId: ''
-        });
+              setFormData({
+        id: '', name: '', type: '', customType: '', department: '', position: '', bloodGroup: '', site: '', status: 'active', photo: '', email: '', phone: '', oldId: '', companyId: '', costCenterCode: '', profitCenterCode: ''
+      });
         setShowCustomType(false);
         setIdError('');
       }
@@ -465,6 +505,38 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
               <option value="">Select company</option>
               {companies.map((company: Company) => (
                 <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cost Center Code</label>
+            <select
+              value={formData.costCenterCode}
+              onChange={(e) => setFormData({ ...formData, costCenterCode: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+            >
+              <option value="">Select cost center (optional)</option>
+              {costCenters.map((costCenter: any) => (
+                <option key={costCenter.id} value={costCenter.code}>
+                  {costCenter.code} - {costCenter.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Profit Center Code</label>
+            <select
+              value={formData.profitCenterCode}
+              onChange={(e) => setFormData({ ...formData, profitCenterCode: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+            >
+              <option value="">Select profit center (optional)</option>
+              {profitCenters.map((profitCenter: any) => (
+                <option key={profitCenter.id} value={profitCenter.code}>
+                  {profitCenter.code} - {profitCenter.name}
+                </option>
               ))}
             </select>
           </div>
