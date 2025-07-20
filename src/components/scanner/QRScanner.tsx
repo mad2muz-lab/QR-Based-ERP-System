@@ -18,6 +18,7 @@ import UnifiedScanResult from './UnifiedScanResult';
 import { maintenanceService } from '../../utils/maintenanceService';
 import EquipmentMaintenanceModal from './EquipmentMaintenanceModal';
 
+
 const QRScanner: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<{
@@ -456,9 +457,9 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
                 color: 'blue'
               },
               {
-                id: 'maintenance',
-                label: 'Maintenance',
-                description: 'Start repair or service maintenance',
+                id: 'mark_for_maintenance',
+                label: 'Mark for Maintenance',
+                description: 'Mark equipment for maintenance inspection',
                 icon: Wrench,
                 color: 'orange'
               }
@@ -503,18 +504,31 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
             // Equipment is under maintenance
             // Check for active maintenance log
             let hasActiveMaintenanceLog = false;
+            let hasScheduledMaintenanceLog = false;
             try {
               const logs = await maintenanceService.getMaintenanceLogs(entity.id);
               hasActiveMaintenanceLog = logs && logs.length > 0 && logs.some(log => log.status === 'in_progress');
+              hasScheduledMaintenanceLog = logs && logs.length > 0 && logs.some(log => log.status === 'scheduled');
             } catch {}
+            
             if (hasActiveMaintenanceLog) {
               actions = [
                 {
                   id: 'complete_maintenance',
-                  label: 'Complete Maintenance',
-                  description: 'Mark maintenance as completed',
+                  label: 'Maintenance Completed',
+                  description: 'Mark maintenance as completed and equipment ready',
+                  icon: CheckCircle,
+                  color: 'green'
+                }
+              ];
+            } else if (hasScheduledMaintenanceLog) {
+              actions = [
+                {
+                  id: 'start_maintenance_work',
+                  label: 'Start Maintenance Work',
+                  description: 'Begin maintenance work on equipment',
                   icon: Wrench,
-                  color: 'blue'
+                  color: 'orange'
                 }
               ];
             } else {
@@ -709,11 +723,45 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
               'available',
               notes
             );
-          } else if (actionId === 'maintenance') {
-            // Open maintenance modal for detailed maintenance workflow
-            setSelectedEquipment(scanResult.entity);
-            setIsMaintenanceModalOpen(true);
-            return; // Don't proceed with the action, let the modal handle it
+          } else if (actionId === 'mark_for_maintenance') {
+            // Directly mark equipment for maintenance and start time tracker
+            setIsProcessingAction(true);
+            setError('');
+            
+            try {
+              const timestamp = new Date().toISOString();
+              const notes = 'Equipment marked for maintenance - time tracking started';
+              
+              // Create equipment log for maintenance start
+              const operationId = await logManager.createEquipmentLog(
+                scanResult.entity,
+                'maintenance-start',
+                scanResult.entity.site || 'Unknown',
+                'maintenance',
+                notes
+              );
+              
+              // Create maintenance log with 'in_progress' status to start time tracking
+              const maintenanceLogId = await maintenanceService.createMaintenanceLog({
+                equipment_id: scanResult.entity.id,
+                maintenance_type: 'service', // Default to service type
+                status: 'in_progress',
+                description: 'Equipment marked for maintenance - time tracking active',
+                start_date: timestamp,
+                estimated_duration_hours: 1,
+                equipment: scanResult.entity
+              });
+              
+              setSuccess('Equipment marked for maintenance and time tracking started!');
+              setTimeout(() => setSuccess(''), 3000);
+              resetScanner();
+            } catch (error: any) {
+              console.error('Error marking equipment for maintenance:', error);
+              setError(`Failed to mark equipment for maintenance. Please try again.`);
+            } finally {
+              setIsProcessingAction(false);
+            }
+            return; // Don't proceed with the action, we've handled it
           } else if (actionId === 'mark_working') {
             // Handle marking equipment as working
             notes = 'Equipment marked as operational';
@@ -724,6 +772,27 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
               'available',
               notes
             );
+          } else if (actionId === 'start_maintenance_work') {
+            // Handle starting maintenance work
+            notes = 'Maintenance work started';
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'maintenance-start',
+              scanResult.entity.site || 'Unknown',
+              'maintenance',
+              notes
+            );
+            
+            // Update maintenance log status to in_progress
+            try {
+              const logs = await maintenanceService.getMaintenanceLogs(scanResult.entity.id);
+              const scheduledLog = logs.find(log => log.status === 'scheduled');
+              if (scheduledLog) {
+                await maintenanceService.updateMaintenanceStatus(scheduledLog.id, 'in_progress');
+              }
+            } catch (error) {
+              console.error('Failed to update maintenance log status:', error);
+            }
           } else if (actionId === 'complete_maintenance') {
             // Handle completing maintenance
             notes = 'Maintenance completed - equipment ready for use';
@@ -734,6 +803,17 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
               'available',
               notes
             );
+            
+            // Update maintenance log status to completed
+            try {
+              const logs = await maintenanceService.getMaintenanceLogs(scanResult.entity.id);
+              const inProgressLog = logs.find(log => log.status === 'in_progress');
+              if (inProgressLog) {
+                await maintenanceService.updateMaintenanceStatus(inProgressLog.id, 'completed');
+              }
+            } catch (error) {
+              console.error('Failed to update maintenance log status:', error);
+            }
           } else {
             throw new Error(`Invalid action for equipment: ${actionId}`);
           }
@@ -877,6 +957,8 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     }
   };
 
+
+
   const handleMaintenanceComplete = async (maintenanceData: any) => {
     try {
       // Create equipment log for maintenance end
@@ -905,6 +987,17 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
       setError('Failed to complete maintenance. Please try again.');
       setTimeout(() => setError(''), 3000);
     }
+  };
+
+  const resetScanner = () => {
+    setScanResult(null);
+    setError('');
+    setSuccess('');
+    setIsProcessingAction(false);
+    setSelectedEquipment(null);
+    setIsMaintenanceModalOpen(false);
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
 
@@ -1077,6 +1170,9 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           )}
         </div>
       </div>
+
+      {/* Maintenance Type Selection Modal */}
+
 
       {/* Maintenance Modal */}
       {selectedEquipment && (

@@ -181,8 +181,8 @@ export interface EquipmentMaintenanceLog {
   start_date: string;
   completion_date?: string;
   completed_by?: string;
-  estimated_duration_hours?: number;
-  actual_duration_hours?: number;
+  estimated_duration_hours?: number; // Can be decimal like 1.5
+  actual_duration_hours?: number; // Can be decimal like 1.5
   cost?: number;
   next_maintenance_date?: string;
   created_at: string;
@@ -194,6 +194,16 @@ export interface EquipmentMaintenanceLog {
   model?: string;
   serial_number?: string;
   site_assignment?: string;
+  // Enhanced workflow fields
+  assigned_technician?: string;
+  workflow_step?: 'marked' | 'inspected' | 'in_progress' | 'completed';
+  inspection_date?: string;
+  work_start_date?: string;
+  work_completion_date?: string;
+  equipment_condition_before?: string;
+  equipment_condition_after?: string;
+  safety_checks_completed?: boolean;
+  quality_checks_completed?: boolean;
 }
 
 export interface EquipmentMaintenanceSchedule {
@@ -210,6 +220,55 @@ export interface EquipmentMaintenanceSchedule {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// Purchase Request System Types
+export interface PurchaseRequest {
+  id: string;
+  pr_number: string;
+  title: string;
+  description?: string;
+  requested_by: string;
+  department: string;
+  site: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'ordered' | 'received' | 'closed';
+  total_estimated_cost: number;
+  currency: string;
+  requested_date: string;
+  required_date?: string;
+  approved_date?: string;
+  approved_by?: string;
+  rejection_reason?: string;
+  created_at: string;
+  updated_at: string;
+  // Additional fields for UI
+  department_name?: string;
+  site_name?: string;
+  requester_name?: string;
+  approver_name?: string;
+  items?: PurchaseRequestItem[];
+}
+
+export interface PurchaseRequestItem {
+  id: string;
+  pr_id: string;
+  material_name: string;
+  material_type: string;
+  quantity_required: number;
+  quantity_available: number;
+  unit: string;
+  estimated_unit_cost: number;
+  total_estimated_cost: number;
+  urgency_reason?: string;
+  supplier_suggestion?: string;
+  specifications?: string;
+  created_at: string;
+  updated_at: string;
+  // Additional fields for UI
+  material_id?: string; // Reference to existing material if available
+  current_stock?: number;
+  low_stock_threshold?: number;
 }
 
 export interface Notification {
@@ -245,6 +304,49 @@ export interface PageAccess {
   can_delete: boolean;
   assigned_by?: string;
   assigned_at: string;
+}
+
+// Enhanced maintenance workflow types
+export interface MaintenanceWorkflowHistory {
+  id: string;
+  maintenance_log_id: string;
+  workflow_step: string;
+  action_performed: string;
+  performed_by?: string;
+  performed_at: string;
+  notes?: string;
+  equipment_status_before?: string;
+  equipment_status_after?: string;
+}
+
+export interface MaintenanceDashboardView {
+  id: string;
+  equipment_id: string;
+  maintenance_type: 'repair' | 'service';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  description?: string;
+  start_date: string;
+  completion_date?: string;
+  equipment_name: string;
+  custom_equipment_id: string;
+  equipment_type: string;
+  equipment_site: string;
+  equipment_operational_status: string;
+  workflow_status_display: string;
+  workflow_step_display: string;
+  total_hours_elapsed: number;
+  work_hours_elapsed: number;
+}
+
+export interface MaintenanceStatistics {
+  total_maintenance_requests: number;
+  completed_maintenance: number;
+  in_progress_maintenance: number;
+  scheduled_maintenance: number;
+  average_completion_time_hours: number;
+  total_cost: number;
+  repair_count: number;
+  service_count: number;
 }
 
 export interface Role {
@@ -300,3 +402,18 @@ export interface ProfitCenter {
 // ✅ Re-export constants and types
 export { MATERIAL_TYPES };
 export type { MaterialType };
+
+// Material Selection for Maintenance
+export interface MaterialSelection {
+  materialId: string;
+  materialName: string;
+  materialType: string;
+  quantity: number;
+  unit: string;
+  availableStock: number;
+  estimatedCost: number;
+  isSparePart: boolean;
+  urgencyLevel: 'normal' | 'urgent' | 'critical';
+  autoPRGenerated: boolean;
+  prId?: string;
+}

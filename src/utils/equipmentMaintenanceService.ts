@@ -371,4 +371,88 @@ export class EquipmentMaintenanceService {
       return { success: false, error: error.message };
     }
   }
+
+  // Quick status update for maintenance logs
+  static async updateMaintenanceStatus(maintenanceLogId: string, status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'): Promise<{ success: boolean; error?: string }> {
+    try {
+      const currentUser = AuthManager.getCurrentUserSync();
+      const updates: any = {
+        status,
+        updated_at: new Date().toISOString()
+      };
+
+      // Add completion data if status is completed
+      if (status === 'completed') {
+        updates.completion_date = new Date().toISOString();
+        updates.completed_by = currentUser?.id;
+      }
+
+      // Add start date if status is in_progress
+      if (status === 'in_progress') {
+        updates.start_date = new Date().toISOString();
+      }
+
+      const result = await this.updateMaintenanceLog(maintenanceLogId, updates);
+      if (!result.success) return result;
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error updating maintenance status:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Get maintenance statistics
+  static async getMaintenanceStatistics(): Promise<{
+    success: boolean;
+    data?: {
+      total: number;
+      scheduled: number;
+      inProgress: number;
+      completed: number;
+      cancelled: number;
+      averageCompletionTime: number;
+      totalCost: number;
+    };
+    error?: string;
+  }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    
+    try {
+      const { data, error } = await supabase
+        .from('equipment_maintenance_logs')
+        .select('*');
+
+      if (error) throw error;
+
+      const stats = {
+        total: data.length,
+        scheduled: data.filter(log => log.status === 'scheduled').length,
+        inProgress: data.filter(log => log.status === 'in_progress').length,
+        completed: data.filter(log => log.status === 'completed').length,
+        cancelled: data.filter(log => log.status === 'cancelled').length,
+        averageCompletionTime: 0,
+        totalCost: 0
+      };
+
+      // Calculate average completion time
+      const completedLogs = data.filter(log => log.status === 'completed' && log.completion_date && log.start_date);
+      if (completedLogs.length > 0) {
+        const totalTime = completedLogs.reduce((sum, log) => {
+          const start = new Date(log.start_date);
+          const completion = new Date(log.completion_date);
+          return sum + (completion.getTime() - start.getTime());
+        }, 0);
+        stats.averageCompletionTime = totalTime / completedLogs.length / (1000 * 60 * 60); // Convert to hours
+      }
+
+      // Calculate total cost
+      stats.totalCost = data.reduce((sum, log) => sum + (log.cost || 0), 0);
+
+      return { success: true, data: stats };
+    } catch (error: any) {
+      console.error('Error fetching maintenance statistics:', error);
+      return { success: false, error: error.message };
+    }
+  }
 } 

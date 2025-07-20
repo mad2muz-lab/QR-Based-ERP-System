@@ -224,13 +224,17 @@ export class SupabaseRegistrationService {
         serial_number: equipment.serialNumber,
         custom_equipment_id: equipment.custom_equipment_id,
         qr_code: equipment.qrCode || equipment.custom_equipment_id,
-        old_id: equipment.oldId // Handle oldId field
+        old_id: equipment.oldId, // Handle oldId field
+        cost_center_code: equipment.costCenterCode, // Handle cost center code
+        profit_center_code: equipment.profitCenterCode // Handle profit center code
       };
       delete (supabaseEquipment as any).createdAt;
       delete (supabaseEquipment as any).lastUpdated;
       delete (supabaseEquipment as any).serialNumber;
       delete (supabaseEquipment as any).qrCode;
       delete (supabaseEquipment as any).oldId;
+      delete (supabaseEquipment as any).costCenterCode;
+      delete (supabaseEquipment as any).profitCenterCode;
 
       const { data, error } = await supabase
         .from('equipment')
@@ -252,12 +256,16 @@ export class SupabaseRegistrationService {
         serialNumber: data.serial_number,
         custom_equipment_id: data.custom_equipment_id,
         qrCode: data.custom_equipment_id,
-        oldId: data.old_id // Handle oldId field
+        oldId: data.old_id, // Handle oldId field
+        costCenterCode: data.cost_center_code, // Handle cost center code
+        profitCenterCode: data.profit_center_code // Handle profit center code
       };
       delete (transformedData as any).created_at;
       delete (transformedData as any).last_updated;
       delete (transformedData as any).serial_number;
       delete (transformedData as any).old_id;
+      delete (transformedData as any).cost_center_code;
+      delete (transformedData as any).profit_center_code;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -626,7 +634,9 @@ export class SupabaseRegistrationService {
         last_updated: employee.lastUpdated,
         blood_group: employee.bloodGroup,
         created_at: employee.createdAt,
-        qr_code: `EMP-${employee.id}` // Use the actual UUID for QR code
+        qr_code: `EMP-${employee.id}`, // Use the actual UUID for QR code
+        cost_center_code: employee.costCenterCode, // Handle cost center code
+        profit_center_code: employee.profitCenterCode // Handle profit center code
       }));
 
       // Clean up camelCase properties
@@ -635,6 +645,8 @@ export class SupabaseRegistrationService {
         delete (emp as any).bloodGroup;
         delete (emp as any).createdAt;
         delete (emp as any).qrCode;
+        delete (emp as any).costCenterCode;
+        delete (emp as any).profitCenterCode;
       });
 
       const { data, error } = await supabase
@@ -651,7 +663,9 @@ export class SupabaseRegistrationService {
       const transformedData: Employee[] = (data || []).map(employee => ({
         ...employee,
         lastUpdated: employee.last_updated,
-        qrCode: `EMP-${employee.id}`
+        qrCode: `EMP-${employee.id}`,
+        costCenterCode: employee.cost_center_code, // Handle cost center code
+        profitCenterCode: employee.profit_center_code // Handle profit center code
       }));
 
       return { success: true, data: transformedData };
@@ -670,13 +684,17 @@ export class SupabaseRegistrationService {
       const supabaseEquipment = equipment.map(eq => ({
         ...eq,
         last_updated: eq.lastUpdated,
-        qr_code: `EQP-${eq.id}` // Use the actual UUID for QR code
+        qr_code: `EQP-${eq.id}`, // Use the actual UUID for QR code
+        cost_center_code: eq.costCenterCode, // Handle cost center code
+        profit_center_code: eq.profitCenterCode // Handle profit center code
       }));
 
       // Clean up camelCase properties
       supabaseEquipment.forEach(eq => {
         delete (eq as any).lastUpdated;
         delete (eq as any).qrCode;
+        delete (eq as any).costCenterCode;
+        delete (eq as any).profitCenterCode;
       });
 
       const { data, error } = await supabase
@@ -693,7 +711,9 @@ export class SupabaseRegistrationService {
       const transformedData: Equipment[] = (data || []).map(eq => ({
         ...eq,
         lastUpdated: eq.last_updated,
-        qrCode: `EQP-${eq.id}`
+        qrCode: `EQP-${eq.id}`,
+        costCenterCode: eq.cost_center_code, // Handle cost center code
+        profitCenterCode: eq.profit_center_code // Handle profit center code
       }));
 
       return { success: true, data: transformedData };
@@ -1108,6 +1128,111 @@ export class SupabaseRegistrationService {
       return { success: true, data, duplicate: false };
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to create location' };
+    }
+  }
+
+  // Preventive Maintenance Configuration Operations
+  static async getAllPreventiveMaintenanceConfigs(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('preventive_maintenance_configs')
+        .select('*')
+        .order('equipment_type');
+
+      if (error) {
+        console.error('Error fetching preventive maintenance configs from Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      console.error('Error fetching preventive maintenance configs:', error);
+      return { success: false, error: 'Failed to fetch preventive maintenance configs' };
+    }
+  }
+
+  static async createPreventiveMaintenanceConfig(config: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      console.log('Creating preventive maintenance config in Supabase:', config);
+      
+      const { data, error } = await supabase
+        .from('preventive_maintenance_configs')
+        .insert([config])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating preventive maintenance config in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Successfully created preventive maintenance config in Supabase:', data);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error creating preventive maintenance config:', error);
+      return { success: false, error: 'Failed to create preventive maintenance config' };
+    }
+  }
+
+  static async updatePreventiveMaintenanceConfig(configId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      console.log('Updating preventive maintenance config in Supabase:', configId, updateData);
+      
+      const { data, error } = await supabase
+        .from('preventive_maintenance_configs')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('id', configId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating preventive maintenance config in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Successfully updated preventive maintenance config in Supabase:', data);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error updating preventive maintenance config:', error);
+      return { success: false, error: 'Failed to update preventive maintenance config' };
+    }
+  }
+
+  static async deletePreventiveMaintenanceConfig(configId: string): Promise<{ success: boolean; error?: string }> {
+    if (!supabase || !AuthManager.useSupabase()) {
+      return { success: false, error: 'Supabase not configured or not in Supabase mode' };
+    }
+
+    try {
+      console.log('Deleting preventive maintenance config in Supabase:', configId);
+      
+      const { error } = await supabase
+        .from('preventive_maintenance_configs')
+        .delete()
+        .eq('id', configId);
+
+      if (error) {
+        console.error('Error deleting preventive maintenance config in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Successfully deleted preventive maintenance config in Supabase:', configId);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting preventive maintenance config:', error);
+      return { success: false, error: 'Failed to delete preventive maintenance config' };
     }
   }
 }

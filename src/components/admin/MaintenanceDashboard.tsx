@@ -13,11 +13,11 @@ import {
   Trash2,
   User,
   DollarSign,
-  Tool,
   Settings,
   RefreshCw,
   Download,
-  Upload
+  Upload,
+  HardHat
 } from 'lucide-react';
 import { 
   Equipment, 
@@ -28,6 +28,10 @@ import {
 import { EquipmentMaintenanceService } from '../../utils/equipmentMaintenanceService';
 import { AuthManager } from '../../utils/authUtils';
 import { fetchData } from '../../utils/dataProxy';
+import { MaintenanceDataLoader } from '../../utils/maintenanceDataLoader';
+import TechnicianMaintenanceForm from './TechnicianMaintenanceForm';
+import ActivityTimer from '../common/ActivityTimer';
+import TotalDurationDisplay from '../common/TotalDurationDisplay';
 
 interface MaintenanceDashboardProps {
   onClose?: () => void;
@@ -57,6 +61,7 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
 
   // Modal states
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [showTechnicianForm, setShowTechnicianForm] = useState(false);
   const [selectedMaintenanceLog, setSelectedMaintenanceLog] = useState<EquipmentMaintenanceLog | null>(null);
   const [completionForm, setCompletionForm] = useState({
     actual_duration_hours: 0,
@@ -64,6 +69,8 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
     technician_notes: '',
     parts_used: ''
   });
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [debugData, setDebugData] = useState<any>(null);
 
   useEffect(() => {
     loadData();
@@ -85,18 +92,50 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
       const equipmentData = await fetchData('equipment');
       setEquipment(equipmentData);
 
-      // Load maintenance data if Supabase is enabled
-      if (AuthManager.useSupabase()) {
-        const [logsResult, schedulesResult, notificationsResult] = await Promise.all([
-          EquipmentMaintenanceService.getMaintenanceLogs(),
-          EquipmentMaintenanceService.getMaintenanceSchedules(),
-          EquipmentMaintenanceService.getNotifications(currentUser.id)
-        ]);
+      // Load maintenance data using the new data loader
+      console.log('Loading maintenance data using MaintenanceDataLoader...');
+      const [logsResult, schedulesResult] = await Promise.all([
+        MaintenanceDataLoader.loadMaintenanceLogs(),
+        MaintenanceDataLoader.loadMaintenanceSchedules()
+      ]);
 
-        if (logsResult.success) setMaintenanceLogs(logsResult.data || []);
-        if (schedulesResult.success) setMaintenanceSchedules(schedulesResult.data || []);
-        if (notificationsResult.success) setNotifications(notificationsResult.data || []);
+      console.log('Maintenance logs result:', {
+        success: logsResult.success,
+        count: logsResult.data?.length || 0,
+        source: logsResult.source,
+        error: logsResult.error
+      });
+
+      console.log('Maintenance schedules result:', {
+        success: schedulesResult.success,
+        count: schedulesResult.data?.length || 0,
+        source: schedulesResult.source,
+        error: schedulesResult.error
+      });
+
+      // Set the data
+      setMaintenanceLogs(logsResult.data || []);
+      setMaintenanceSchedules(schedulesResult.data || []);
+
+      // Load notifications if Supabase is available
+      const useSupabase = await AuthManager.useSupabase();
+      if (useSupabase) {
+        try {
+          const notificationsResult = await EquipmentMaintenanceService.getNotifications(currentUser.id);
+          if (notificationsResult.success) {
+            setNotifications(notificationsResult.data || []);
+          }
+        } catch (error) {
+          console.error('Error loading notifications:', error);
+        }
       }
+
+      // Show any errors in the UI
+      const allErrors = [logsResult.error, schedulesResult.error].filter(Boolean);
+      if (allErrors.length > 0) {
+        console.warn('Some data sources had errors:', allErrors);
+      }
+
     } catch (error: any) {
       console.error('Error loading maintenance data:', error);
       setError('Failed to load maintenance data');
@@ -128,6 +167,42 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
       setCanDelete(canDeletePermission);
     } catch (error) {
       console.error('Error checking user permissions:', error);
+    }
+  };
+
+  const handleTechnicianFormSubmit = async (formData: any) => {
+    if (!selectedMaintenanceLog) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Update maintenance log with technician data
+      const result = await EquipmentMaintenanceService.updateMaintenanceLog(
+        selectedMaintenanceLog.id,
+        {
+          status: formData.status,
+          actual_duration_hours: formData.actual_duration_hours,
+          cost: formData.cost,
+          technician_notes: formData.technician_notes,
+          parts_used: formData.parts_used,
+          completed_by: formData.completed_by,
+          completion_date: formData.status === 'completed' ? new Date().toISOString() : undefined
+        }
+      );
+
+      if (result.success) {
+        setShowTechnicianForm(false);
+        setSelectedMaintenanceLog(null);
+        await loadData(); // Refresh data
+      } else {
+        setError(result.error || 'Failed to update maintenance');
+      }
+    } catch (error: any) {
+      console.error('Error updating maintenance:', error);
+      setError('Failed to update maintenance');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -264,6 +339,80 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
         </div>
       )}
 
+      {/* Debug Information */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => setShowDebugInfo(!showDebugInfo)}
+          className="text-sm text-gray-600 hover:text-gray-800"
+        >
+          {showDebugInfo ? 'Hide Debug Info' : 'Show Debug Info'}
+        </button>
+        <button
+          onClick={loadData}
+          className="text-sm text-blue-600 hover:text-blue-800"
+        >
+          Refresh Data
+        </button>
+        <button
+          onClick={async () => {
+            const debug = await MaintenanceDataLoader.debugDataSources();
+            setDebugData(debug);
+            console.log('Debug data:', debug);
+          }}
+          className="text-sm text-green-600 hover:text-green-800"
+        >
+          Debug Data Sources
+        </button>
+      </div>
+
+      {showDebugInfo && (
+        <div className="p-4 bg-gray-100 border border-gray-200 rounded-lg mb-4">
+          <h3 className="font-medium text-gray-900 mb-2">Debug Information</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p><strong>Total Maintenance Logs:</strong> {maintenanceLogs.length}</p>
+              <p><strong>Total Equipment:</strong> {equipment.length}</p>
+              <p><strong>Filtered Logs:</strong> {filteredLogs.length}</p>
+            </div>
+            <div>
+              <p><strong>Status Filter:</strong> {statusFilter}</p>
+              <p><strong>Type Filter:</strong> {typeFilter}</p>
+              <p><strong>Search Query:</strong> "{searchQuery}"</p>
+            </div>
+          </div>
+          
+          {debugData && (
+            <div className="mt-4">
+              <p className="font-medium text-gray-900 mb-2">Data Source Debug:</p>
+              <div className="text-xs bg-white p-2 rounded border mb-2">
+                <p><strong>Auth Status:</strong> {debugData.authStatus.isAuthenticated ? 'Authenticated' : 'Not Authenticated'}</p>
+                <p><strong>Using Supabase:</strong> {debugData.authStatus.useSupabase ? 'Yes' : 'No'}</p>
+                <p><strong>Maintenance Logs Sources:</strong> {debugData.maintenanceLogs.sources.join(', ') || 'None'}</p>
+                <p><strong>Maintenance Logs Errors:</strong> {debugData.maintenanceLogs.errors.join(', ') || 'None'}</p>
+                <p><strong>Equipment Data:</strong> {debugData.equipment.success ? `${debugData.equipment.data.length} items` : 'Failed'}</p>
+              </div>
+            </div>
+          )}
+          
+          {maintenanceLogs.length > 0 && (
+            <div className="mt-4">
+              <p className="font-medium text-gray-900 mb-2">Recent Maintenance Logs:</p>
+              <div className="max-h-40 overflow-y-auto">
+                {maintenanceLogs.slice(0, 5).map((log, index) => (
+                  <div key={log.id} className="text-xs bg-white p-2 rounded border mb-1">
+                    <p><strong>ID:</strong> {log.id}</p>
+                    <p><strong>Equipment ID:</strong> {log.equipment_id}</p>
+                    <p><strong>Status:</strong> {log.status}</p>
+                    <p><strong>Type:</strong> {log.maintenance_type}</p>
+                    <p><strong>Description:</strong> {log.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
@@ -365,18 +514,54 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
                     <p className="text-gray-600 text-sm mb-2">{log.description}</p>
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
                       <span>Started: {new Date(log.start_date).toLocaleDateString()}</span>
+                      {log.status === 'in_progress' && (
+                        <>
+                          <span>•</span>
+                          <ActivityTimer 
+                            startTime={log.start_date} 
+                            variant="short" 
+                            showIcon={true}
+                          />
+                        </>
+                      )}
+                      {log.status === 'completed' && log.completion_date && (
+                        <>
+                          <span>•</span>
+                          <TotalDurationDisplay 
+                            startTime={log.start_date}
+                            endTime={log.completion_date}
+                            variant="short" 
+                            showIcon={true}
+                          />
+                        </>
+                      )}
                       {log.completion_date && (
                         <span>Completed: {new Date(log.completion_date).toLocaleDateString()}</span>
                       )}
-                      {log.actual_duration_hours > 0 && (
+                      {(log.actual_duration_hours || 0) > 0 && (
                         <span>Duration: {log.actual_duration_hours}h</span>
                       )}
-                      {log.cost > 0 && (
+                      {(log.cost || 0) > 0 && (
                         <span>Cost: SAR {log.cost}</span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    {/* Technician Actions */}
+                    {(log.status === 'scheduled' || log.status === 'in_progress') && canEdit && (
+                      <button
+                        onClick={() => {
+                          setSelectedMaintenanceLog(log);
+                          setShowTechnicianForm(true);
+                        }}
+                        className="flex items-center space-x-1 px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 transition-colors"
+                      >
+                        <HardHat className="w-4 h-4" />
+                        <span>{log.status === 'scheduled' ? 'Start Work' : 'Update Progress'}</span>
+                      </button>
+                    )}
+                    
+                    {/* Legacy Complete Button */}
                     {log.status === 'in_progress' && canEdit && (
                       <button
                         onClick={() => {
@@ -389,6 +574,7 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
                         <span>Complete</span>
                       </button>
                     )}
+                    
                     <button className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">
                       <Eye className="w-4 h-4" />
                       <span>View</span>
@@ -516,7 +702,7 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
                   <input
                     type="number"
                     value={completionForm.actual_duration_hours}
-                    onChange={(e) => setCompletionForm(prev => ({ ...prev, actual_duration_hours: parseInt(e.target.value) || 0 }))}
+                    onChange={(e) => setCompletionForm(prev => ({ ...prev, actual_duration_hours: parseFloat(e.target.value) || 0 }))}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="0"
                   />
@@ -581,6 +767,20 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Technician Maintenance Form Modal */}
+      {showTechnicianForm && selectedMaintenanceLog && (
+        <TechnicianMaintenanceForm
+          maintenanceLog={selectedMaintenanceLog}
+          equipment={equipment.find(eq => eq.id === selectedMaintenanceLog.equipment_id) || {} as Equipment}
+          isOpen={showTechnicianForm}
+          onClose={() => {
+            setShowTechnicianForm(false);
+            setSelectedMaintenanceLog(null);
+          }}
+          onSubmit={handleTechnicianFormSubmit}
+        />
       )}
     </div>
   );

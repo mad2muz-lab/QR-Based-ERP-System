@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
+import { SupabaseDataService } from '../../utils/supabaseDataService';
+import { AuthManager } from '../../utils/authUtils';
 import UnifiedListView from '../registration/UnifiedListView';
 
 interface Department {
@@ -27,9 +29,26 @@ const DepartmentManager: React.FC<DepartmentManagerProps> = ({ onDepartmentUpdat
     loadDepartments();
   }, []);
 
-  const loadDepartments = () => {
-    const loadedDepartments = DataStorage.loadDepartments();
-    setDepartments(loadedDepartments);
+  const loadDepartments = async () => {
+    try {
+      const useSupabase = await AuthManager.useSupabase();
+      let loadedDepartments: Department[] = [];
+      
+      if (useSupabase) {
+        // Load from Supabase
+        loadedDepartments = await SupabaseDataService.getDepartments();
+      } else {
+        // Load from local storage
+        loadedDepartments = DataStorage.loadDepartments();
+      }
+      
+      setDepartments(loadedDepartments);
+    } catch (error) {
+      console.error('Error loading departments:', error);
+      // Fallback to local storage
+      const loadedDepartments = DataStorage.loadDepartments();
+      setDepartments(loadedDepartments);
+    }
   };
 
   const showMessage = (type: 'success' | 'error', text: string) => {
@@ -44,7 +63,7 @@ const DepartmentManager: React.FC<DepartmentManagerProps> = ({ onDepartmentUpdat
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -71,7 +90,22 @@ const DepartmentManager: React.FC<DepartmentManagerProps> = ({ onDepartmentUpdat
       );
 
       setDepartments(updatedDepartments);
-      DataStorage.saveDepartments(updatedDepartments);
+      
+      // Save to appropriate storage
+      const useSupabase = await AuthManager.useSupabase();
+      if (useSupabase) {
+        // Save to Supabase
+        const result = await SupabaseDataService.updateDepartment(updatedDepartment);
+        if (!result.success) {
+          console.error('Failed to update department in Supabase:', result.error);
+          // Fallback to local storage
+          DataStorage.saveDepartments(updatedDepartments);
+        }
+      } else {
+        // Save to local storage
+        DataStorage.saveDepartments(updatedDepartments);
+      }
+      
       DataStorage.logTransaction('department', 'update', updatedDepartment);
       showMessage('success', 'Department updated successfully');
     } else {
@@ -86,7 +120,25 @@ const DepartmentManager: React.FC<DepartmentManagerProps> = ({ onDepartmentUpdat
 
       const updatedDepartments = [...departments, newDepartment];
       setDepartments(updatedDepartments);
-      DataStorage.saveDepartments(updatedDepartments);
+      
+      // Save to appropriate storage
+      const useSupabase = await AuthManager.useSupabase();
+      if (useSupabase) {
+        // Save to Supabase
+        const result = await SupabaseDataService.createDepartment({
+          name: newDepartment.name,
+          description: newDepartment.description
+        });
+        if (!result.success) {
+          console.error('Failed to create department in Supabase:', result.error);
+          // Fallback to local storage
+          DataStorage.saveDepartments(updatedDepartments);
+        }
+      } else {
+        // Save to local storage
+        DataStorage.saveDepartments(updatedDepartments);
+      }
+      
       DataStorage.logTransaction('department', 'create', newDepartment);
       showMessage('success', 'Department created successfully');
     }
@@ -110,11 +162,26 @@ const DepartmentManager: React.FC<DepartmentManagerProps> = ({ onDepartmentUpdat
     setShowAddForm(true);
   };
 
-  const handleDelete = (department: Department) => {
+  const handleDelete = async (department: Department) => {
     if (window.confirm(`Are you sure you want to delete "${department.name}"?`)) {
       const updatedDepartments = departments.filter(dept => dept.id !== department.id);
       setDepartments(updatedDepartments);
-      DataStorage.saveDepartments(updatedDepartments);
+      
+      // Save to appropriate storage
+      const useSupabase = await AuthManager.useSupabase();
+      if (useSupabase) {
+        // Delete from Supabase
+        const result = await SupabaseDataService.deleteDepartment(department.id);
+        if (!result.success) {
+          console.error('Failed to delete department from Supabase:', result.error);
+          // Fallback to local storage
+          DataStorage.saveDepartments(updatedDepartments);
+        }
+      } else {
+        // Save to local storage
+        DataStorage.saveDepartments(updatedDepartments);
+      }
+      
       DataStorage.logTransaction('department', 'delete', department);
       showMessage('success', 'Department deleted successfully');
       onDepartmentUpdate?.();

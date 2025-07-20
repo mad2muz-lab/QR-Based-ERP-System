@@ -4,6 +4,7 @@
 import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog, EquipmentMaintenanceLog, EquipmentMaintenanceSchedule } from '../types';
 import { DataStorage } from './dataStorage';
 import { offlineSyncManager } from './offlineSync';
+import { SupabaseRegistrationService } from './supabaseRegistrationService';
 
 export class OfflineDataManager {
   // Employee Operations
@@ -598,5 +599,135 @@ export class OfflineDataManager {
 
   static async getAllMaintenanceSchedules(): Promise<EquipmentMaintenanceSchedule[]> {
     return DataStorage.loadMaintenanceSchedules();
+  }
+
+  static async getAllEquipmentLogs(): Promise<EquipmentLog[]> {
+    return DataStorage.loadEquipmentLogs();
+  }
+
+  // Preventive Maintenance Configuration Operations
+  static async createPreventiveMaintenanceConfig(config: any): Promise<string> {
+    try {
+      // Try to create directly in Supabase first
+      const result = await SupabaseRegistrationService.createPreventiveMaintenanceConfig(config);
+      if (result.success) {
+        // Also save to local storage for offline access
+        const configs = DataStorage.loadPreventiveMaintenanceConfigs();
+        configs.push(result.data || config);
+        DataStorage.savePreventiveMaintenanceConfigs(configs);
+        return result.data?.id || config.id;
+      } else {
+        // If Supabase fails, queue for offline sync
+        const configs = DataStorage.loadPreventiveMaintenanceConfigs();
+        configs.push(config);
+        DataStorage.savePreventiveMaintenanceConfigs(configs);
+
+        const operationId = offlineSyncManager.queueOperation({
+          type: 'create',
+          entityType: 'preventive_maintenance_config',
+          entityId: config.id,
+          data: config,
+          priority: 'medium'
+        });
+
+        return operationId;
+      }
+    } catch (error) {
+      console.error('Failed to create preventive maintenance config:', error);
+      throw error;
+    }
+  }
+
+  static async updatePreventiveMaintenanceConfig(configId: string, updateData: any): Promise<string> {
+    try {
+      // Try to update directly in Supabase first
+      const result = await SupabaseRegistrationService.updatePreventiveMaintenanceConfig(configId, updateData);
+      if (result.success) {
+        // Also update local storage
+        const configs = DataStorage.loadPreventiveMaintenanceConfigs();
+        const index = configs.findIndex(config => config.id === configId);
+        if (index !== -1) {
+          configs[index] = { ...configs[index], ...updateData, updated_at: new Date().toISOString() };
+          DataStorage.savePreventiveMaintenanceConfigs(configs);
+        }
+        return configId;
+      } else {
+        // If Supabase fails, queue for offline sync
+        const configs = DataStorage.loadPreventiveMaintenanceConfigs();
+        const index = configs.findIndex(config => config.id === configId);
+        
+        if (index !== -1) {
+          configs[index] = { ...configs[index], ...updateData, updated_at: new Date().toISOString() };
+          DataStorage.savePreventiveMaintenanceConfigs(configs);
+
+          const operationId = offlineSyncManager.queueOperation({
+            type: 'update',
+            entityType: 'preventive_maintenance_config',
+            entityId: configId,
+            data: configs[index],
+            priority: 'medium'
+          });
+
+          return operationId;
+        } else {
+          throw new Error('Preventive maintenance config not found');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update preventive maintenance config:', error);
+      throw error;
+    }
+  }
+
+  static async deletePreventiveMaintenanceConfig(configId: string): Promise<string> {
+    try {
+      // Try to delete directly in Supabase first
+      const result = await SupabaseRegistrationService.deletePreventiveMaintenanceConfig(configId);
+      if (result.success) {
+        // Also remove from local storage
+        const configs = DataStorage.loadPreventiveMaintenanceConfigs();
+        const filteredConfigs = configs.filter(config => config.id !== configId);
+        DataStorage.savePreventiveMaintenanceConfigs(filteredConfigs);
+        return configId;
+      } else {
+        // If Supabase fails, queue for offline sync
+        const configs = DataStorage.loadPreventiveMaintenanceConfigs();
+        const filteredConfigs = configs.filter(config => config.id !== configId);
+        DataStorage.savePreventiveMaintenanceConfigs(filteredConfigs);
+
+        const operationId = offlineSyncManager.queueOperation({
+          type: 'delete',
+          entityType: 'preventive_maintenance_config',
+          entityId: configId,
+          data: { id: configId },
+          priority: 'medium'
+        });
+
+        return operationId;
+      }
+    } catch (error) {
+      console.error('Failed to delete preventive maintenance config:', error);
+      throw error;
+    }
+  }
+
+  static async getAllPreventiveMaintenanceConfigs(): Promise<any[]> {
+    try {
+      // Try to get from Supabase first
+      const result = await SupabaseRegistrationService.getAllPreventiveMaintenanceConfigs();
+      if (result.success && result.data) {
+        // Update local storage with fresh data from database
+        DataStorage.savePreventiveMaintenanceConfigs(result.data);
+        return result.data;
+      } else {
+        // Fallback to local storage
+        console.warn('Failed to fetch from Supabase, using local storage:', result.error);
+        return DataStorage.loadPreventiveMaintenanceConfigs();
+      }
+    } catch (error) {
+      console.error('Failed to get preventive maintenance configs:', error);
+      // Fallback to local storage
+      return DataStorage.loadPreventiveMaintenanceConfigs();
+    }
   }
 }

@@ -21,6 +21,46 @@ export const formatDuration = (minutes: number): string => {
   }
 };
 
+// New timer utility functions
+export const calculateElapsedTime = (startTime: string): number => {
+  const start = new Date(startTime);
+  const now = new Date();
+  return (now.getTime() - start.getTime()) / 1000; // Return seconds
+};
+
+export const calculateTotalDuration = (startTime: string, endTime: string): number => {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  return (end.getTime() - start.getTime()) / 1000; // Return seconds
+};
+
+export const formatElapsedTime = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${secs}s`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${secs}s`;
+  } else {
+    return `${secs}s`;
+  }
+};
+
+export const formatElapsedTimeShort = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else if (minutes > 0) {
+    return `${minutes}m`;
+  } else {
+    return `${Math.floor(seconds)}s`;
+  }
+};
+
 export const calculateOvertimeHours = (totalHours: number): number => {
   return Math.max(totalHours - 8, 0);
 };

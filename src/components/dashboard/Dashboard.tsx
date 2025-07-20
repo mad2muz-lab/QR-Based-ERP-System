@@ -14,6 +14,9 @@ import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
 import { fetchData, getAllLogs, getCurrentDataSource } from '../../utils/dataProxy';
 import DataSourceToggle from '../common/DataSourceToggle';
 import { SampleDataInitializer } from '../../utils/sampleDataInitializer';
+import ActivityTimer from '../common/ActivityTimer';
+import TotalDurationDisplay from '../common/TotalDurationDisplay';
+import { isActiveActivity, isCompletionActivity, findStartActivityForCompletion } from '../../utils/activityUtils';
 
 interface DashboardProps {
   currentView?: string;
@@ -400,6 +403,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                       log.equipmentName || log.equipment_name ||
                       log.materialName || log.material_name ||
                       log.entityId;
+                    
+                    // Check if this specific log represents an active activity
+                    // For start activities, check if there's no corresponding end activity after it
+                    const shouldShowTimer = isActiveActivity(log.action);
+                    let isCurrentlyActive = false;
+                    
+                    if (shouldShowTimer) {
+                      // Check if there's a corresponding end action AFTER this start action
+                      const endActions = {
+                        'clock-in': 'clock-out',
+                        'start-use': 'stop-use',
+                        'maintenance-start': 'maintenance-complete'
+                      };
+                      
+                      const expectedEndAction = endActions[log.action as keyof typeof endActions];
+                      
+                      // Look for any end action that happened AFTER this start action
+                      const hasEndAction = allLogs.some(otherLog => 
+                        otherLog.entityType === log.entityType &&
+                        otherLog.entityId === log.entityId &&
+                        otherLog.action === expectedEndAction &&
+                        new Date(otherLog.timestamp) > new Date(log.timestamp)
+                      );
+                      
+                      isCurrentlyActive = !hasEndAction;
+                    }
+                    
+                    // Check if this is a completion activity that should show total duration
+                    const shouldShowTotalDuration = isCompletionActivity(log.action);
+                    const startLog = shouldShowTotalDuration ? findStartActivityForCompletion(allLogs, log) : null;
+                    
                     return (
                       <div key={log.id} className="flex items-center space-x-3 p-2 md:p-3 bg-gray-50 rounded-lg">
                         <div className={`w-2 h-2 rounded-full ${
@@ -413,6 +447,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                             <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
                             <span>•</span>
                             <span>{log.site}</span>
+                            {shouldShowTimer && isCurrentlyActive && (
+                              <>
+                                <span>•</span>
+                                <ActivityTimer 
+                                  startTime={log.timestamp} 
+                                  variant="short" 
+                                  showIcon={true}
+                                />
+                              </>
+                            )}
+                            {shouldShowTotalDuration && startLog && (
+                              <>
+                                <span>•</span>
+                                <TotalDurationDisplay 
+                                  startTime={startLog.timestamp}
+                                  endTime={log.timestamp}
+                                  variant="short" 
+                                  showIcon={true}
+                                />
+                              </>
+                            )}
                             {log.quantity && (
                               <>
                                 <span>•</span>

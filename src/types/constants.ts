@@ -10,7 +10,8 @@ export const MATERIAL_TYPES = [
   'Diesel',
   'Lubricant',
   'PVC Pipes',
-  'Geotextile'
+  'Geotextile',
+  'Spare Parts'
 ] as const;
 
 export type MaterialType = (typeof MATERIAL_TYPES)[number];

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Package, X } from 'lucide-react';
+import { Package, X, Plus, Check } from 'lucide-react';
 import { Material } from '../../../types';
 import { materialCategories } from '../../../data/materialTypes';
 import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
+import { CustomMaterialTypeManager } from '../../../utils/customMaterialTypeManager';
 
 interface MaterialFormProps {
   sites: any[];
@@ -30,6 +31,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
   const [costCenters, setCostCenters] = useState<any[]>([]);
   const [profitCenters, setProfitCenters] = useState<any[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [customMaterialTypes, setCustomMaterialTypes] = useState<string[]>([]);
 
   // Handle initial data for editing
   useEffect(() => {
@@ -107,7 +109,34 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     };
     
     loadCostProfitCenters();
+    loadCustomMaterialTypes();
   }, []);
+
+  // Load custom material types from localStorage
+  const loadCustomMaterialTypes = () => {
+    const customTypes = CustomMaterialTypeManager.getCustomTypes();
+    setCustomMaterialTypes(customTypes);
+  };
+
+  // Save custom material type to localStorage
+  const saveCustomMaterialType = (typeName: string) => {
+    const validation = CustomMaterialTypeManager.validateTypeName(typeName);
+    if (!validation.isValid) {
+      setMessage({ type: 'error', text: validation.error || 'Invalid material type name' });
+      return;
+    }
+
+    const success = CustomMaterialTypeManager.addCustomType(typeName);
+    if (success) {
+      loadCustomMaterialTypes(); // Refresh the list
+      setMessage({ type: 'success', text: `Custom material type "${typeName}" added successfully!` });
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setMessage(null), 3000);
+    } else {
+      setMessage({ type: 'error', text: 'Failed to save custom material type' });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,6 +168,22 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
       setShowCustomType(false);
       setFormData({ ...formData, type: value, customType: '' });
     }
+  };
+
+  const handleAddCustomType = () => {
+    if (!formData.customType.trim()) {
+      setMessage({ type: 'error', text: 'Please enter a custom material type name' });
+      return;
+    }
+
+    const typeName = formData.customType.trim();
+    
+    // Save the custom type (validation is handled inside saveCustomMaterialType)
+    saveCustomMaterialType(typeName);
+    
+    // Set the form data to use the new custom type
+    setFormData({ ...formData, type: typeName, customType: '' });
+    setShowCustomType(false);
   };
 
   // Get all material types from categories
@@ -196,22 +241,42 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Material Type *</label>
             {showCustomType ? (
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={formData.customType}
-                  onChange={(e) => setFormData({ ...formData, customType: e.target.value })}
-                  placeholder="Enter custom material type"
-                  className="flex-1 px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCustomType(false)}
-                  className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
+              <div className="space-y-2">
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={formData.customType}
+                    onChange={(e) => setFormData({ ...formData, customType: e.target.value })}
+                    placeholder="Enter custom material type"
+                    className="flex-1 px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomType();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomType}
+                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-1"
+                    title="Add Custom Type"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomType(false)}
+                    className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Press Enter or click Add to save this custom material type for future use.
+                </div>
               </div>
             ) : (
               <select
@@ -224,6 +289,13 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
                 {Object.entries(materialCategories).map(([categoryKey, category]) => (
                   <option key={categoryKey} value={category.name}>{category.name}</option>
                 ))}
+                {customMaterialTypes.length > 0 && (
+                  <optgroup label="Custom Types">
+                    {customMaterialTypes.map((customType) => (
+                      <option key={customType} value={customType}>{customType}</option>
+                    ))}
+                  </optgroup>
+                )}
                 <option value="custom">+ Add Custom Type</option>
               </select>
             )}

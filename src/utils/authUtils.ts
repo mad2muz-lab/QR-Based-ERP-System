@@ -12,66 +12,67 @@ export class AuthManager {
   // Check if we should use Supabase (now always true if Supabase is configured and reachable)
   static async useSupabase(): Promise<boolean> {
     if (!SupabaseAuthManager.isSupabaseConfigured()) {
+      console.log('❌ Supabase not configured');
       return false;
     }
+    
     // Try a quick Supabase ping (e.g., getSession)
     try {
       const online = await SupabaseAuthManager.pingSupabase();
+      console.log('🔍 Supabase ping result:', online);
       return online;
-    } catch {
+    } catch (error) {
+      console.error('❌ Supabase ping failed:', error);
       return false;
     }
   }
 
-  // Login function that works with both authentication methods
-  static async login(username: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
-    if (await this.useSupabase()) {
-      try {
-        const result = await SupabaseAuthManager.signIn(username, password);
-        if (result.success && result.user) {
-          localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(result.user));
-          return result;
-        }
-      } catch (error) {
-        // If Supabase is unreachable, fall back to local auth
-        console.error('Supabase auth error, falling back to local:', error);
-      }
-    }
-    // Local authentication fallback
-    const users = DataStorage.loadUsers();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (!user) {
-      return { success: false, error: 'Invalid username or password' };
-    }
-    user.lastLogin = new Date().toISOString();
-    const updatedUsers = users.map(u => u.id === user.id ? user : u);
-    DataStorage.saveUsers(updatedUsers);
-    const token = btoa(`${user.id}:${Date.now()}`);
-    localStorage.setItem(this.AUTH_TOKEN_KEY, token);
-    localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
-    return { success: true, user };
-  }
-
-  // Logout function that works with both authentication methods
-  static async logout(): Promise<void> {
-    if (await this.useSupabase()) {
-      await SupabaseAuthManager.signOut();
-    }
-    
-    localStorage.removeItem(this.AUTH_TOKEN_KEY);
-    localStorage.removeItem(this.CURRENT_USER_KEY);
-  }
-
-  // Get current user from either Supabase or local storage
-  static async getCurrentUser(): Promise<User | null> {
-    if (await this.useSupabase()) {
-      const user = await SupabaseAuthManager.getCurrentUser();
-      if (user) return user;
-    }
+  // Enhanced authentication check with better logging
+  static async isAuthenticated(): Promise<boolean> {
     try {
+      const useSupabase = await this.useSupabase();
+      console.log('🔍 Authentication check - useSupabase:', useSupabase);
+      
+      if (useSupabase) {
+        const authenticated = await SupabaseAuthManager.isAuthenticated();
+        console.log('🔍 Supabase authentication result:', authenticated);
+        return authenticated;
+      } else {
+        const token = localStorage.getItem(this.AUTH_TOKEN_KEY);
+        const user = this.getCurrentUserSync();
+        const authenticated = !!(token && user);
+        console.log('🔍 Local authentication result:', authenticated);
+        return authenticated;
+      }
+    } catch (error) {
+      console.error('❌ Authentication check error:', error);
+      return false;
+    }
+  }
+
+  // Enhanced current user retrieval
+  static async getCurrentUser(): Promise<User | null> {
+    try {
+      const useSupabase = await this.useSupabase();
+      console.log('🔍 Getting current user - useSupabase:', useSupabase);
+      
+      if (useSupabase) {
+        const user = await SupabaseAuthManager.getCurrentUser();
+        console.log('🔍 Supabase current user:', user ? user.id : 'null');
+        if (user) {
+          // Store in localStorage for compatibility
+          localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
+          return user;
+        }
+      }
+      
+      // Fallback to local storage
       const userStr = localStorage.getItem(this.CURRENT_USER_KEY);
-      return userStr ? JSON.parse(userStr) : null;
-    } catch {
+      const user = userStr ? JSON.parse(userStr) : null;
+      console.log('🔍 Local current user:', user ? user.id : 'null');
+      return user;
+    } catch (error) {
+      console.error('❌ Get current user error:', error);
       return null;
     }
   }
@@ -86,21 +87,62 @@ export class AuthManager {
     }
   }
 
-  // Check if user is authenticated
-  static async isAuthenticated(): Promise<boolean> {
+  // Login function that works with both authentication methods
+  static async login(username: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
+    console.log('🔐 Starting login process...');
+    
     if (await this.useSupabase()) {
-      return await SupabaseAuthManager.isAuthenticated();
+      try {
+        console.log('🔐 Attempting Supabase login...');
+        const result = await SupabaseAuthManager.signIn(username, password);
+        if (result.success && result.user) {
+          console.log('✅ Supabase login successful:', result.user.id);
+          localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(result.user));
+          return result;
+        } else {
+          console.error('❌ Supabase login failed:', result.error);
+          return result;
+        }
+      } catch (error) {
+        console.error('❌ Supabase auth error, falling back to local:', error);
+      }
     }
-    const token = localStorage.getItem(this.AUTH_TOKEN_KEY);
-    const user = this.getCurrentUserSync();
-    return !!(token && user);
+    
+    // Local authentication fallback
+    console.log('🔐 Attempting local login...');
+    const users = DataStorage.loadUsers();
+    const user = users.find(u => u.username === username && u.password === password);
+    if (!user) {
+      console.log('❌ Local login failed - invalid credentials');
+      return { success: false, error: 'Invalid username or password' };
+    }
+    
+    user.lastLogin = new Date().toISOString();
+    const updatedUsers = users.map(u => u.id === user.id ? user : u);
+    DataStorage.saveUsers(updatedUsers);
+    const token = btoa(`${user.id}:${Date.now()}`);
+    localStorage.setItem(this.AUTH_TOKEN_KEY, token);
+    localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
+    console.log('✅ Local login successful:', user.id);
+    return { success: true, user };
   }
 
-  // Synchronous version for compatibility
-  static isAuthenticatedSync(): boolean {
-    const token = localStorage.getItem(this.AUTH_TOKEN_KEY);
-    const user = this.getCurrentUserSync();
-    return !!(token && user);
+  // Logout function that works with both authentication methods
+  static async logout(): Promise<void> {
+    console.log('🚪 Starting logout process...');
+    
+    if (await this.useSupabase()) {
+      try {
+        await SupabaseAuthManager.signOut();
+        console.log('✅ Supabase logout successful');
+      } catch (error) {
+        console.error('❌ Supabase logout error:', error);
+      }
+    }
+    
+    localStorage.removeItem(this.AUTH_TOKEN_KEY);
+    localStorage.removeItem(this.CURRENT_USER_KEY);
+    console.log('✅ Local logout successful');
   }
 
   // The rest of your methods with Supabase support...
@@ -240,23 +282,25 @@ export class AuthManager {
   }
 
   /**
-   * Utility: Check if a user can access a given page (using DB-driven permissions).
+   * Check if a user can access a specific page
    */
   static async canUserAccessPage(userId: string, pageName: string): Promise<boolean> {
+    if (!supabase) return true; // Fallback to allow access if no Supabase
     const accessiblePages = await this.getAccessiblePagesForUser(userId);
     return accessiblePages.has(pageName);
   }
 
-  // --- Role Management Utilities ---
-
   /**
-   * List all roles (with parent/child info)
+   * List all roles from the database
    */
   static async listRoles(): Promise<Role[]> {
     if (!supabase) return [];
-    const { data, error } = await supabase.from('roles').select('*');
-    if (error || !data) return [];
-    return data;
+    const { data, error } = await supabase.from('roles').select('*').order('name');
+    if (error) {
+      console.error('Error fetching roles:', error);
+      return [];
+    }
+    return data || [];
   }
 
   /**
@@ -264,10 +308,14 @@ export class AuthManager {
    */
   static async createRole(role: Omit<Role, 'id'>, userId?: string): Promise<{ success: boolean; data?: Role; error?: string }> {
     if (!supabase) return { success: false, error: 'Supabase not configured' };
-    const { data, error } = await supabase.from('roles').insert([role]).select().single();
-    if (error) return { success: false, error: error.message };
-    if (userId && data) await this.logAudit({ user_id: userId, action: 'create_role', entity_type: 'role', entity_id: data.id, details: data });
-    return { success: true, data };
+    try {
+      const { data, error } = await supabase.from('roles').insert([role]).select().single();
+      if (error) throw error;
+      if (userId) await this.logAudit({ user_id: userId, action: 'create', entity_type: 'role', entity_id: data.id });
+      return { success: true, data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   }
 
   /**
@@ -275,10 +323,14 @@ export class AuthManager {
    */
   static async updateRole(roleId: string, updates: Partial<Omit<Role, 'id'>>, userId?: string): Promise<{ success: boolean; data?: Role; error?: string }> {
     if (!supabase) return { success: false, error: 'Supabase not configured' };
-    const { data, error } = await supabase.from('roles').update(updates).eq('id', roleId).select().single();
-    if (error) return { success: false, error: error.message };
-    if (userId && data) await this.logAudit({ user_id: userId, action: 'update_role', entity_type: 'role', entity_id: roleId, details: updates });
-    return { success: true, data };
+    try {
+      const { data, error } = await supabase.from('roles').update(updates).eq('id', roleId).select().single();
+      if (error) throw error;
+      if (userId) await this.logAudit({ user_id: userId, action: 'update', entity_type: 'role', entity_id: roleId });
+      return { success: true, data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   }
 
   /**
@@ -286,78 +338,101 @@ export class AuthManager {
    */
   static async deleteRole(roleId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
     if (!supabase) return { success: false, error: 'Supabase not configured' };
-    const { error } = await supabase.from('roles').delete().eq('id', roleId);
-    if (error) return { success: false, error: error.message };
-    if (userId) await this.logAudit({ user_id: userId, action: 'delete_role', entity_type: 'role', entity_id: roleId });
-    return { success: true };
+    try {
+      const { error } = await supabase.from('roles').delete().eq('id', roleId);
+      if (error) throw error;
+      if (userId) await this.logAudit({ user_id: userId, action: 'delete', entity_type: 'role', entity_id: roleId });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   }
 
   /**
-   * Get all page permissions for a role (action-level)
+   * Get permissions for a specific role
    */
   static async getRolePermissions(roleId: string): Promise<{ page_name: string; can_access: boolean; can_edit: boolean; can_delete: boolean }[]> {
     if (!supabase) return [];
-    const { data, error } = await supabase.from('role_page_access').select('page_name, can_access, can_edit, can_delete').eq('role_id', roleId);
-    if (error || !data) return [];
-    return data;
+    const { data, error } = await supabase
+      .from('role_page_access')
+      .select('page_name, can_access, can_edit, can_delete')
+      .eq('role_id', roleId);
+    if (error) {
+      console.error('Error fetching role permissions:', error);
+      return [];
+    }
+    return data || [];
   }
 
   /**
-   * Update page permissions for a role (action-level, replace all)
-   * Accepts an array of { page_name, can_access, can_edit, can_delete }
+   * Update permissions for a specific role
    */
   static async updateRolePermissions(roleId: string, permissions: { page_name: string; can_access: boolean; can_edit: boolean; can_delete: boolean }[], userId?: string): Promise<{ success: boolean; error?: string }> {
     if (!supabase) return { success: false, error: 'Supabase not configured' };
-    // Remove all existing permissions for this role
-    const { error: delError } = await supabase.from('role_page_access').delete().eq('role_id', roleId);
-    if (delError) return { success: false, error: delError.message };
-    // Insert new permissions
-    if (permissions.length > 0) {
-      const inserts = permissions.map(p => ({ role_id: roleId, ...p }));
-      const { error: insError } = await supabase.from('role_page_access').insert(inserts);
-      if (insError) return { success: false, error: insError.message };
+    try {
+      // Delete existing permissions
+      await supabase.from('role_page_access').delete().eq('role_id', roleId);
+      
+      // Insert new permissions
+      const { error } = await supabase.from('role_page_access').insert(
+        permissions.map(p => ({ ...p, role_id: roleId }))
+      );
+      if (error) throw error;
+      
+      if (userId) await this.logAudit({ user_id: userId, action: 'update_permissions', entity_type: 'role', entity_id: roleId });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
-    if (userId) await this.logAudit({ user_id: userId, action: 'update_role_permissions', entity_type: 'role_page_access', entity_id: roleId, details: permissions });
-    return { success: true };
   }
 
   /**
-   * Assign a role to a user (user_roles table)
+   * Assign a role to a user
    */
   static async assignRoleToUser(userId: string, roleId: string, adminId?: string): Promise<{ success: boolean; error?: string }> {
     if (!supabase) return { success: false, error: 'Supabase not configured' };
-    // Find role name for this roleId
-    const { data: roleData, error: roleError } = await supabase.from('roles').select('name').eq('id', roleId).single();
-    if (roleError || !roleData) return { success: false, error: 'Role not found' };
-    const { error } = await supabase.from('user_roles').upsert([{ user_id: userId, role: roleData.name, is_active: true }], { onConflict: 'user_id,role' });
-    if (error) return { success: false, error: error.message };
-    if (adminId) await this.logAudit({ user_id: adminId, action: 'assign_role', entity_type: 'user_role', entity_id: userId, details: { roleId } });
-    return { success: true };
+    try {
+      const { error } = await supabase.from('user_roles').insert({
+        user_id: userId,
+        role_id: roleId,
+        is_active: true
+      });
+      if (error) throw error;
+      if (adminId) await this.logAudit({ user_id: adminId, action: 'assign_role', entity_type: 'user_role', entity_id: userId });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   }
 
   /**
-   * List all users (for admin UI)
+   * List all users from the database
    */
   static async listUsers(): Promise<any[]> {
     if (!supabase) return [];
-    const { data, error } = await supabase.from('users').select('id, name, email');
-    if (error || !data) return [];
-    return data;
+    const { data, error } = await supabase.from('users').select('*').order('created_at');
+    if (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+    return data || [];
   }
 
   /**
-   * Write an audit log entry
+   * Log audit events
    */
   static async logAudit({ user_id, action, entity_type, entity_id, details }: { user_id: string; action: string; entity_type: string; entity_id: string; details?: any }) {
     if (!supabase) return;
-    await supabase.from('audit_log').insert([
-      {
+    try {
+      await supabase.from('audit_logs').insert({
         user_id,
         action,
         entity_type,
         entity_id,
-        details: details ? JSON.stringify(details) : null,
-      },
-    ]);
+        details: details ? JSON.stringify(details) : null
+      });
+    } catch (error) {
+      console.error('Error logging audit event:', error);
+    }
   }
 }

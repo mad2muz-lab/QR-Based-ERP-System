@@ -73,7 +73,7 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
 
   const loadData = async () => {
     let loadedItems: any[] = [];
-    const useSupabase = AuthManager.useSupabase();
+    const useSupabase = await AuthManager.useSupabase();
     
     try {
       if (useSupabase) {
@@ -92,8 +92,7 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
             loadedItems = await SupabaseDataService.getSites();
             break;
           case 'departments':
-            // Note: departments might not be implemented in SupabaseDataService yet
-            loadedItems = DataStorage.loadDepartments();
+            loadedItems = await SupabaseDataService.getDepartments();
             break;
         }
       } else {

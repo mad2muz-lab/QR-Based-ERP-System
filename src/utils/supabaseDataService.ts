@@ -311,6 +311,111 @@ export class SupabaseDataService {
       return [];
     }
   }
+
+  // Create a new department in Supabase
+  static async createDepartment(department: Omit<Department, 'id' | 'createdAt' | 'lastUpdated'>): Promise<{ success: boolean; data?: Department; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    
+    try {
+      const supabaseDepartment = {
+        id: `dept-${Date.now()}`,
+        name: department.name,
+        description: department.description,
+        type: department.type,
+        created_at: new Date().toISOString(),
+        last_updated: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('departments')
+        .insert([supabaseDepartment])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating department in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      // Transform back to Department interface
+      const transformedData: Department = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        createdAt: data.created_at,
+        lastUpdated: data.last_updated || data.created_at,
+        type: data.type
+      };
+
+      return { success: true, data: transformedData };
+    } catch (error: any) {
+      console.error('Error creating department:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Update an existing department in Supabase
+  static async updateDepartment(department: Department): Promise<{ success: boolean; data?: Department; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    
+    try {
+      const supabaseDepartment = {
+        name: department.name,
+        description: department.description,
+        type: department.type,
+        last_updated: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('departments')
+        .update(supabaseDepartment)
+        .eq('id', department.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating department in Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      // Transform back to Department interface
+      const transformedData: Department = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        createdAt: data.created_at,
+        lastUpdated: data.last_updated || data.created_at,
+        type: data.type
+      };
+
+      return { success: true, data: transformedData };
+    } catch (error: any) {
+      console.error('Error updating department:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Delete a department from Supabase
+  static async deleteDepartment(departmentId: string): Promise<{ success: boolean; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    
+    try {
+      const { error } = await supabase
+        .from('departments')
+        .delete()
+        .eq('id', departmentId);
+
+      if (error) {
+        console.error('Error deleting department from Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error deleting department:', error);
+      return { success: false, error: error.message };
+    }
+  }
   
   // Test connection and get table counts
   static async getTableCounts(): Promise<{

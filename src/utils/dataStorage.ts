@@ -33,6 +33,7 @@ export class DataStorage {
     materialLogs: 'qr_system_material_logs',
     maintenanceLogs: 'qr_system_maintenance_logs',
     maintenanceSchedules: 'qr_system_maintenance_schedules',
+    preventiveMaintenanceConfigs: 'qr_system_preventive_maintenance_configs',
     users: 'qr_system_users',
     departments: 'qr_system_departments',
     costElements: 'qr_system_cost_elements',
@@ -422,6 +423,19 @@ export class DataStorage {
     this.downloadCSV(maintenanceSchedules, 'maintenance_schedules.csv');
   }
 
+  // Preventive Maintenance Configuration methods
+  static savePreventiveMaintenanceConfigs(configs: any[]): void {
+    this.saveToCSV(this.STORAGE_KEYS.preventiveMaintenanceConfigs, configs);
+  }
+
+  static loadPreventiveMaintenanceConfigs(): any[] {
+    return this.loadFromCSV(this.STORAGE_KEYS.preventiveMaintenanceConfigs);
+  }
+
+  static downloadPreventiveMaintenanceConfigsCSV(configs: any[]): void {
+    this.downloadCSV(configs, 'preventive_maintenance_configs.csv');
+  }
+
   // Combined Logs Helper (for reports that need all logs)
   static loadAllLogs(): { employeeLogs: EmployeeLog[]; equipmentLogs: EquipmentLog[]; materialLogs: MaterialLog[] } {
     return {
@@ -466,6 +480,13 @@ export class DataStorage {
           id: 'dept-operations',
           name: 'Operations',
           description: 'Daily operations and maintenance',
+          createdAt: new Date().toISOString(),
+          lastUpdated: new Date().toISOString()
+        },
+        {
+          id: 'dept-maintenance',
+          name: 'Maintenance',
+          description: 'Equipment maintenance and repair services',
           createdAt: new Date().toISOString(),
           lastUpdated: new Date().toISOString()
         },

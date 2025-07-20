@@ -6,7 +6,7 @@ import { supabase } from './supabaseClient';
 export interface SyncOperation {
   id: string;
   type: 'create' | 'update' | 'delete';
-  entityType: 'employee' | 'equipment' | 'material' | 'site' | 'timeLog' | 'employeeLog' | 'equipmentLog' | 'materialLog' | 'equipment_maintenance_logs' | 'equipment_maintenance_schedules';
+  entityType: 'employee' | 'equipment' | 'material' | 'site' | 'timeLog' | 'employeeLog' | 'equipmentLog' | 'materialLog' | 'equipment_maintenance_logs' | 'equipment_maintenance_schedules' | 'preventive_maintenance_config';
   entityId: string;
   data: any;
   timestamp: string;
@@ -160,7 +160,8 @@ export class OfflineSyncManager {
         const entityTypeOrder = {
           'employee': 4, 'equipment': 4, 'material': 4, 'site': 4,
           'employeeLog': 1, 'equipmentLog': 1, 'materialLog': 1, 'timeLog': 1,
-          'equipment_maintenance_logs': 1, 'equipment_maintenance_schedules': 2
+          'equipment_maintenance_logs': 1, 'equipment_maintenance_schedules': 2,
+          'preventive_maintenance_config': 3
         };
         const entityTypeDiff = (entityTypeOrder[b.entityType] || 2) - (entityTypeOrder[a.entityType] || 2);
         if (entityTypeDiff !== 0) return entityTypeDiff;
@@ -336,6 +337,7 @@ export class OfflineSyncManager {
         case 'materialLog': return 'material_logs';
         case 'equipment_maintenance_logs': return 'equipment_maintenance_logs';
         case 'equipment_maintenance_schedules': return 'equipment_maintenance_schedules';
+        case 'preventive_maintenance_config': return 'preventive_maintenance_configs';
         default: return entityType + 's';
       }
     };

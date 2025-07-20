@@ -60,6 +60,7 @@ export const AppRoutes = ({ currentUser }: AppRoutesProps): RouteObject[] => [
       </LazyComponentErrorBoundary>
     ),
   },
+
   {
     path: '/map',
     element: (

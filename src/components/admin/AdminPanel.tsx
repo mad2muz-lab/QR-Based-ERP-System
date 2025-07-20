@@ -13,6 +13,8 @@ import UnauthorizedAccess from '../common/UnauthorizedAccess';
 import CompanyManager from './CompanyManager';
 import AuditLogViewer from './AuditLogViewer';
 import CostBreakdownManager from './CostBreakdownManager';
+import PreventiveMaintenanceConfig from './PreventiveMaintenanceConfig';
+import PreventiveMaintenanceTest from './PreventiveMaintenanceTest';
 
 
 interface AdminPanelProps {
@@ -30,7 +32,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'departments' | 'equipment' | 'materials' | 'companies' | 'auditlog' | 'costbreakdown'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'departments' | 'equipment' | 'materials' | 'companies' | 'auditlog' | 'costbreakdown' | 'preventiveMaintenance' | 'preventiveMaintenanceTest'>('users');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
@@ -49,7 +51,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     model: '',
     serialNumber: '',
     site: '',
-    status: 'available' as 'available' | 'in-use' | 'maintenance' | 'down'
+    status: 'available' as 'available' | 'in-use' | 'maintenance' | 'down',
+    operational_status: 'working' as 'working' | 'not_working' | 'in_use' | 'standby' | 'under_repair' | 'under_service'
   });
   const [materialLogFormData, setMaterialLogFormData] = useState({
     material_id: '',
@@ -241,7 +244,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       model: '',
       serialNumber: '',
       site: '',
-      status: 'available'
+      status: 'available',
+      operational_status: 'working'
     });
     setCustomIdError('');
   };
@@ -410,7 +414,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       model: equipment.model || '',
       serialNumber: equipment.serialNumber || '',
       site: equipment.site,
-      status: equipment.status
+      status: equipment.status,
+      operational_status: equipment.operational_status
     });
     setShowCreateForm(true);
   };
@@ -502,6 +507,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     { id: 'equipment', label: 'Equipment' },
     { id: 'materials', label: 'Materials' },
     { id: 'companies', label: 'Companies' },
+    { id: 'preventiveMaintenance', label: 'Preventive Maintenance Config' },
+    { id: 'preventiveMaintenanceTest', label: 'PM System Test' },
     { id: 'costbreakdown', label: 'Cost Breakdown Structure' },
     { id: 'auditlog', label: 'Audit Log' },
   ];
@@ -1000,6 +1007,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       {activeTab === 'auditlog' && (
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <AuditLogViewer />
+        </div>
+      )}
+
+      {activeTab === 'preventiveMaintenance' && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <Wrench className="w-6 h-6 text-blue-600" />
+              <h2 className="text-xl font-semibold text-gray-900">Preventive Maintenance Configuration</h2>
+            </div>
+          </div>
+          <PreventiveMaintenanceConfig />
+        </div>
+      )}
+
+      {activeTab === 'preventiveMaintenanceTest' && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <PreventiveMaintenanceTest />
         </div>
       )}
 

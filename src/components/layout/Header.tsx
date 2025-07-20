@@ -15,6 +15,7 @@ const ALL_NAV_ITEMS = [
   { path: '/map', label: 'Map View', icon: MapPin, page_name: 'map_view' },
   { path: '/admin', label: 'Admin Panel', icon: Shield, page_name: 'admin_panel' },
   { path: '/departments', label: 'Departments', icon: Building, page_name: 'departments' },
+
   // Add more as needed
 ];
 

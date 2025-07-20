@@ -13,6 +13,7 @@ import { DataStorage } from './utils/dataStorage';
 import { User } from './types';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { AppRoutes } from './routes';
+import { startPreventiveMaintenanceService, requestNotificationPermission } from './utils/preventiveMaintenanceAutoStart';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -34,19 +35,23 @@ function App() {
         localStorage.removeItem('qr_system_clear_data');
       }
       DataStorage.initializeDefaultAdmin();
-      const checkAuth = async () => {
-        const authenticated = await AuthManager.isAuthenticated();
-        const user = await AuthManager.getCurrentUser();
-        if (authenticated && user) {
-          setIsAuthenticated(true);
-          setCurrentUser(user);
-          if (user.isFirstLogin) {
-            setShowPasswordModal(true);
+              const checkAuth = async () => {
+          const authenticated = await AuthManager.isAuthenticated();
+          const user = await AuthManager.getCurrentUser();
+          if (authenticated && user) {
+            setIsAuthenticated(true);
+            setCurrentUser(user);
+            if (user.isFirstLogin) {
+              setShowPasswordModal(true);
+            }
+            
+            // Start preventive maintenance service for authenticated users
+            startPreventiveMaintenanceService();
+            await requestNotificationPermission();
           }
-        }
-        setIsInitialized(true);
-      };
-      checkAuth();
+          setIsInitialized(true);
+        };
+        checkAuth();
     }
   }, [isInitialized]);
 
