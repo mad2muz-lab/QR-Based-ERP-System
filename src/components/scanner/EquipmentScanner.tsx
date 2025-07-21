@@ -69,44 +69,7 @@ const EquipmentScanner: React.FC<EquipmentScannerProps> = ({ onClose }) => {
       const loadedEquipment = DataStorage.loadEquipment();
       console.log('Loaded equipment from storage:', loadedEquipment);
       
-      // If no equipment exists, create some test equipment
-      if (loadedEquipment.length === 0) {
-        console.log('No equipment found, creating test equipment...');
-        const testEquipment: Equipment[] = [
-          {
-            id: 'eqp-001',
-            custom_equipment_id: 'EQP-TEST-001',
-            name: 'Test Excavator',
-            type: 'Excavator',
-            model: 'CAT 320',
-            site: 'Riyadh Site',
-            qrCode: 'EQP-TEST-001',
-            status: 'available',
-            operational_status: 'working',
-            createdAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString()
-          },
-          {
-            id: 'eqp-002',
-            custom_equipment_id: 'EQP-TEST-002',
-            name: 'Test Bulldozer',
-            type: 'Bulldozer',
-            model: 'CAT D6',
-            site: 'Jeddah Site',
-            qrCode: 'EQP-TEST-002',
-            status: 'available',
-            operational_status: 'working',
-            createdAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString()
-          }
-        ];
-        
-        DataStorage.saveEquipment(testEquipment);
-        setEquipment(testEquipment);
-        console.log('Test equipment created:', testEquipment);
-      } else {
-        setEquipment(loadedEquipment);
-      }
+      setEquipment(loadedEquipment);
     } catch (error) {
       console.error('Error loading equipment:', error);
       setError('Failed to load equipment data');

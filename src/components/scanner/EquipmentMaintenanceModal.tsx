@@ -45,6 +45,18 @@ const EquipmentMaintenanceModal: React.FC<EquipmentMaintenanceModalProps> = ({
   const [scheduleDate, setScheduleDate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Add placeholder for user list
+  const [technicianList, setTechnicianList] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    // TODO: Replace with real user fetch (only technicians)
+    setTechnicianList([
+      { id: 'tech-1', name: 'Technician One' },
+      { id: 'tech-2', name: 'Technician Two' },
+      // ...
+    ]);
+  }, []);
+
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -83,7 +95,7 @@ const EquipmentMaintenanceModal: React.FC<EquipmentMaintenanceModalProps> = ({
         start_date: new Date().toISOString(),
         estimated_duration_hours: estimatedHours,
         cost: cost,
-        assigned_technician: assignedTechnician.trim(),
+        assigned_technician: assignedTechnician, // user_id
         priority,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -119,7 +131,7 @@ const EquipmentMaintenanceModal: React.FC<EquipmentMaintenanceModalProps> = ({
         maintenance_type: maintenanceType,
         frequency_days: 30, // Default 30 days
         next_maintenance_date: scheduleDate,
-        assigned_technician: assignedTechnician.trim(),
+        assigned_technician: assignedTechnician, // user_id
         priority,
         description: description.trim(),
         is_active: true,
@@ -383,13 +395,16 @@ const EquipmentMaintenanceModal: React.FC<EquipmentMaintenanceModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Assigned Technician
             </label>
-            <input
-              type="text"
+            <select
               value={assignedTechnician}
               onChange={(e) => setAssignedTechnician(e.target.value)}
-              placeholder="Enter technician name"
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            >
+              <option value="">Select technician</option>
+              {technicianList.map((tech) => (
+                <option key={tech.id} value={tech.id}>{tech.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Schedule Option */}

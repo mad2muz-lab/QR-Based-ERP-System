@@ -1,1 +1,0 @@
-insert into users (id, username, role, name, email, site, created_at) values ('230a7cbb-e756-4e24-91d4-808df5224d77', 'developer@system.local', 'developer', 'Developer', 'developer@system.local', null, now());

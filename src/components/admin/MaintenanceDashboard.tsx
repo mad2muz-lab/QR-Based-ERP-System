@@ -17,7 +17,8 @@ import {
   RefreshCw,
   Download,
   Upload,
-  HardHat
+  HardHat,
+  Package
 } from 'lucide-react';
 import { 
   Equipment, 
@@ -26,10 +27,12 @@ import {
   Notification 
 } from '../../types';
 import { EquipmentMaintenanceService } from '../../utils/equipmentMaintenanceService';
+import { MaintenanceWorkflowService } from '../../utils/maintenanceWorkflowService';
 import { AuthManager } from '../../utils/authUtils';
 import { fetchData } from '../../utils/dataProxy';
 import { MaintenanceDataLoader } from '../../utils/maintenanceDataLoader';
 import TechnicianMaintenanceForm from './TechnicianMaintenanceForm';
+import MaintenanceMaterialRequestModal from './MaintenanceMaterialRequestModal';
 import ActivityTimer from '../common/ActivityTimer';
 import TotalDurationDisplay from '../common/TotalDurationDisplay';
 
@@ -62,7 +65,9 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
   // Modal states
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showTechnicianForm, setShowTechnicianForm] = useState(false);
+  const [showMaterialRequestModal, setShowMaterialRequestModal] = useState(false);
   const [selectedMaintenanceLog, setSelectedMaintenanceLog] = useState<EquipmentMaintenanceLog | null>(null);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [completionForm, setCompletionForm] = useState({
     actual_duration_hours: 0,
     cost: 0,
@@ -248,6 +253,17 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
+  };
+
+  const handleCreateMaterialRequest = (equipment: Equipment, maintenanceLog: EquipmentMaintenanceLog) => {
+    setSelectedEquipment(equipment);
+    setSelectedMaintenanceLog(maintenanceLog);
+    setShowMaterialRequestModal(true);
+  };
+
+  const handleMaterialRequestCreated = async () => {
+    setShowMaterialRequestModal(false);
+    await loadData(); // Refresh data
   };
 
   const getEquipmentName = (equipmentId: string) => {
@@ -547,6 +563,22 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    {/* Material Request Button */}
+                    {(log.status === 'scheduled' || log.status === 'in_progress') && canEdit && (
+                      <button
+                        onClick={() => {
+                          const equipmentData = equipment.find(eq => eq.id === log.equipment_id);
+                          if (equipmentData) {
+                            handleCreateMaterialRequest(equipmentData, log);
+                          }
+                        }}
+                        className="flex items-center space-x-1 px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors"
+                      >
+                        <Package className="w-4 h-4" />
+                        <span>Request Materials</span>
+                      </button>
+                    )}
+                    
                     {/* Technician Actions */}
                     {(log.status === 'scheduled' || log.status === 'in_progress') && canEdit && (
                       <button
@@ -780,6 +812,16 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ onClose }) 
             setSelectedMaintenanceLog(null);
           }}
           onSubmit={handleTechnicianFormSubmit}
+        />
+      )}
+
+      {/* Material Request Modal */}
+      {showMaterialRequestModal && selectedEquipment && selectedMaintenanceLog && (
+        <MaintenanceMaterialRequestModal
+          equipment={selectedEquipment}
+          maintenanceLog={selectedMaintenanceLog}
+          onClose={() => setShowMaterialRequestModal(false)}
+          onCreated={handleMaterialRequestCreated}
         />
       )}
     </div>

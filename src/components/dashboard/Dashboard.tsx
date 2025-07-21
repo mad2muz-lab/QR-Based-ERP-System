@@ -13,7 +13,6 @@ import { offlineSyncManager, SyncStatus } from '../../utils/offlineSync';
 import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
 import { fetchData, getAllLogs, getCurrentDataSource } from '../../utils/dataProxy';
 import DataSourceToggle from '../common/DataSourceToggle';
-import { SampleDataInitializer } from '../../utils/sampleDataInitializer';
 import ActivityTimer from '../common/ActivityTimer';
 import TotalDurationDisplay from '../common/TotalDurationDisplay';
 import { isActiveActivity, isCompletionActivity, findStartActivityForCompletion } from '../../utils/activityUtils';
@@ -45,9 +44,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
     try {
       // Initialize sample data if no data exists (only for local storage)
       const currentSource = getCurrentDataSource();
-      if (currentSource === 'localstorage') {
-        SampleDataInitializer.initializeSampleData();
-      }
+      // if (currentSource === 'localstorage') {
+      //   SampleDataInitializer.initializeSampleData();
+      // }
       
       // Use centralized data source
       setDataSource(currentSource === 'supabase' ? 'supabase' : 'local');

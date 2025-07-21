@@ -34,6 +34,9 @@ export class DataStorage {
     maintenanceLogs: 'qr_system_maintenance_logs',
     maintenanceSchedules: 'qr_system_maintenance_schedules',
     preventiveMaintenanceConfigs: 'qr_system_preventive_maintenance_configs',
+    classMaintenanceTypes: 'qr_system_class_maintenance_types',
+    maintenanceMaterialRequests: 'qr_system_maintenance_material_requests',
+    maintenanceMaterialRequestItems: 'qr_system_maintenance_material_request_items',
     users: 'qr_system_users',
     departments: 'qr_system_departments',
     costElements: 'qr_system_cost_elements',
@@ -434,6 +437,19 @@ export class DataStorage {
 
   static downloadPreventiveMaintenanceConfigsCSV(configs: any[]): void {
     this.downloadCSV(configs, 'preventive_maintenance_configs.csv');
+  }
+
+  // Class Maintenance Types
+  static saveClassMaintenanceTypes(classTypes: any[]): void {
+    this.saveToCSV(this.STORAGE_KEYS.classMaintenanceTypes, classTypes);
+  }
+
+  static loadClassMaintenanceTypes(): any[] {
+    return this.loadFromCSV<any>(this.STORAGE_KEYS.classMaintenanceTypes);
+  }
+
+  static downloadClassMaintenanceTypesCSV(classTypes: any[]): void {
+    this.downloadCSV(classTypes, 'class_maintenance_types.csv');
   }
 
   // Combined Logs Helper (for reports that need all logs)
@@ -846,5 +862,42 @@ export class DataStorage {
     Object.values(this.STORAGE_KEYS).forEach(key => {
       localStorage.removeItem(key);
     });
+  }
+
+  // Maintenance Material Request Storage
+  static saveMaintenanceMaterialRequests(requests: any[]): void {
+    try {
+      localStorage.setItem(DataStorage.STORAGE_KEYS.maintenanceMaterialRequests, JSON.stringify(requests));
+    } catch (error) {
+      console.error('Error saving maintenance material requests:', error);
+    }
+  }
+
+  static loadMaintenanceMaterialRequests(): any[] {
+    try {
+      const data = localStorage.getItem(DataStorage.STORAGE_KEYS.maintenanceMaterialRequests);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error loading maintenance material requests:', error);
+      return [];
+    }
+  }
+
+  static saveMaintenanceMaterialRequestItems(items: any[]): void {
+    try {
+      localStorage.setItem(DataStorage.STORAGE_KEYS.maintenanceMaterialRequestItems, JSON.stringify(items));
+    } catch (error) {
+      console.error('Error saving maintenance material request items:', error);
+    }
+  }
+
+  static loadMaintenanceMaterialRequestItems(): any[] {
+    try {
+      const data = localStorage.getItem(DataStorage.STORAGE_KEYS.maintenanceMaterialRequestItems);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error loading maintenance material request items:', error);
+      return [];
+    }
   }
 }

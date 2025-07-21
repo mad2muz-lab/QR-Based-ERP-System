@@ -180,7 +180,7 @@ export interface EquipmentMaintenanceLog {
   parts_used?: string;
   start_date: string;
   completion_date?: string;
-  completed_by?: string;
+  completed_by?: string; // user_id of technician who completed, not name
   estimated_duration_hours?: number; // Can be decimal like 1.5
   actual_duration_hours?: number; // Can be decimal like 1.5
   cost?: number;
@@ -195,7 +195,7 @@ export interface EquipmentMaintenanceLog {
   serial_number?: string;
   site_assignment?: string;
   // Enhanced workflow fields
-  assigned_technician?: string;
+  assigned_technician?: string; // user_id of technician, not name
   workflow_step?: 'marked' | 'inspected' | 'in_progress' | 'completed';
   inspection_date?: string;
   work_start_date?: string;
@@ -416,4 +416,88 @@ export interface MaterialSelection {
   urgencyLevel: 'normal' | 'urgent' | 'critical';
   autoPRGenerated: boolean;
   prId?: string;
+}
+
+// Maintenance Material Request System
+export interface MaintenanceMaterialRequest {
+  id?: string;
+  maintenance_log_id: string;
+  equipment_id: string;
+  equipment_name: string;
+  maintenance_class: 'A' | 'B' | 'C';
+  maintenance_type: string;
+  status: 'pending' | 'awaiting_inventory' | 'pending_service' | 'in_progress' | 'completed' | 'cancelled';
+  requested_by: string;
+  requested_at?: string;
+  issued_by?: string;
+  issued_at?: string;
+  completed_by?: string; // user_id of technician who completed, not name
+  completed_at?: string;
+  site: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  notes?: string;
+  estimated_duration_hours?: number;
+  actual_duration_hours?: number;
+  total_estimated_cost?: number;
+  total_actual_cost?: number;
+  created_at?: string;
+  updated_at?: string;
+  // Additional fields for UI
+  equipment_type?: string;
+  equipment_model?: string;
+  equipment_operational_status?: string;
+  maintenance_description?: string;
+  technician_notes?: string;
+  assigned_technician?: string;
+  workflow_step?: string;
+  status_display?: string;
+  priority_color?: string;
+  total_items?: number;
+  issued_items?: number;
+  unavailable_items?: number;
+}
+
+export interface MaintenanceMaterialRequestItem {
+  id?: string;
+  request_id: string;
+  material_name: string;
+  material_type: string;
+  quantity_requested: number;
+  quantity_issued: number;
+  uom: string;
+  estimated_unit_cost: number;
+  actual_unit_cost: number;
+  status: 'pending' | 'available' | 'issued' | 'unavailable' | 'pr_generated';
+  inventory_notes?: string;
+  pr_id?: string;
+  material_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Class Maintenance Type
+export interface ClassMaintenanceType {
+  id?: string;
+  maintenance_type: string;
+  typical_equipment: string;
+  spare_part: string;
+  estimated_quantity: number;
+  uom: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Maintenance Workflow Notification
+export interface MaintenanceNotification {
+  id: string;
+  type: 'material_request' | 'inventory_ready' | 'maintenance_complete' | 'pr_generated';
+  title: string;
+  message: string;
+  entity_id: string;
+  entity_type: 'maintenance_request' | 'equipment' | 'purchase_request';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  is_read: boolean;
+  action_url?: string;
+  created_at: string;
 }

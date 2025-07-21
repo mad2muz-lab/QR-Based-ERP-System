@@ -482,4 +482,284 @@ export class SupabaseDataService {
       };
     }
   }
+
+  // Class Maintenance Types Operations
+  static async getAllClassMaintenanceTypes(): Promise<any[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('class_maintenance_types')
+        .select('*')
+        .order('maintenance_type');
+      
+      if (error) {
+        console.error('Error fetching class maintenance types:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching class maintenance types:', error);
+      return [];
+    }
+  }
+
+  static async createClassMaintenanceType(classType: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase) {
+      return { success: false, error: 'Supabase not configured' };
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('class_maintenance_types')
+        .insert([classType])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating class maintenance type:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error creating class maintenance type:', error);
+      return { success: false, error: 'Failed to create class maintenance type' };
+    }
+  }
+
+  static async updateClassMaintenanceType(id: string, classType: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase) {
+      return { success: false, error: 'Supabase not configured' };
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('class_maintenance_types')
+        .update(classType)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating class maintenance type:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error updating class maintenance type:', error);
+      return { success: false, error: 'Failed to update class maintenance type' };
+    }
+  }
+
+  static async deleteClassMaintenanceType(id: string): Promise<{ success: boolean; error?: string }> {
+    if (!supabase) {
+      return { success: false, error: 'Supabase not configured' };
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('class_maintenance_types')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting class maintenance type:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting class maintenance type:', error);
+      return { success: false, error: 'Failed to delete class maintenance type' };
+    }
+  }
+
+  // Maintenance Material Request Operations
+  static async getAllMaintenanceMaterialRequests(): Promise<any[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_material_requests')
+        .select('*')
+        .order('requested_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching maintenance material requests:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching maintenance material requests:', error);
+      return [];
+    }
+  }
+
+  static async createMaintenanceMaterialRequest(requestData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase) {
+      return { success: false, error: 'Supabase not configured' };
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_material_requests')
+        .insert([requestData])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating maintenance material request:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error creating maintenance material request:', error);
+      return { success: false, error: 'Failed to create maintenance material request' };
+    }
+  }
+
+  static async updateMaintenanceMaterialRequest(requestId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase) {
+      return { success: false, error: 'Supabase not configured' };
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_material_requests')
+        .update(updateData)
+        .eq('id', requestId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating maintenance material request:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error updating maintenance material request:', error);
+      return { success: false, error: 'Failed to update maintenance material request' };
+    }
+  }
+
+  // Maintenance Material Request Item Operations
+  static async getAllMaintenanceMaterialRequestItems(): Promise<any[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_material_request_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching maintenance material request items:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching maintenance material request items:', error);
+      return [];
+    }
+  }
+
+  static async createMaintenanceMaterialRequestItem(itemData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase) {
+      return { success: false, error: 'Supabase not configured' };
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_material_request_items')
+        .insert([itemData])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating maintenance material request item:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error creating maintenance material request item:', error);
+      return { success: false, error: 'Failed to create maintenance material request item' };
+    }
+  }
+
+  static async updateMaintenanceMaterialRequestItem(itemId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase) {
+      return { success: false, error: 'Supabase not configured' };
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_material_request_items')
+        .update(updateData)
+        .eq('id', itemId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating maintenance material request item:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error updating maintenance material request item:', error);
+      return { success: false, error: 'Failed to update maintenance material request item' };
+    }
+  }
+
+  // Time Logs Operations
+  static async getAllTimeLogs(): Promise<any[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('time_logs')
+        .select('*')
+        .order('timestamp', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching time logs:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching time logs:', error);
+      return [];
+    }
+  }
+
+  // Materials Operations
+  static async getAllMaterials(): Promise<any[]> {
+    if (!supabase) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*')
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching materials:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching materials:', error);
+      return [];
+    }
+  }
 }

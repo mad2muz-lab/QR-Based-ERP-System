@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Package, X, Plus, Check } from 'lucide-react';
+import { Package, X, Plus, Check, Trash2 } from 'lucide-react';
 import { Material } from '../../../types';
 import { materialCategories } from '../../../data/materialTypes';
 import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
 import { CustomMaterialTypeManager } from '../../../utils/customMaterialTypeManager';
+import { CustomUnitManager } from '../../../utils/customUnitManager';
+import { UNITS_OF_MEASUREMENT } from '../../../types/constants';
 
 interface MaterialFormProps {
   sites: any[];
@@ -32,6 +34,11 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
   const [profitCenters, setProfitCenters] = useState<any[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [customMaterialTypes, setCustomMaterialTypes] = useState<string[]>([]);
+  const [customTypeInput, setCustomTypeInput] = useState('');
+  const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
+  const [customUnitInput, setCustomUnitInput] = useState('');
+  const [showCustomUnitInput, setShowCustomUnitInput] = useState(false);
+  const [availableUnits, setAvailableUnits] = useState<string[]>([]);
 
   // Handle initial data for editing
   useEffect(() => {
@@ -110,6 +117,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     
     loadCostProfitCenters();
     loadCustomMaterialTypes();
+    loadAvailableUnits();
   }, []);
 
   // Load custom material types from localStorage
@@ -135,6 +143,36 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
       setTimeout(() => setMessage(null), 3000);
     } else {
       setMessage({ type: 'error', text: 'Failed to save custom material type' });
+    }
+  };
+
+  const loadAvailableUnits = () => {
+    const units = CustomUnitManager.getAllUnits();
+    setAvailableUnits(units);
+  };
+
+  const saveCustomUnit = (unitName: string) => {
+    if (CustomUnitManager.addCustomUnit(unitName)) {
+      loadAvailableUnits();
+      setCustomUnitInput('');
+      setShowCustomUnitInput(false);
+      // Set the new unit as selected
+      setFormData({ ...formData, unit: unitName });
+    }
+  };
+
+  const handleAddCustomUnit = () => {
+    if (customUnitInput.trim()) {
+      saveCustomUnit(customUnitInput.trim());
+    }
+  };
+
+  const handleUnitChange = (value: string) => {
+    if (value === 'custom') {
+      setShowCustomUnitInput(true);
+    } else {
+      setFormData({ ...formData, unit: value });
+      setShowCustomUnitInput(false);
     }
   };
 
@@ -303,24 +341,51 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Unit of Measurement *</label>
-            <select
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            >
-              <option value="">Select unit</option>
-              <option value="Tons">Tons</option>
-              <option value="Cubic Meters">Cubic Meters</option>
-              <option value="Liters">Liters</option>
-              <option value="Pieces">Pieces</option>
-              <option value="Meters">Meters</option>
-              <option value="Square Meters">Square Meters</option>
-              <option value="Kilograms">Kilograms</option>
-              <option value="Bags">Bags</option>
-              <option value="Rolls">Rolls</option>
-              <option value="Sheets">Sheets</option>
-            </select>
+            <div className="space-y-2">
+              <select
+                value={formData.unit}
+                onChange={(e) => handleUnitChange(e.target.value)}
+                className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select unit</option>
+                {availableUnits.map(unit => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+                <option value="custom">+ Add Custom Unit</option>
+              </select>
+
+              {showCustomUnitInput && (
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={customUnitInput}
+                    onChange={(e) => setCustomUnitInput(e.target.value)}
+                    placeholder="Enter custom unit name"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddCustomUnit()}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomUnit}
+                    disabled={!customUnitInput.trim()}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCustomUnitInput(false);
+                      setCustomUnitInput('');
+                    }}
+                    className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>

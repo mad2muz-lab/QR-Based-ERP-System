@@ -15,6 +15,8 @@ import AuditLogViewer from './AuditLogViewer';
 import CostBreakdownManager from './CostBreakdownManager';
 import PreventiveMaintenanceConfig from './PreventiveMaintenanceConfig';
 import PreventiveMaintenanceTest from './PreventiveMaintenanceTest';
+import UnitManagement from './UnitManagement';
+import EnhancedMaintenanceDashboard from './EnhancedMaintenanceDashboard';
 
 
 interface AdminPanelProps {
@@ -32,7 +34,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'departments' | 'equipment' | 'materials' | 'companies' | 'auditlog' | 'costbreakdown' | 'preventiveMaintenance' | 'preventiveMaintenanceTest'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'departments' | 'equipment' | 'materials' | 'companies' | 'auditlog' | 'costbreakdown' | 'preventiveMaintenance' | 'preventiveMaintenanceTest' | 'units'>('users');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
@@ -506,6 +508,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     { id: 'departments', label: 'Departments' },
     { id: 'equipment', label: 'Equipment' },
     { id: 'materials', label: 'Materials' },
+    { id: 'units', label: 'Unit Management' },
     { id: 'companies', label: 'Companies' },
     { id: 'preventiveMaintenance', label: 'Preventive Maintenance Config' },
     { id: 'preventiveMaintenanceTest', label: 'PM System Test' },
@@ -1012,12 +1015,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
       {activeTab === 'preventiveMaintenance' && (
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <Wrench className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-semibold text-gray-900">Preventive Maintenance Configuration</h2>
-            </div>
-          </div>
           <PreventiveMaintenanceConfig />
         </div>
       )}
@@ -1032,6 +1029,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <CostBreakdownManager />
         </div>
+      )}
+
+      {activeTab === 'units' && (
+        <UnitManagement />
       )}
 
       {/* Create/Edit User Modal */}

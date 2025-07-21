@@ -730,4 +730,372 @@ export class OfflineDataManager {
       return DataStorage.loadPreventiveMaintenanceConfigs();
     }
   }
+
+  // Class Maintenance Types Operations
+  static async createClassMaintenanceType(classType: any): Promise<string> {
+    try {
+      // Save locally first
+      const classTypes = DataStorage.loadClassMaintenanceTypes();
+      classTypes.push(classType);
+      DataStorage.saveClassMaintenanceTypes(classTypes);
+
+      // Queue for sync
+      const operationId = offlineSyncManager.queueOperation({
+        type: 'create',
+        entityType: 'class_maintenance_type',
+        entityId: classType.id,
+        data: classType,
+        priority: 'high'
+      });
+
+      return operationId;
+    } catch (error) {
+      console.error('Failed to create class maintenance type:', error);
+      throw error;
+    }
+  }
+
+  static async updateClassMaintenanceType(classTypeId: string, updateData: any): Promise<string> {
+    try {
+      // Update locally first
+      const classTypes = DataStorage.loadClassMaintenanceTypes();
+      const index = classTypes.findIndex(ct => ct.id === classTypeId);
+      
+      if (index !== -1) {
+        classTypes[index] = { ...classTypes[index], ...updateData, updated_at: new Date().toISOString() };
+        DataStorage.saveClassMaintenanceTypes(classTypes);
+
+        // Queue for sync
+        const operationId = offlineSyncManager.queueOperation({
+          type: 'update',
+          entityType: 'class_maintenance_type',
+          entityId: classTypeId,
+          data: classTypes[index],
+          priority: 'medium'
+        });
+
+        return operationId;
+      } else {
+        throw new Error('Class maintenance type not found');
+      }
+    } catch (error) {
+      console.error('Failed to update class maintenance type:', error);
+      throw error;
+    }
+  }
+
+  static async deleteClassMaintenanceType(classTypeId: string): Promise<string> {
+    try {
+      // Delete locally first
+      const classTypes = DataStorage.loadClassMaintenanceTypes();
+      const filteredClassTypes = classTypes.filter(ct => ct.id !== classTypeId);
+      DataStorage.saveClassMaintenanceTypes(filteredClassTypes);
+
+      // Queue for sync
+      const operationId = offlineSyncManager.queueOperation({
+        type: 'delete',
+        entityType: 'class_maintenance_type',
+        entityId: classTypeId,
+        data: { id: classTypeId },
+        priority: 'medium'
+      });
+
+      return operationId;
+    } catch (error) {
+      console.error('Failed to delete class maintenance type:', error);
+      throw error;
+    }
+  }
+
+  static async getAllClassMaintenanceTypes(): Promise<any[]> {
+    try {
+      // Try to get from Supabase first
+      const { SupabaseDataService } = await import('./supabaseDataService');
+      const classTypes = await SupabaseDataService.getAllClassMaintenanceTypes();
+      if (classTypes && classTypes.length > 0) {
+        // Update local storage with fresh data from database
+        DataStorage.saveClassMaintenanceTypes(classTypes);
+        return classTypes;
+      }
+    } catch (error) {
+      console.warn('Failed to get class maintenance types from Supabase, using local storage:', error);
+    }
+
+    // Fallback to local storage
+    try {
+      const classTypes = DataStorage.loadClassMaintenanceTypes();
+      return classTypes;
+    } catch (error) {
+      console.error('Failed to load class maintenance types from local storage:', error);
+      return [];
+    }
+  }
+
+  // Maintenance Material Request Operations
+  static async createMaintenanceMaterialRequest(requestData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      // Try to save to Supabase first
+      const { SupabaseDataService } = await import('./supabaseDataService');
+      const result = await SupabaseDataService.createMaintenanceMaterialRequest(requestData);
+      if (result.success) {
+        return result;
+      }
+    } catch (error) {
+      console.warn('Failed to save maintenance material request to Supabase, using local storage:', error);
+    }
+
+    // Fallback to local storage
+    try {
+      const requests = DataStorage.loadMaintenanceMaterialRequests();
+      const newRequest = {
+        ...requestData,
+        id: `mmr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      requests.push(newRequest);
+      DataStorage.saveMaintenanceMaterialRequests(requests);
+      
+      // Queue for sync
+      offlineSyncManager.queueOperation({
+        type: 'create',
+        entityType: 'maintenance_material_request',
+        entityId: newRequest.id!,
+        data: newRequest,
+        priority: 'high'
+      });
+      
+      return { success: true, data: newRequest };
+    } catch (error) {
+      console.error('Failed to save maintenance material request to local storage:', error);
+      return { success: false, error: 'Failed to save maintenance material request' };
+    }
+  }
+
+  static async getAllMaintenanceMaterialRequests(): Promise<any[]> {
+    try {
+      // Try to get from Supabase first
+      const { SupabaseDataService } = await import('./supabaseDataService');
+      const requests = await SupabaseDataService.getAllMaintenanceMaterialRequests();
+      if (requests.length > 0) {
+        return requests;
+      }
+    } catch (error) {
+      console.warn('Failed to get maintenance material requests from Supabase, using local storage:', error);
+    }
+
+    // Fallback to local storage
+    try {
+      const requests = DataStorage.loadMaintenanceMaterialRequests();
+      return requests;
+    } catch (error) {
+      console.error('Failed to load maintenance material requests from local storage:', error);
+      return [];
+    }
+  }
+
+  static async getMaintenanceMaterialRequest(requestId: string): Promise<any | null> {
+    try {
+      const requests = await this.getAllMaintenanceMaterialRequests();
+      return requests.find(r => r.id === requestId) || null;
+    } catch (error) {
+      console.error('Failed to get maintenance material request:', error);
+      return null;
+    }
+  }
+
+  static async updateMaintenanceMaterialRequest(requestId: string, updateData: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Try to update in Supabase first
+      const { SupabaseDataService } = await import('./supabaseDataService');
+      const result = await SupabaseDataService.updateMaintenanceMaterialRequest(requestId, updateData);
+      if (result.success) {
+        return result;
+      }
+    } catch (error) {
+      console.warn('Failed to update maintenance material request in Supabase, using local storage:', error);
+    }
+
+    // Fallback to local storage
+    try {
+      const requests = DataStorage.loadMaintenanceMaterialRequests();
+      const index = requests.findIndex(r => r.id === requestId);
+      if (index !== -1) {
+        requests[index] = { ...requests[index], ...updateData, updated_at: new Date().toISOString() };
+        DataStorage.saveMaintenanceMaterialRequests(requests);
+        
+        // Queue for sync
+        offlineSyncManager.queueOperation({
+          type: 'update',
+          entityType: 'maintenance_material_request',
+          entityId: requests[index].id,
+          data: requests[index],
+          priority: 'medium'
+        });
+        
+        return { success: true };
+      }
+      return { success: false, error: 'Maintenance material request not found' };
+    } catch (error) {
+      console.error('Failed to update maintenance material request in local storage:', error);
+      return { success: false, error: 'Failed to update maintenance material request' };
+    }
+  }
+
+  // Maintenance Material Request Item Operations
+  static async createMaintenanceMaterialRequestItem(itemData: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      // Try to save to Supabase first
+      const { SupabaseDataService } = await import('./supabaseDataService');
+      const result = await SupabaseDataService.createMaintenanceMaterialRequestItem(itemData);
+      if (result.success) {
+        return result;
+      }
+    } catch (error) {
+      console.warn('Failed to save maintenance material request item to Supabase, using local storage:', error);
+    }
+
+    // Fallback to local storage
+    try {
+      const items = DataStorage.loadMaintenanceMaterialRequestItems();
+      const newItem = {
+        ...itemData,
+        id: `mmri-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      items.push(newItem);
+      DataStorage.saveMaintenanceMaterialRequestItems(items);
+      
+      // Queue for sync
+      offlineSyncManager.queueOperation({
+        type: 'create',
+        entityType: 'maintenance_material_request_item',
+        entityId: newItem.id!,
+        data: newItem,
+        priority: 'high'
+      });
+      
+      return { success: true, data: newItem };
+    } catch (error) {
+      console.error('Failed to save maintenance material request item to local storage:', error);
+      return { success: false, error: 'Failed to save maintenance material request item' };
+    }
+  }
+
+  static async getMaintenanceMaterialRequestItem(itemId: string): Promise<any | null> {
+    try {
+      const items = await this.getAllMaintenanceMaterialRequestItems();
+      return items.find(item => item.id === itemId);
+    } catch (error) {
+      console.error('Failed to get maintenance material request item:', error);
+      return null;
+    }
+  }
+
+  static async getAllMaintenanceMaterialRequestItems(): Promise<any[]> {
+    try {
+      // Try to get from Supabase first
+      const { SupabaseDataService } = await import('./supabaseDataService');
+      const items = await SupabaseDataService.getAllMaintenanceMaterialRequestItems();
+      if (items.length > 0) {
+        return items;
+      }
+    } catch (error) {
+      console.warn('Failed to get maintenance material request items from Supabase, using local storage:', error);
+    }
+
+    // Fallback to local storage
+    try {
+      const items = DataStorage.loadMaintenanceMaterialRequestItems();
+      return items;
+    } catch (error) {
+      console.error('Failed to load maintenance material request items from local storage:', error);
+      return [];
+    }
+  }
+
+  static async updateMaintenanceMaterialRequestItem(itemId: string, updateData: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Try to update in Supabase first
+      const { SupabaseDataService } = await import('./supabaseDataService');
+      const result = await SupabaseDataService.updateMaintenanceMaterialRequestItem(itemId, updateData);
+      if (result.success) {
+        return result;
+      }
+    } catch (error) {
+      console.warn('Failed to update maintenance material request item in Supabase, using local storage:', error);
+    }
+
+    // Fallback to local storage
+    try {
+      const items = DataStorage.loadMaintenanceMaterialRequestItems();
+      const index = items.findIndex(item => item.id === itemId);
+      if (index !== -1) {
+        items[index] = { ...items[index], ...updateData, updated_at: new Date().toISOString() };
+        DataStorage.saveMaintenanceMaterialRequestItems(items);
+        
+        // Queue for sync
+        offlineSyncManager.queueOperation({
+          type: 'update',
+          entityType: 'maintenance_material_request_item',
+          entityId: items[index].id,
+          data: items[index],
+          priority: 'medium'
+        });
+        
+        return { success: true };
+      }
+      return { success: false, error: 'Maintenance material request item not found' };
+    } catch (error) {
+      console.error('Failed to update maintenance material request item in local storage:', error);
+      return { success: false, error: 'Failed to update maintenance material request item' };
+    }
+  }
+
+  // Time Logs Operations (for equipment usage calculation)
+  static async getAllTimeLogs(): Promise<any[]> {
+    try {
+      // Try to get from Supabase first
+      const { SupabaseDataService } = await import('./supabaseDataService');
+      const logs = await SupabaseDataService.getAllTimeLogs();
+      if (logs.length > 0) {
+        return logs;
+      }
+    } catch (error) {
+      console.warn('Failed to get time logs from Supabase, using local storage:', error);
+    }
+
+    // Fallback to local storage
+    try {
+      const logs = DataStorage.loadTimeLogs();
+      return logs;
+    } catch (error) {
+      console.error('Failed to load time logs from local storage:', error);
+      return [];
+    }
+  }
+
+  // Material Operations (for inventory integration)
+  static async getAllMaterials(): Promise<any[]> {
+    try {
+      // Try to get from Supabase first
+      const { SupabaseDataService } = await import('./supabaseDataService');
+      const materials = await SupabaseDataService.getAllMaterials();
+      if (materials.length > 0) {
+        return materials;
+      }
+    } catch (error) {
+      console.warn('Failed to get materials from Supabase, using local storage:', error);
+    }
+
+    // Fallback to local storage
+    try {
+      const materials = DataStorage.loadMaterials();
+      return materials;
+    } catch (error) {
+      console.error('Failed to load materials from local storage:', error);
+      return [];
+    }
+  }
 }

@@ -37,7 +37,7 @@ export class MaintenanceService {
       parts_used: maintenanceData.parts_used || '',
       start_date: maintenanceData.start_date || now.toISOString(),
       completion_date: maintenanceData.completion_date,
-      completed_by: maintenanceData.completed_by,
+      completed_by: maintenanceData.completed_by, // user_id
       estimated_duration_hours: maintenanceData.estimated_duration_hours || 1,
       actual_duration_hours: maintenanceData.actual_duration_hours,
       cost: maintenanceData.cost || 0,
@@ -76,7 +76,7 @@ export class MaintenanceService {
       frequency_days: scheduleData.frequency_days || 30,
       last_maintenance_date: scheduleData.last_maintenance_date,
       next_maintenance_date: scheduleData.next_maintenance_date!,
-      assigned_technician: scheduleData.assigned_technician || '',
+      assigned_technician: scheduleData.assigned_technician, // user_id
       priority: scheduleData.priority || 'medium',
       description: scheduleData.description || '',
       is_active: scheduleData.is_active !== false,
@@ -118,7 +118,7 @@ export class MaintenanceService {
       updateData.completion_date = now.toISOString();
       updateData.actual_duration_hours = completionData.actual_duration_hours;
       updateData.cost = completionData.cost;
-      updateData.completed_by = completionData.completed_by;
+      updateData.completed_by = completionData.completed_by; // user_id
       updateData.technician_notes = completionData.technician_notes;
       updateData.parts_used = completionData.parts_used;
     }

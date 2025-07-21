@@ -6,7 +6,7 @@ import { supabase } from './supabaseClient';
 export interface SyncOperation {
   id: string;
   type: 'create' | 'update' | 'delete';
-  entityType: 'employee' | 'equipment' | 'material' | 'site' | 'timeLog' | 'employeeLog' | 'equipmentLog' | 'materialLog' | 'equipment_maintenance_logs' | 'equipment_maintenance_schedules' | 'preventive_maintenance_config';
+  entityType: 'employee' | 'equipment' | 'material' | 'site' | 'timeLog' | 'employeeLog' | 'equipmentLog' | 'materialLog' | 'equipment_maintenance_logs' | 'equipment_maintenance_schedules' | 'preventive_maintenance_config' | 'class_maintenance_type' | 'maintenance_material_request' | 'maintenance_material_request_item';
   entityId: string;
   data: any;
   timestamp: string;
@@ -154,15 +154,16 @@ export class OfflineSyncManager {
     this.notifyStatusChange();
   
     try {
-      // Sort by entity type priority (entities before logs), then by priority and timestamp
-      const sortedQueue = this.syncQueue.sort((a, b) => {
-        // Entity type priority: entities first, then logs
-        const entityTypeOrder = {
-          'employee': 4, 'equipment': 4, 'material': 4, 'site': 4,
-          'employeeLog': 1, 'equipmentLog': 1, 'materialLog': 1, 'timeLog': 1,
-          'equipment_maintenance_logs': 1, 'equipment_maintenance_schedules': 2,
-          'preventive_maintenance_config': 3
-        };
+              // Sort by entity type priority (entities before logs), then by priority and timestamp
+        const sortedQueue = this.syncQueue.sort((a, b) => {
+          // Entity type priority: entities first, then logs
+          const entityTypeOrder = {
+            'employee': 4, 'equipment': 4, 'material': 4, 'site': 4,
+            'employeeLog': 1, 'equipmentLog': 1, 'materialLog': 1, 'timeLog': 1,
+            'equipment_maintenance_logs': 1, 'equipment_maintenance_schedules': 2,
+            'preventive_maintenance_config': 3, 'class_maintenance_type': 3,
+            'maintenance_material_request': 3, 'maintenance_material_request_item': 3
+          };
         const entityTypeDiff = (entityTypeOrder[b.entityType] || 2) - (entityTypeOrder[a.entityType] || 2);
         if (entityTypeDiff !== 0) return entityTypeDiff;
         

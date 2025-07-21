@@ -3,6 +3,9 @@ import { DataStorage } from '../../utils/dataStorage';
 import { SupabaseDataService } from '../../utils/supabaseDataService';
 import { AuthManager } from '../../utils/authUtils';
 import MaintenancePage from './MaintenancePage';
+import InventoryMaintenanceRequests from '../admin/InventoryMaintenanceRequests';
+import MaintenanceWorkflowDashboard from '../admin/MaintenanceWorkflowDashboard';
+import MaintenanceNotifications from '../admin/MaintenanceNotifications';
 import { Building2, Wrench, Users, Truck, Shield, Settings, Package, Briefcase } from 'lucide-react';
 
 interface Department {
@@ -81,11 +84,53 @@ const DepartmentsPage: React.FC = () => {
     
     // Special handling for maintenance department
     if (departmentName.includes('maintenance')) {
-      return <MaintenancePage />;
+      return (
+        <div className="space-y-6">
+          <MaintenancePage />
+        </div>
+      );
+    }
+    
+    // Special handling for inventory department
+    if (departmentName.includes('inventory')) {
+      return (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Inventory Content */}
+            <div className="lg:col-span-2">
+              <InventoryMaintenanceRequests />
+            </div>
+            
+            {/* Notifications Sidebar */}
+            <div className="lg:col-span-1">
+              <MaintenanceNotifications maxNotifications={8} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Special handling for procurement department
+    if (departmentName.includes('procurement')) {
+      return (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Procurement Content */}
+            <div className="lg:col-span-2">
+              <MaintenanceWorkflowDashboard />
+            </div>
+            
+            {/* Notifications Sidebar */}
+            <div className="lg:col-span-1">
+              <MaintenanceNotifications maxNotifications={8} />
+            </div>
+          </div>
+        </div>
+      );
     }
     
     // Placeholder content for other departments
-    return (
+  return (
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center mb-4">
@@ -110,7 +155,7 @@ const DepartmentsPage: React.FC = () => {
                 <p className="text-2xl font-bold text-green-600">0</p>
               </div>
             </div>
-          </div>
+        </div>
 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
@@ -165,10 +210,10 @@ const DepartmentsPage: React.FC = () => {
             Detailed {department.name} department functionality is under development. 
             This will include department-specific data, reports, and management tools.
           </p>
-        </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   if (loading) {
     return (
@@ -225,10 +270,10 @@ const DepartmentsPage: React.FC = () => {
               return renderDepartmentContent(activeDepartment);
             }
             return (
-              <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500">
                 <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p>No department selected</p>
-              </div>
+          </div>
             );
           })()}
         </div>

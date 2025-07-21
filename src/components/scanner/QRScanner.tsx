@@ -78,43 +78,7 @@ const QRScanner: React.FC = () => {
         fetchData('materials'),
       ]);
       
-      // If no equipment exists, create some test equipment
-      if (equipment.length === 0) {
-        console.log('No equipment found, creating test equipment...');
-        const testEquipment: Equipment[] = [
-          {
-            id: 'eqp-001',
-            custom_equipment_id: 'EQP-TEST-001',
-            name: 'Test Excavator',
-            type: 'Excavator',
-            model: 'CAT 320',
-            site: 'Riyadh Site',
-            qrCode: 'EQP-TEST-001',
-            status: 'available' as const,
-            operational_status: 'working' as const,
-            createdAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString()
-          },
-          {
-            id: 'eqp-002',
-            custom_equipment_id: 'EQP-TEST-002',
-            name: 'Test Bulldozer',
-            type: 'Bulldozer',
-            model: 'CAT D6',
-            site: 'Jeddah Site',
-            qrCode: 'EQP-TEST-002',
-            status: 'available' as const,
-            operational_status: 'working' as const,
-            createdAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString()
-          }
-        ];
-        
-        DataStorage.saveEquipment(testEquipment);
-        setAllEntities({ employees, equipment: testEquipment, materials });
-      } else {
-        setAllEntities({ employees, equipment, materials });
-      }
+      setAllEntities({ employees, equipment, materials });
     })();
   }, []);
 

@@ -2,326 +2,25 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MaintenanceDataLoader } from '../../utils/maintenanceDataLoader';
 import { AuthManager } from '../../utils/authUtils';
 import { DataStorage } from '../../utils/dataStorage';
-import { Equipment, EquipmentMaintenanceLog, EquipmentMaintenanceSchedule } from '../../types';
+import { Equipment, EquipmentMaintenanceLog, EquipmentMaintenanceSchedule, MaintenanceMaterialRequest } from '../../types';
 import { EquipmentMaintenanceService } from '../../utils/equipmentMaintenanceService';
-import { RefreshCw, AlertCircle, CheckCircle, Database, Wrench, Clock, Search, Filter, Edit, X, CheckSquare, Square, Eye, BarChart3, Calendar, TrendingUp } from 'lucide-react';
+import { PreventiveMaintenanceService } from '../../utils/preventiveMaintenanceService';
+import { Bell, RefreshCw, AlertCircle, CheckCircle, Database, Wrench, Clock, Search, Filter, Edit, X, CheckSquare, Eye, BarChart3, Calendar, TrendingUp } from 'lucide-react';
 import ActivityTimer from '../common/ActivityTimer';
 import TotalDurationDisplay from '../common/TotalDurationDisplay';
+import { OfflineDataManager } from '../../utils/offlineDataManager';
+import MaintenanceActionModal from '../maintenance/MaintenanceActionModal';
+import StartMaintenanceModal from '../maintenance/StartMaintenanceModal';
+import MaintenanceDetailsModal from '../maintenance/MaintenanceDetailsModal';
+import CompleteMaintenanceModal from '../maintenance/CompleteMaintenanceModal';
+import EquipmentMaintenanceTable from '../maintenance/EquipmentMaintenanceTable';
+import MaintenanceRequestsTable from '../maintenance/MaintenanceRequestsTable';
+import InventoryMaterialRequests from '../maintenance/InventoryMaterialRequests';
 
 // Maintenance Action Modal Component
-interface MaintenanceActionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  maintenanceLog: EquipmentMaintenanceLog | null;
-  equipment: Equipment | null;
-  onAction: (action: 'complete' | 'cancel' | 'edit' | 'status_update', data?: any) => Promise<void>;
-}
 
-const MaintenanceActionModal: React.FC<MaintenanceActionModalProps> = ({
-  isOpen,
-  onClose,
-  maintenanceLog,
-  equipment,
-  onAction
-}) => {
-  const [action, setAction] = useState<'complete' | 'cancel' | 'edit'>('complete');
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    actual_duration_hours: '',
-    cost: '',
-    technician_notes: '',
-    parts_used: '',
-    description: maintenanceLog?.description || ''
-  });
-
-  useEffect(() => {
-    if (maintenanceLog) {
-      setFormData({
-        actual_duration_hours: maintenanceLog.actual_duration_hours?.toString() || '',
-        cost: maintenanceLog.cost?.toString() || '',
-        technician_notes: maintenanceLog.technician_notes || '',
-        parts_used: maintenanceLog.parts_used || '',
-        description: maintenanceLog.description || ''
-      });
-    }
-  }, [maintenanceLog]);
-
-  const handleSubmit = async () => {
-    if (!maintenanceLog) return;
-    
-    setLoading(true);
-    try {
-      let data = {};
-      
-      if (action === 'complete') {
-        data = {
-          actual_duration_hours: parseFloat(formData.actual_duration_hours) || undefined,
-          cost: parseFloat(formData.cost) || undefined,
-          technician_notes: formData.technician_notes,
-          parts_used: formData.parts_used
-        };
-      } else if (action === 'edit') {
-        data = {
-          description: formData.description,
-          technician_notes: formData.technician_notes
-        };
-      }
-      
-      await onAction(action, data);
-      onClose();
-    } catch (error) {
-      console.error('Action failed:', error);
-      alert(`Failed to ${action} maintenance: ${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!isOpen || !maintenanceLog || !equipment) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900">
-            {action === 'complete' ? 'Complete Maintenance' : 
-             action === 'cancel' ? 'Cancel Maintenance' : 'Edit Maintenance'}
-          </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Equipment Info */}
-        <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 className="font-medium text-gray-900 mb-2">Equipment Information</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-600">Name:</span>
-              <span className="ml-2 font-medium">{equipment.name}</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Type:</span>
-              <span className="ml-2 font-medium">{equipment.type}</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Maintenance Type:</span>
-              <span className="ml-2 font-medium">{maintenanceLog.maintenance_type}</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Status:</span>
-              <span className="ml-2 font-medium">{maintenanceLog.status}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Tabs */}
-        <div className="flex space-x-1 mb-4">
-          <button
-            onClick={() => setAction('complete')}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              action === 'complete' 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <CheckSquare className="w-4 h-4 inline mr-1" />
-            Complete
-          </button>
-          <button
-            onClick={() => setAction('edit')}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              action === 'edit' 
-                ? 'bg-blue-100 text-blue-800' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <Edit className="w-4 h-4 inline mr-1" />
-            Edit
-          </button>
-          <button
-            onClick={() => setAction('cancel')}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              action === 'cancel' 
-                ? 'bg-red-100 text-red-800' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <X className="w-4 h-4 inline mr-1" />
-            Cancel
-          </button>
-        </div>
-
-        {/* Quick Status Update */}
-        {maintenanceLog.status !== 'completed' && maintenanceLog.status !== 'cancelled' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">Quick Status Update</h3>
-            <div className="flex space-x-2">
-              {maintenanceLog.status === 'scheduled' && (
-                <button
-                  onClick={async () => {
-                    try {
-                      await onAction('status_update', { status: 'in_progress' });
-                      onClose();
-                    } catch (error) {
-                      console.error('Status update failed:', error);
-                    }
-                  }}
-                  className="px-3 py-1 bg-orange-100 text-orange-800 text-xs rounded-md hover:bg-orange-200"
-                >
-                  Start Work
-                </button>
-              )}
-              {maintenanceLog.status === 'in_progress' && (
-                <button
-                  onClick={async () => {
-                    try {
-                      await onAction('status_update', { status: 'completed' });
-                      onClose();
-                    } catch (error) {
-                      console.error('Status update failed:', error);
-                    }
-                  }}
-                  className="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-md hover:bg-green-200"
-                >
-                  Mark Complete
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Form Fields */}
-        {action === 'complete' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Actual Duration (hours)
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={formData.actual_duration_hours}
-                  onChange={(e) => setFormData({...formData, actual_duration_hours: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., 2.5"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cost ($)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.cost}
-                  onChange={(e) => setFormData({...formData, cost: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., 150.00"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Parts Used
-              </label>
-              <textarea
-                value={formData.parts_used}
-                onChange={(e) => setFormData({...formData, parts_used: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                rows={2}
-                placeholder="List parts used in maintenance..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Technician Notes
-              </label>
-              <textarea
-                value={formData.technician_notes}
-                onChange={(e) => setFormData({...formData, technician_notes: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-                placeholder="Detailed notes about the maintenance work..."
-              />
-            </div>
-          </div>
-        )}
-
-        {action === 'edit' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-                placeholder="Update maintenance description..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Technician Notes
-              </label>
-              <textarea
-                value={formData.technician_notes}
-                onChange={(e) => setFormData({...formData, technician_notes: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-                placeholder="Update technician notes..."
-              />
-            </div>
-          </div>
-        )}
-
-        {action === 'cancel' && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-            <div className="flex">
-              <AlertCircle className="w-5 h-5 text-yellow-400 mr-2" />
-              <div>
-                <h3 className="text-sm font-medium text-yellow-800">Cancel Maintenance</h3>
-                <p className="text-sm text-yellow-700 mt-1">
-                  Are you sure you want to cancel this maintenance request? This action cannot be undone.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className={`px-4 py-2 text-white rounded-md ${
-              action === 'complete' ? 'bg-green-600 hover:bg-green-700' :
-              action === 'edit' ? 'bg-blue-600 hover:bg-blue-700' :
-              'bg-red-600 hover:bg-red-700'
-            } disabled:opacity-50`}
-          >
-            {loading ? 'Processing...' : 
-             action === 'complete' ? 'Complete Maintenance' :
-             action === 'edit' ? 'Update Maintenance' :
-             'Cancel Maintenance'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const MaintenancePage: React.FC = () => {
-  // Removed activeTab state - no longer needed with unified design
   const [departments, setDepartments] = useState<any[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [maintenanceLogs, setMaintenanceLogs] = useState<EquipmentMaintenanceLog[]>([]);
@@ -336,6 +35,9 @@ const MaintenancePage: React.FC = () => {
   const [diagnosticData, setDiagnosticData] = useState<any>(null);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [forceRefreshLoading, setForceRefreshLoading] = useState(false);
+  const [materialRequests, setMaterialRequests] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   
   // Maintenance action modal state
   const [maintenanceModal, setMaintenanceModal] = useState<{
@@ -348,31 +50,95 @@ const MaintenancePage: React.FC = () => {
     equipment: null
   });
 
+  // Add state for modals
+  const [activeSchedule, setActiveSchedule] = useState<EquipmentMaintenanceSchedule | null>(null);
+  const [modalType, setModalType] = useState<'start' | 'details' | 'complete' | null>(null);
+
+  // Add state for class materials
+  const [classMaterials, setClassMaterials] = useState<any[]>([]);
+  const [detectedClass, setDetectedClass] = useState<'A' | 'B' | 'C' | null>(null);
+
+  // Handler functions
+  const handleStartMaintenance = async (schedule: EquipmentMaintenanceSchedule) => {
+    try {
+      let maintenanceClass: 'A' | 'B' | 'C' = 'A';
+      if (schedule.description?.match(/Class B/i)) maintenanceClass = 'B';
+      if (schedule.description?.match(/Class C/i)) maintenanceClass = 'C';
+      setDetectedClass(maintenanceClass);
+      const allClassTypes = await OfflineDataManager.getAllClassMaintenanceTypes();
+      const materialsForClass = allClassTypes.filter((item: any) => {
+        return (
+          (item.maintenance_type && item.maintenance_type.match(new RegExp(`Class ${maintenanceClass}`, 'i'))) ||
+          (item.maintenance_type && item.maintenance_type.trim().toUpperCase() === maintenanceClass)
+        );
+      });
+      setClassMaterials(materialsForClass);
+      setActiveSchedule(schedule);
+      setModalType('start');
+    } catch (error: any) {
+      console.error('Failed to start maintenance:', error);
+      addNotification({
+        type: 'error',
+        message: `Failed to start maintenance: ${error.message || 'Unknown error'}`,
+        action: 'error'
+      });
+    }
+  };
+
+  const handleViewDetails = (schedule: EquipmentMaintenanceSchedule) => {
+    setActiveSchedule(schedule);
+    setModalType('details');
+  };
+
+  const handleCompleteMaintenance = async (schedule: EquipmentMaintenanceSchedule) => {
+    try {
+      setActiveSchedule(schedule);
+      setModalType('complete');
+    } catch (error: any) {
+      console.error('Failed to open complete maintenance modal:', error);
+      addNotification({
+        type: 'error',
+        message: `Failed to open complete maintenance: ${error.message || 'Unknown error'}`,
+        action: 'error'
+      });
+    }
+  };
+
+  const closeModal = () => {
+    setActiveSchedule(null);
+    setModalType(null);
+  };
+
+  // Helper to add a notification
+  const addNotification = (notif: any) => {
+    setNotifications(prev => [{ ...notif, id: Date.now() }, ...prev]);
+  };
+
   // Enhanced data loading with comprehensive error handling
   const loadData = useCallback(async (forceRefresh = false) => {
-    console.log('🔄 [DepartmentsPage] Starting data load...', { forceRefresh });
+    console.log('🔄 [MaintenancePage] Starting data load...', { forceRefresh });
     setLoading(true);
     setError(null);
 
     try {
       // Run comprehensive diagnostic if needed
       if (forceRefresh || !diagnosticData) {
-        console.log('🔍 [DepartmentsPage] Running comprehensive diagnostic...');
+        console.log('🔍 [MaintenancePage] Running comprehensive diagnostic...');
         const diagnostic = await MaintenanceDataLoader.comprehensiveDiagnostic();
         setDiagnosticData(diagnostic);
         
         if (diagnostic.recommendations.length > 0) {
-          console.warn('⚠️ [DepartmentsPage] Diagnostic recommendations:', diagnostic.recommendations);
+          console.warn('⚠️ [MaintenancePage] Diagnostic recommendations:', diagnostic.recommendations);
         }
       }
 
       // Load departments
-      console.log('🏢 [DepartmentsPage] Loading departments...');
+      console.log('🏢 [MaintenancePage] Loading departments...');
       const departmentsData = DataStorage.loadDepartments();
       setDepartments(departmentsData);
 
       // Load equipment with enhanced error handling
-      console.log('🔧 [DepartmentsPage] Loading equipment...');
+      console.log('🔧 [MaintenancePage] Loading equipment...');
       let equipmentData: Equipment[] = [];
       try {
         const useSupabase = await AuthManager.useSupabase();
@@ -381,7 +147,7 @@ const MaintenancePage: React.FC = () => {
           if (supabase) {
             const { data, error } = await supabase.from('equipment').select('*');
             if (error) {
-              console.error('❌ [DepartmentsPage] Supabase equipment error:', error);
+              console.error('❌ [MaintenancePage] Supabase equipment error:', error);
               equipmentData = DataStorage.loadEquipment();
             } else {
               equipmentData = data || [];
@@ -393,38 +159,38 @@ const MaintenancePage: React.FC = () => {
           equipmentData = DataStorage.loadEquipment();
         }
       } catch (error: any) {
-        console.error('❌ [DepartmentsPage] Equipment load error:', error);
+        console.error('❌ [MaintenancePage] Equipment load error:', error);
         equipmentData = DataStorage.loadEquipment();
       }
       setEquipment(equipmentData);
 
       // Load maintenance logs with enhanced loader
-      console.log('📊 [DepartmentsPage] Loading maintenance logs...');
+      console.log('📊 [MaintenancePage] Loading maintenance logs...');
       const maintenanceLogsResult = await MaintenanceDataLoader.loadMaintenanceLogs(forceRefresh);
       if (maintenanceLogsResult.success) {
         setMaintenanceLogs(maintenanceLogsResult.data || []);
-        console.log('✅ [DepartmentsPage] Maintenance logs loaded:', maintenanceLogsResult.data?.length || 0);
+        console.log('✅ [MaintenancePage] Maintenance logs loaded:', maintenanceLogsResult.data?.length || 0);
       } else {
-        console.error('❌ [DepartmentsPage] Maintenance logs failed:', maintenanceLogsResult.error);
+        console.error('❌ [MaintenancePage] Maintenance logs failed:', maintenanceLogsResult.error);
         setMaintenanceLogs([]);
       }
 
       // Load maintenance schedules with enhanced loader
-      console.log('📅 [DepartmentsPage] Loading maintenance schedules...');
+      console.log('📅 [MaintenancePage] Loading maintenance schedules...');
       const maintenanceSchedulesResult = await MaintenanceDataLoader.loadMaintenanceSchedules(forceRefresh);
       if (maintenanceSchedulesResult.success) {
         setMaintenanceSchedules(maintenanceSchedulesResult.data || []);
-        console.log('✅ [DepartmentsPage] Maintenance schedules loaded:', maintenanceSchedulesResult.data?.length || 0);
+        console.log('✅ [MaintenancePage] Maintenance schedules loaded:', maintenanceSchedulesResult.data?.length || 0);
       } else {
-        console.error('❌ [DepartmentsPage] Maintenance schedules failed:', maintenanceSchedulesResult.error);
+        console.error('❌ [MaintenancePage] Maintenance schedules failed:', maintenanceSchedulesResult.error);
         setMaintenanceSchedules([]);
       }
 
       setLastRefresh(new Date());
-      console.log('✅ [DepartmentsPage] Data load completed successfully');
+      console.log('🏁 [MaintenancePage] Data load completed successfully');
 
     } catch (error: any) {
-      console.error('❌ [DepartmentsPage] Data load error:', error);
+      console.error('❌ [MaintenancePage] Data load error:', error);
       setError(`Failed to load data: ${error.message}`);
     } finally {
       setLoading(false);
@@ -433,11 +199,11 @@ const MaintenancePage: React.FC = () => {
 
   // Force refresh function
   const handleForceRefresh = async () => {
-    console.log('🔄 [DepartmentsPage] Force refresh requested...');
+    console.log('🔄 [MaintenancePage] Force refresh requested...');
     setForceRefreshLoading(true);
     try {
       const refreshResult = await MaintenanceDataLoader.forceRefresh();
-      console.log('✅ [DepartmentsPage] Force refresh completed:', refreshResult);
+      console.log('✅ [MaintenancePage] Force refresh completed:', refreshResult);
       
       // Update state with fresh data
       setMaintenanceLogs(refreshResult.maintenanceLogs.data || []);
@@ -448,7 +214,7 @@ const MaintenancePage: React.FC = () => {
       // Show success message
       alert('Force refresh completed successfully!');
     } catch (error: any) {
-      console.error('❌ [DepartmentsPage] Force refresh error:', error);
+      console.error('❌ [MaintenancePage] Force refresh error:', error);
       alert(`Force refresh failed: ${error.message}`);
     } finally {
       setForceRefreshLoading(false);
@@ -460,7 +226,7 @@ const MaintenancePage: React.FC = () => {
     if (!maintenanceModal.maintenanceLog) return;
 
     try {
-      console.log(`🔄 [DepartmentsPage] Performing maintenance action: ${action}`, data);
+      console.log(`🔄 [MaintenancePage] Performing maintenance action: ${action}`, data);
 
       if (action === 'complete') {
         const result = await EquipmentMaintenanceService.completeMaintenance(
@@ -504,7 +270,7 @@ const MaintenancePage: React.FC = () => {
       await loadData(true);
       
     } catch (error: any) {
-      console.error(`❌ [DepartmentsPage] Maintenance action failed:`, error);
+      console.error(`❌ [MaintenancePage] Maintenance action failed:`, error);
       alert(`Failed to ${action} maintenance: ${error.message}`);
     }
   };
@@ -533,7 +299,7 @@ const MaintenancePage: React.FC = () => {
 
     // Set up auto-refresh every 30 seconds
     const interval = setInterval(() => {
-      console.log('🔄 [DepartmentsPage] Auto-refresh triggered...');
+      console.log('🔄 [MaintenancePage] Auto-refresh triggered...');
       loadData();
     }, 30000);
 
@@ -545,6 +311,69 @@ const MaintenancePage: React.FC = () => {
       }
     };
   }, [loadData]);
+
+  // Load material requests
+  useEffect(() => {
+    const loadMaterialRequests = async () => {
+      const requests = await OfflineDataManager.getAllMaintenanceMaterialRequests();
+      setMaterialRequests(requests);
+    };
+    loadMaterialRequests();
+  }, []);
+
+  // Handler for issuing materials
+  const handleIssueMaterials = async (request: any) => {
+    try {
+      const currentUser = await AuthManager.getCurrentUser();
+      for (const item of request.items || []) {
+        const allMaterials = DataStorage.loadMaterials();
+        const matIdx = allMaterials.findIndex((m: any) => m.name === item.material_name);
+        if (matIdx !== -1) {
+          allMaterials[matIdx].quantity = Math.max(0, (allMaterials[matIdx].quantity || 0) - (item.quantity_requested || 0));
+          DataStorage.saveMaterials(allMaterials);
+        }
+      }
+      await OfflineDataManager.updateMaintenanceMaterialRequest(request.id, { 
+        status: 'pending_service',
+        updated_by: currentUser?.id || 'system'
+      });
+      await loadData(true);
+      addNotification({
+        type: 'issued',
+        message: `Materials issued for ${request.equipment_name}`,
+        action: 'pending_service',
+        requestId: request.id
+      });
+    } catch (error: any) {
+      console.error('Failed to issue materials:', error);
+      addNotification({
+        type: 'error',
+        message: `Failed to issue materials: ${error.message || 'Unknown error'}`,
+        action: 'error'
+      });
+    }
+  };
+
+  // Handler for marking as ready to use
+  const handleReadyToUse = async (request: any) => {
+    try {
+      await OfflineDataManager.updateMaintenanceMaterialRequest(request.id, { status: 'completed' });
+      await loadData(true);
+      addNotification({
+        type: 'ready',
+        message: `Maintenance marked as Ready to Use for ${request.equipment_name}`,
+        action: 'completed',
+        requestId: request.id
+      });
+    } catch (error: any) {
+      console.error('Failed to mark as ready to use:', error);
+      addNotification({
+        type: 'error',
+        message: `Failed to mark as ready: ${error.message || 'Unknown error'}`,
+        action: 'error'
+      });
+    }
+  };
 
   // Enhanced filtering and enrichment
   const getFilteredAndEnrichedData = () => {
@@ -600,17 +429,12 @@ const MaintenancePage: React.FC = () => {
 
     // Filter equipment to only show those that need maintenance
     const equipmentNeedingMaintenance = enrichedEquipment.filter(eq => {
-      // Equipment with 'maintenance' status
       const hasMaintenanceStatus = eq.status === 'maintenance';
-      
-      // Equipment with active maintenance logs (in_progress or scheduled)
       const hasActiveMaintenance = eq.currentMaintenance || 
         maintenanceLogs.some((log: EquipmentMaintenanceLog) => 
           log.equipment_id === eq.id && 
           (log.status === 'in_progress' || log.status === 'scheduled')
         );
-      
-      // Equipment with upcoming maintenance schedules
       const hasUpcomingMaintenance = maintenanceSchedules.some((schedule: EquipmentMaintenanceSchedule) => 
         schedule.equipment_id === eq.id && 
         schedule.is_active && 
@@ -627,7 +451,9 @@ const MaintenancePage: React.FC = () => {
         ...log,
         equipment_name: relatedEquipment?.name || log.equipment_name || 'Unknown Equipment',
         equipment_type: relatedEquipment?.type || log.equipment_type || 'Unknown Type',
-        equipment_site: relatedEquipment?.site || 'Unknown Site'
+        equipment_site: relatedEquipment?.site || log.site_assignment || 'Unknown Site',
+        assigned_technician_name: userIdToName(log.assigned_technician || ''),
+        completed_by_name: userIdToName(log.completed_by || '')
       };
     });
 
@@ -667,6 +493,14 @@ const MaintenancePage: React.FC = () => {
     return Array.from(statuses).sort();
   };
 
+  const userIdToName = (userId: string) => {
+    const users = [
+      { id: 'tech-1', name: 'Technician One' },
+      { id: 'tech-2', name: 'Technician Two' },
+    ];
+    return users.find(u => u.id === userId)?.name || 'Unknown User';
+  };
+
   if (loading && !lastRefresh) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -687,7 +521,29 @@ const MaintenancePage: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">Maintenance Dashboard</h1>
             <p className="text-gray-600">Comprehensive view of equipment maintenance, schedules, and activity</p>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-4 mb-4">
+            <button onClick={() => setShowNotifications(!showNotifications)} className="relative">
+              <Bell className="w-6 h-6 text-gray-700" />
+              {notifications.length > 0 && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">{notifications.length}</span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute z-50 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg right-0">
+                <div className="p-4 border-b font-semibold text-gray-900">Notifications</div>
+                <ul className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 && <li className="p-4 text-gray-500">No notifications</li>}
+                  {notifications.map((notif, idx) => (
+                    <li key={notif.id} className="p-4 border-b hover:bg-gray-50 cursor-pointer" onClick={() => {
+                      setShowNotifications(false);
+                    }}>
+                      <div className="font-medium">{notif.message}</div>
+                      <div className="text-xs text-gray-500">{new Date(notif.id).toLocaleTimeString()}</div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <button
               onClick={() => setShowDiagnostic(!showDiagnostic)}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center space-x-2"
@@ -808,297 +664,165 @@ const MaintenancePage: React.FC = () => {
       </div>
 
       {/* Unified Maintenance Dashboard Content */}
-        <>
-          {/* Quick Overview Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Upcoming Maintenance */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Calendar className="w-5 h-5 text-blue-600 mr-2" />
-                Upcoming Maintenance
-              </h3>
-              <div className="space-y-3">
-                {maintenanceSchedules
-                  .filter(schedule => schedule.is_active && new Date(schedule.next_maintenance_date) > new Date())
-                  .slice(0, 5)
-                  .map((schedule) => {
-                    const relatedEquipment = equipment.find(eq => eq.id === schedule.equipment_id);
-                    return (
-                      <div key={schedule.id} className="bg-gray-50 p-3 rounded-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium text-gray-900">{relatedEquipment?.name || 'Unknown Equipment'}</h4>
-                            <p className="text-sm text-gray-600">{schedule.maintenance_type} Maintenance</p>
-                            <p className="text-xs text-gray-500">Due: {new Date(schedule.next_maintenance_date).toLocaleDateString()}</p>
-                          </div>
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            schedule.priority === 'high' ? 'bg-red-100 text-red-800' :
-                            schedule.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {schedule.priority}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                {maintenanceSchedules.filter(schedule => schedule.is_active && new Date(schedule.next_maintenance_date) > new Date()).length === 0 && (
-                  <p className="text-gray-500 text-center py-4">No upcoming maintenance scheduled</p>
-                )}
-              </div>
-            </div>
-
-            {/* Recent Maintenance Activity */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <TrendingUp className="w-5 h-5 text-green-600 mr-2" />
-                Recent Maintenance Activity
-              </h3>
-              <div className="space-y-3">
-                {maintenanceLogs
-                  .filter(log => log.status === 'completed')
-                  .sort((a, b) => new Date(b.completion_date || '').getTime() - new Date(a.completion_date || '').getTime())
-                  .slice(0, 5)
-                  .map((log) => (
-                    <div key={log.id} className="bg-gray-50 p-3 rounded-lg">
+      <div>
+        {/* Quick Overview Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Upcoming Maintenance */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <Calendar className="w-5 h-5 text-blue-600 mr-2" />
+              Upcoming Maintenance
+            </h3>
+            <div className="space-y-3">
+              {maintenanceSchedules
+                .filter(schedule => schedule.is_active && new Date(schedule.next_maintenance_date) > new Date())
+                .slice(0, 5)
+                .map((schedule) => {
+                  const relatedEquipment = equipment.find(eq => eq.id === schedule.equipment_id);
+                  return (
+                    <div key={schedule.id} className="bg-gray-50 p-3 rounded-lg mb-2">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-medium text-gray-900">{log.equipment_name || 'Unknown Equipment'}</h4>
-                          <p className="text-sm text-gray-600">{log.maintenance_type} - {log.description || 'No description'}</p>
-                          <p className="text-xs text-gray-500">Completed: {new Date(log.completion_date || '').toLocaleDateString()}</p>
+                          <h4 className="font-medium text-gray-900">{relatedEquipment?.name || 'Unknown Equipment'}</h4>
+                          <p className="text-sm text-gray-600">{schedule.maintenance_type} Maintenance</p>
+                          <p className="text-xs text-gray-500">Due: {new Date(schedule.next_maintenance_date).toLocaleDateString()}</p>
                         </div>
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                          Completed
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          schedule.priority === 'high' ? 'bg-red-100 text-red-800' :
+                          schedule.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {schedule.priority}
                         </span>
                       </div>
+                      {/* Actionable Buttons */}
+                      <div className="flex space-x-2 mt-2">
+                        <button
+                          className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                          onClick={() => handleStartMaintenance(schedule)}
+                        >
+                          Start Maintenance
+                        </button>
+                        <button
+                          className="px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
+                          onClick={() => handleViewDetails(schedule)}
+                        >
+                          View Details
+                        </button>
+                        <button
+                          className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                          onClick={() => handleCompleteMaintenance(schedule)}
+                        >
+                          Complete
+                        </button>
+                      </div>
                     </div>
-                  ))}
-                {maintenanceLogs.filter(log => log.status === 'completed').length === 0 && (
-                  <p className="text-gray-500 text-center py-4">No recent maintenance activity</p>
-                )}
+                  );
+                })}
+              {maintenanceSchedules.filter(schedule => schedule.is_active && new Date(schedule.next_maintenance_date) > new Date()).length === 0 && (
+                <p className="text-gray-500 text-center py-4">No upcoming maintenance scheduled</p>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Maintenance Activity */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <TrendingUp className="w-5 h-5 text-green-600 mr-2" />
+              Recent Maintenance Activity
+            </h3>
+            <div className="space-y-3">
+              {maintenanceLogs
+                .filter(log => log.status === 'completed')
+                .sort((a, b) => new Date(b.completion_date || '').getTime() - new Date(a.completion_date || '').getTime())
+                .slice(0, 5)
+                .map((log) => (
+                  <div key={log.id} className="bg-gray-50 p-3 rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium text-gray-900">{log.equipment_name || 'Unknown Equipment'}</h4>
+                        <p className="text-sm text-gray-600">{log.maintenance_type} - {log.description || 'No description'}</p>
+                        <p className="text-xs text-gray-500">Completed: {new Date(log.completion_date || '').toLocaleDateString()}</p>
+                      </div>
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        Completed
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              {maintenanceLogs.filter(log => log.status === 'completed').length === 0 && (
+                <p className="text-gray-500 text-center py-4">No recent maintenance activity</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadowopard p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search equipment or maintenance..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
             </div>
-          </div>
-
-          {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search equipment or maintenance..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500"
-              />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All Statuses</option>
+                {getStatusOptions().map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All Types</option>
+                {getEquipmentTypes().map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setTypeFilter('all');
+                }}
+                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center justify-center space-x-2"
+              >
+                <Filter className="w-4 h-4" />
+                <span>Clear Filters</span>
+              </button>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Statuses</option>
-              {getStatusOptions().map(status => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Types</option>
-              {getEquipmentTypes().map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setStatusFilter('all');
-                setTypeFilter('all');
-              }}
-              className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center justify-center space-x-2"
-            >
-              <Filter className="w-4 h-4" />
-              <span>Clear Filters</span>
-            </button>
-          </div>
         </div>
-      </div>
 
-      {/* Equipment Under Maintenance */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Equipment Requiring Maintenance</h2>
-          <p className="text-sm text-gray-600">Equipment currently under maintenance, scheduled for maintenance, or with active maintenance requests</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Equipment</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Maintenance</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last/Next</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {enrichedEquipment.map((eq) => (
-                <tr key={eq.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{eq.name}</div>
-                      <div className="text-sm text-gray-500">ID: {eq.custom_equipment_id}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{eq.type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(eq.status)}`}>
-                      {eq.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {eq.currentMaintenance ? (
-                      <div>
-                        <div className="font-medium">{eq.currentMaintenance.maintenance_type}</div>
-                        <div className="text-gray-500">{eq.currentMaintenance.description}</div>
-                        {eq.currentMaintenance.status === 'in_progress' && (
-                          <div className="mt-1">
-                            <ActivityTimer 
-                              startTime={eq.currentMaintenance.start_date} 
-                              variant="compact" 
-                              showIcon={true}
-                            />
-                          </div>
-                        )}
-                        {eq.currentMaintenance.status === 'completed' && eq.currentMaintenance.completion_date && (
-                          <div className="mt-1">
-                            <TotalDurationDisplay 
-                              startTime={eq.currentMaintenance.start_date}
-                              endTime={eq.currentMaintenance.completion_date}
-                              variant="compact" 
-                              showIcon={true}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">No active maintenance</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div>
-                      {eq.lastMaintenance && (
-                        <div className="text-gray-500">Last: {new Date(eq.lastMaintenance).toLocaleDateString()}</div>
-                      )}
-                      {eq.nextMaintenance && (
-                        <div className="text-blue-600">Next: {new Date(eq.nextMaintenance).toLocaleDateString()}</div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {enrichedEquipment.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No equipment currently requires maintenance.
-          </div>
-        )}
-      </div>
+        {/* Equipment Under Maintenance */}
+        <EquipmentMaintenanceTable enrichedEquipment={enrichedEquipment} getStatusColor={getStatusColor} />
 
-      {/* Maintenance Requests */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Maintenance Requests</h2>
-          <p className="text-sm text-gray-600">All maintenance logs and scheduled maintenance</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Equipment</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {enrichedMaintenanceLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{log.equipment_name}</div>
-                      <div className="text-sm text-gray-500">{log.equipment_type}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.maintenance_type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(log.status)}`}>
-                        {log.status}
-                      </span>
-                      {log.status === 'in_progress' && (
-                        <ActivityTimer 
-                          startTime={log.start_date} 
-                          variant="compact" 
-                          showIcon={false}
-                        />
-                      )}
-                      {log.status === 'completed' && log.completion_date && (
-                        <TotalDurationDisplay 
-                          startTime={log.start_date}
-                          endTime={log.completion_date}
-                          variant="compact" 
-                          showIcon={false}
-                        />
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    <div className="max-w-xs truncate">{log.description || 'No description'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(log.start_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => openMaintenanceModal(log)}
-                        className="text-blue-600 hover:text-blue-900 flex items-center space-x-1"
-                        title="View/Edit Maintenance"
-                      >
-                        <Eye className="w-4 h-4" />
-                        <span className="text-xs">Actions</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {enrichedMaintenanceLogs.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No maintenance requests found matching the current filters.
-          </div>
-        )}
+        {/* Maintenance Requests */}
+        <MaintenanceRequestsTable enrichedMaintenanceLogs={enrichedMaintenanceLogs} getStatusColor={getStatusColor} openMaintenanceModal={openMaintenanceModal} />
+
+        {/* Inventory Material Requests */}
+        <InventoryMaterialRequests materialRequests={materialRequests} handleIssueMaterials={handleIssueMaterials} handleReadyToUse={handleReadyToUse} />
       </div>
 
       {/* Maintenance Action Modal */}
@@ -1109,9 +833,115 @@ const MaintenancePage: React.FC = () => {
         equipment={maintenanceModal.equipment}
         onAction={handleMaintenanceAction}
       />
-        </>
+
+      {/* Modals */}
+      {modalType === 'start' && activeSchedule && (
+        <StartMaintenanceModal
+          isOpen={modalType === 'start'}
+          onClose={closeModal}
+          schedule={activeSchedule}
+          equipment={equipment.find(eq => eq.id === activeSchedule.equipment_id) || null}
+          detectedClass={detectedClass ?? undefined}
+          classMaterials={classMaterials}
+          onComplete={async () => {
+            try {
+              const relatedEquipment = equipment.find(eq => eq.id === activeSchedule.equipment_id);
+              const currentUser = await AuthManager.getCurrentUser();
+              const materialItems = classMaterials.map((mat: any) => ({
+                material_name: mat.spare_part,
+                material_type: mat.maintenance_type,
+                quantity_requested: mat.estimated_quantity,
+                uom: mat.uom,
+                status: 'pending',
+                estimated_unit_cost: 0,
+                actual_unit_cost: 0
+              }));
+              const request: Partial<MaintenanceMaterialRequest> = {
+                maintenance_log_id: activeSchedule.id,
+                equipment_id: activeSchedule.equipment_id,
+                equipment_name: relatedEquipment?.name || 'Unknown Equipment',
+                maintenance_class: detectedClass ?? undefined,
+                maintenance_type: activeSchedule.maintenance_type,
+                status: 'awaiting_inventory',
+                requested_by: currentUser?.id || 'system',
+                site: relatedEquipment?.site || 'Unknown Site',
+                priority: activeSchedule.priority === 'critical' ? 'urgent' : activeSchedule.priority,
+                notes: '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              const parentResult = await OfflineDataManager.createMaintenanceMaterialRequest(request);
+              const requestId = parentResult?.data?.id || request.id;
+              for (const mat of materialItems) {
+                await OfflineDataManager.createMaintenanceMaterialRequestItem({
+                  request_id: requestId,
+                  ...mat
+                });
+              }
+              closeModal();
+              await loadData(true);
+              addNotification({
+                type: 'material_request',
+                message: `Material request created for ${relatedEquipment?.name || activeSchedule.equipment_id} (Class ${detectedClass})`,
+                action: 'inventory',
+                requestId: request.id
+              });
+            } catch (error: any) {
+              console.error('Failed to create material request:', error);
+              addNotification({
+                type: 'error',
+                message: `Failed to create material request: ${error.message || 'Unknown error'}`,
+                action: 'error'
+              });
+            }
+          }}
+        />
+      )}
+      {modalType === 'details' && activeSchedule && (
+        <MaintenanceDetailsModal
+          isOpen={modalType === 'details'}
+          onClose={closeModal}
+          schedule={activeSchedule}
+          equipment={equipment.find(eq => eq.id === activeSchedule.equipment_id) || null}
+          detectedClass={detectedClass ?? undefined}
+        />
+      )}
+      {modalType === 'complete' && activeSchedule && (
+        <CompleteMaintenanceModal
+          isOpen={modalType === 'complete'}
+          onClose={closeModal}
+          schedule={activeSchedule}
+          equipment={equipment.find(eq => eq.id === activeSchedule.equipment_id) || null}
+          onComplete={async () => {
+            try {
+              const pmService = new PreventiveMaintenanceService();
+              await pmService.completePreventiveMaintenance(activeSchedule.id, {
+                actual_duration_hours: 0,
+                cost: 0,
+                technician_notes: '',
+                parts_used: '',
+                completed_by: (await AuthManager.getCurrentUser())?.id || 'system'
+              });
+              closeModal();
+              await loadData(true);
+              addNotification({
+                type: 'success',
+                message: `Maintenance completed for ${activeSchedule.equipment_id}`,
+                action: 'completed'
+              });
+            } catch (error: any) {
+              console.error('Failed to complete maintenance:', error);
+              addNotification({
+                type: 'error',
+                message: `Failed to complete maintenance: ${error.message || 'Unknown error'}`,
+                action: 'error'
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
 
-export default MaintenancePage; 
+export default MaintenancePage;

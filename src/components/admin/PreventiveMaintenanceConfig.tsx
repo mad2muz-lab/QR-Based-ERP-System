@@ -31,15 +31,92 @@ interface PreventiveMaintenanceConfig {
   updated_at?: string;
 }
 
+interface ClassMaintenanceType {
+  id?: string;
+  maintenance_type: string;
+  typical_equipment: string;
+  spare_part: string;
+  estimated_quantity: number;
+  uom: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 const PreventiveMaintenanceConfig: React.FC = () => {
   const [configs, setConfigs] = useState<PreventiveMaintenanceConfig[]>([]);
+  const [classMaintenanceTypes, setClassMaintenanceTypes] = useState<ClassMaintenanceType[]>([]);
   const [equipmentTypes, setEquipmentTypes] = useState<string[]>([]);
   const [editingConfig, setEditingConfig] = useState<PreventiveMaintenanceConfig | null>(null);
+  const [editingClassType, setEditingClassType] = useState<ClassMaintenanceType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
+
+  // Default Class Maintenance Types based on the matrix provided
+  const defaultClassMaintenanceTypes: ClassMaintenanceType[] = [
+    // Visual Checks - separate rows for each spare part
+    { maintenance_type: 'Visual Checks', typical_equipment: 'All Equipment', spare_part: 'Grease', estimated_quantity: 1, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Visual Checks', typical_equipment: 'All Equipment', spare_part: 'Oil', estimated_quantity: 1, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Visual Checks', typical_equipment: 'All Equipment', spare_part: 'Water', estimated_quantity: 1, uom: 'Liters', is_active: true },
+    
+    // Greasing/Lubrication
+    { maintenance_type: 'Greasing/Lubrication', typical_equipment: 'All Equipment', spare_part: 'Grease Cartridges', estimated_quantity: 3, uom: 'Cartridges', is_active: true },
+    
+    // Oil Top-ups
+    { maintenance_type: 'Oil Top-ups', typical_equipment: 'All Equipment', spare_part: 'Engine Oil', estimated_quantity: 10, uom: 'Liters', is_active: true },
+    
+    // Coolant Check
+    { maintenance_type: 'Coolant Check', typical_equipment: 'All Equipment', spare_part: 'Coolant Additive', estimated_quantity: 2, uom: 'Liters', is_active: true },
+    
+    // Tire Pressure Checks - separate rows for each spare part
+    { maintenance_type: 'Tire Pressure Checks', typical_equipment: 'All Equipment', spare_part: 'Air Pump', estimated_quantity: 0, uom: 'Units', is_active: true },
+    { maintenance_type: 'Tire Pressure Checks', typical_equipment: 'All Equipment', spare_part: 'Gauges', estimated_quantity: 0, uom: 'Units', is_active: true },
+    
+    // Fuel & Filter Pre-clean
+    { maintenance_type: 'Fuel & Filter Pre-clean', typical_equipment: 'Plant Mixers, Pavers', spare_part: 'Diesel Filter', estimated_quantity: 2, uom: 'Pieces', is_active: true },
+    
+    // Instrument Panel Inspection
+    { maintenance_type: 'Instrument Panel Inspection', typical_equipment: 'All Equipment', spare_part: 'Panel Bulbs', estimated_quantity: 5, uom: 'Bulbs', is_active: true },
+    
+    // Fuse Check - separate rows for each spare part
+    { maintenance_type: 'Fuse Check', typical_equipment: 'Electrical Panels', spare_part: 'Fuses', estimated_quantity: 2, uom: 'Pieces', is_active: true },
+    { maintenance_type: 'Fuse Check', typical_equipment: 'Electrical Panels', spare_part: 'Relays', estimated_quantity: 2, uom: 'Pieces', is_active: true },
+    
+    // Oil & Filter Change - separate rows for each spare part
+    { maintenance_type: 'Oil & Filter Change', typical_equipment: 'All Equipment', spare_part: 'Engine Oil', estimated_quantity: 4, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Oil & Filter Change', typical_equipment: 'All Equipment', spare_part: 'Filters', estimated_quantity: 4, uom: 'Liters', is_active: true },
+    
+    // Additional maintenance types for completeness
+    { maintenance_type: 'Fuel System Cleaning', typical_equipment: 'Diesel Equipment', spare_part: 'Diesel Filter Kit', estimated_quantity: 3, uom: 'Pieces', is_active: true },
+    { maintenance_type: 'Brake Inspection', typical_equipment: 'All Equipment', spare_part: 'Brake Pads', estimated_quantity: 2, uom: 'Sets', is_active: true },
+    { maintenance_type: 'Brake Inspection', typical_equipment: 'All Equipment', spare_part: 'Fluid', estimated_quantity: 2, uom: 'Sets', is_active: true },
+    { maintenance_type: 'Electrical Diagnostic', typical_equipment: 'All Equipment', spare_part: 'Wires', estimated_quantity: 0, uom: 'Set', is_active: true },
+    { maintenance_type: 'Electrical Diagnostic', typical_equipment: 'All Equipment', spare_part: 'Multimeter', estimated_quantity: 0, uom: 'Set', is_active: true },
+    { maintenance_type: 'Sensor/Valve Calibration', typical_equipment: 'Bitumen Sprayer, Mixer', spare_part: 'Valve Kit', estimated_quantity: 2, uom: 'Set', is_active: true },
+    { maintenance_type: 'Bushing & Hose Check', typical_equipment: 'Rollers, Loaders', spare_part: 'Hydraulic Hoses', estimated_quantity: 4, uom: 'Meters', is_active: true },
+    { maintenance_type: 'Hydraulic Pressure Test', typical_equipment: 'Loaders, Pavers', spare_part: 'Hydraulic Oil', estimated_quantity: 1, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Hydraulic Pressure Test', typical_equipment: 'Loaders, Pavers', spare_part: 'Seals', estimated_quantity: 1, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Battery Replacement', typical_equipment: 'Generators, Trucks', spare_part: 'Battery Pack', estimated_quantity: 1, uom: 'Pack', is_active: true },
+    { maintenance_type: 'Control Panel Relays', typical_equipment: 'Mixers, Control Units', spare_part: 'Relays', estimated_quantity: 2, uom: 'Pieces', is_active: true },
+    { maintenance_type: 'Full Engine Overhaul', typical_equipment: 'Batch Plants, Heavy Equipment', spare_part: 'Overhaul Kit', estimated_quantity: 1, uom: 'Kit', is_active: true },
+    { maintenance_type: 'Gearbox Service', typical_equipment: 'Pavers, Excavators', spare_part: 'Transmission Fluids', estimated_quantity: 1, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Hydraulic Pump & Cylinder Check', typical_equipment: 'Batch Plants, Loaders', spare_part: 'Hydraulic Pump Kit', estimated_quantity: 2, uom: 'Kit', is_active: true },
+    { maintenance_type: 'Exhaust/Emission Check', typical_equipment: 'Batch Plants, Pavers', spare_part: 'DPF Filters', estimated_quantity: 1, uom: 'Filter', is_active: true },
+    { maintenance_type: 'Repainting & Corrosion Protection', typical_equipment: 'All Large Equipment', spare_part: 'Paint', estimated_quantity: 3, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Repainting & Corrosion Protection', typical_equipment: 'All Large Equipment', spare_part: 'Tape', estimated_quantity: 3, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Repainting & Corrosion Protection', typical_equipment: 'All Large Equipment', spare_part: 'Decals', estimated_quantity: 3, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Control System Software Update', typical_equipment: 'Control Units', spare_part: 'Software Patch', estimated_quantity: 1, uom: 'Patch', is_active: true },
+    { maintenance_type: 'Frame/Weld Integrity Check', typical_equipment: 'Frame Equipment', spare_part: 'Welding Kit', estimated_quantity: 1, uom: 'Set', is_active: true },
+    { maintenance_type: 'Bushes/Bearings Replacement', typical_equipment: 'Excavators, Rollers', spare_part: 'Bearings', estimated_quantity: 2, uom: 'Pieces', is_active: true },
+    { maintenance_type: 'Bushes/Bearings Replacement', typical_equipment: 'Excavators, Rollers', spare_part: 'Bushings', estimated_quantity: 2, uom: 'Pieces', is_active: true },
+    { maintenance_type: 'Electrical Wiring Harness', typical_equipment: 'Pavers, Batch Plants', spare_part: 'Wiring Looms', estimated_quantity: 10, uom: 'Meters', is_active: true },
+    { maintenance_type: 'Tires/Tracks Replacement', typical_equipment: 'Heavy Equipment', spare_part: 'New Tires/Tracks', estimated_quantity: 4, uom: 'Pieces', is_active: true },
+    { maintenance_type: 'Cooling System Flush', typical_equipment: 'Batch Plants', spare_part: 'Coolant', estimated_quantity: 1, uom: 'Liters', is_active: true },
+    { maintenance_type: 'Cooling System Flush', typical_equipment: 'Batch Plants', spare_part: 'Flush Kit', estimated_quantity: 1, uom: 'Liters', is_active: true }
+  ];
 
   // Default configurations based on the matrix provided
   const defaultConfigs: Record<string, PreventiveMaintenanceConfig> = {
@@ -161,6 +238,37 @@ const PreventiveMaintenanceConfig: React.FC = () => {
     loadData();
   }, []);
 
+  // Helper to force re-initialize class maintenance types
+  const forceInitializeClassTypes = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const initialClassTypes: ClassMaintenanceType[] = defaultClassMaintenanceTypes.map(type => ({
+        ...type,
+        id: `cmt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+      for (const classType of initialClassTypes) {
+        await OfflineDataManager.createClassMaintenanceType(classType);
+      }
+      setClassMaintenanceTypes(initialClassTypes);
+      setSuccess('Class maintenance types re-initialized!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      setError('Failed to re-initialize class maintenance types');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // After loading data, if classMaintenanceTypes is empty, auto-initialize
+  useEffect(() => {
+    if (!isLoading && classMaintenanceTypes.length === 0) {
+      forceInitializeClassTypes();
+    }
+  }, [isLoading, classMaintenanceTypes.length]);
+
   const loadData = async () => {
     try {
       setIsLoading(true);
@@ -184,6 +292,11 @@ const PreventiveMaintenanceConfig: React.FC = () => {
       // Load existing PM configurations from database (with fallback to local)
       const existingConfigs = await OfflineDataManager.getAllPreventiveMaintenanceConfigs();
       setConfigs(existingConfigs);
+      
+      // Load existing Class Maintenance Types from database (with fallback to local)
+      const existingClassTypes = await OfflineDataManager.getAllClassMaintenanceTypes();
+      setClassMaintenanceTypes(existingClassTypes);
+      
       setLastSyncTime(new Date().toLocaleTimeString());
       setSyncStatus('synced');
 
@@ -214,6 +327,23 @@ const PreventiveMaintenanceConfig: React.FC = () => {
           await OfflineDataManager.createPreventiveMaintenanceConfig(config);
         }
         setConfigs(initialConfigs);
+      }
+
+      // If no class maintenance types exist, initialize with defaults
+      if (existingClassTypes.length === 0) {
+        console.log('No class maintenance types found, initializing with defaults...');
+        const initialClassTypes: ClassMaintenanceType[] = defaultClassMaintenanceTypes.map(type => ({
+          ...type,
+          id: `cmt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }));
+        
+        // Save initial class types
+        for (const classType of initialClassTypes) {
+          await OfflineDataManager.createClassMaintenanceType(classType);
+        }
+        setClassMaintenanceTypes(initialClassTypes);
       }
     } catch (error) {
       console.error('Error loading PM configurations:', error);
@@ -300,6 +430,66 @@ const PreventiveMaintenanceConfig: React.FC = () => {
     }
   };
 
+  // Class Maintenance Type handlers
+  const handleSaveClassType = async (classType: ClassMaintenanceType) => {
+    try {
+      setIsLoading(true);
+      setError('');
+      
+      const classTypeToSave = {
+        ...classType,
+        updated_at: new Date().toISOString()
+      };
+
+      if (classType.id) {
+        // Update existing
+        await OfflineDataManager.updateClassMaintenanceType(classType.id, classTypeToSave);
+        setClassMaintenanceTypes(prev => prev.map(ct => ct.id === classType.id ? classTypeToSave : ct));
+      } else {
+        // Create new
+        const newClassType = {
+          ...classTypeToSave,
+          id: `cmt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          created_at: new Date().toISOString()
+        };
+        await OfflineDataManager.createClassMaintenanceType(newClassType);
+        setClassMaintenanceTypes(prev => [...prev, newClassType]);
+      }
+
+      setEditingClassType(null);
+      setSuccess('Class maintenance type saved successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+      
+      // Refresh data to ensure we have the latest from database
+      await loadData();
+    } catch (error) {
+      console.error('Error saving class maintenance type:', error);
+      setError('Failed to save class maintenance type');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteClassType = async (classTypeId: string) => {
+    if (!confirm('Are you sure you want to delete this class maintenance type?')) return;
+    
+    try {
+      setIsLoading(true);
+      await OfflineDataManager.deleteClassMaintenanceType(classTypeId);
+      setClassMaintenanceTypes(prev => prev.filter(ct => ct.id !== classTypeId));
+      setSuccess('Class maintenance type deleted successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+      
+      // Refresh data to ensure we have the latest from database
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting class maintenance type:', error);
+      setError('Failed to delete class maintenance type');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getMaintenanceClassColor = (classType: string) => {
     switch (classType) {
       case 'A': return 'bg-green-100 text-green-800 border-green-200';
@@ -353,7 +543,7 @@ const PreventiveMaintenanceConfig: React.FC = () => {
                       <div>
               <h1 className="text-2xl font-bold text-gray-900">Preventive Maintenance Configuration</h1>
               <div className="flex items-center space-x-4 text-gray-600">
-                <p>Configure maintenance intervals for equipment types ({configs.length} configured, {getAvailableEquipmentTypes().length} available)</p>
+                <p>Configure maintenance intervals and class maintenance types ({configs.length} equipment types, {classMaintenanceTypes.length} maintenance types)</p>
                 <div className="flex items-center space-x-2">
                   <Database className={`w-4 h-4 ${
                     syncStatus === 'synced' ? 'text-green-600' : 
@@ -582,6 +772,137 @@ const PreventiveMaintenanceConfig: React.FC = () => {
         </div>
       )}
 
+      {/* Class Maintenance Type Form Modal */}
+      {editingClassType && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {editingClassType.id ? 'Edit Class Maintenance Type' : 'Add Class Maintenance Type'}
+              </h2>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Maintenance Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Maintenance Type *
+                </label>
+                <input
+                  type="text"
+                  value={editingClassType.maintenance_type || ''}
+                  onChange={(e) => setEditingClassType(prev => ({ ...prev!, maintenance_type: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Oil & Filter Change"
+                />
+              </div>
+
+              {/* Typical Equipment */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Typical Equipment *
+                </label>
+                <input
+                  type="text"
+                  value={editingClassType.typical_equipment || ''}
+                  onChange={(e) => setEditingClassType(prev => ({ ...prev!, typical_equipment: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., All Equipment"
+                />
+              </div>
+
+              {/* Spare Part */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Spare Part *
+                </label>
+                <input
+                  type="text"
+                  value={editingClassType.spare_part || ''}
+                  onChange={(e) => setEditingClassType(prev => ({ ...prev!, spare_part: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Engine Oil"
+                />
+              </div>
+
+              {/* Estimated Quantity */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estimated Quantity *
+                </label>
+                <input
+                  type="number"
+                  value={editingClassType.estimated_quantity || ''}
+                  onChange={(e) => setEditingClassType(prev => ({ ...prev!, estimated_quantity: parseFloat(e.target.value) || 0 }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., 4"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              {/* UOM */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Unit of Measure (UOM) *
+                </label>
+                <select
+                  value={editingClassType.uom || ''}
+                  onChange={(e) => setEditingClassType(prev => ({ ...prev!, uom: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select UOM</option>
+                  <option value="Liters">Liters</option>
+                  <option value="Pieces">Pieces</option>
+                  <option value="Sets">Sets</option>
+                  <option value="Cartridges">Cartridges</option>
+                  <option value="Units">Units</option>
+                  <option value="Bulbs">Bulbs</option>
+                  <option value="Meters">Meters</option>
+                  <option value="Pack">Pack</option>
+                  <option value="Kit">Kit</option>
+                  <option value="Filter">Filter</option>
+                  <option value="Patch">Patch</option>
+                  <option value="Set">Set</option>
+                  <option value="Cartridges">Cartridges</option>
+                </select>
+              </div>
+
+              {/* Active Status */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="class_type_is_active"
+                  checked={editingClassType.is_active !== false}
+                  onChange={(e) => setEditingClassType(prev => ({ ...prev!, is_active: e.target.checked }))}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="class_type_is_active" className="text-sm font-medium text-gray-700">
+                  Active Class Type
+                </label>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 p-6 border-t">
+              <button
+                onClick={() => setEditingClassType(null)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSaveClassType(editingClassType)}
+                disabled={!editingClassType.maintenance_type || !editingClassType.typical_equipment || !editingClassType.spare_part || editingClassType.estimated_quantity === undefined || !editingClassType.uom}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save Class Type</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Configurations List */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b">
@@ -678,6 +999,110 @@ const PreventiveMaintenanceConfig: React.FC = () => {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Class Maintenance Types List */}
+      <div className="mt-8 bg-white rounded-lg shadow">
+        <div className="p-6 border-b flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Class Maintenance Types</h3>
+          <button
+            onClick={() => setEditingClassType({} as ClassMaintenanceType)}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Class Type</span>
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Maintenance Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Typical Equipment
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Spare Part
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Estimated Quantity
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  UOM
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {classMaintenanceTypes.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-gray-500">
+                    No class maintenance types found.<br />
+                    <button
+                      onClick={forceInitializeClassTypes}
+                      className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Re-initialize Defaults
+                    </button>
+                  </td>
+                </tr>
+              ) : (
+                classMaintenanceTypes.map((classType) => (
+                  <tr key={classType.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="font-medium text-gray-900">{classType.maintenance_type}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-600">{classType.typical_equipment}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-600">{classType.spare_part}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-gray-900">{classType.estimated_quantity}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-600">{classType.uom}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        classType.is_active 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {classType.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => setEditingClassType(classType)}
+                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClassType(classType.id!)}
+                          className="text-red-600 hover:text-red-900 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -71,60 +71,6 @@ const CostBreakdownManager: React.FC<CostBreakdownManagerProps> = ({ onCostBreak
         isContingency: Boolean(element.isContingency)
       }));
       
-      // If no elements exist, create some sample data
-      if (loadedElements.length === 0) {
-        console.log('CostBreakdownManager: No elements found, creating sample data');
-        const sampleElements: CostElement[] = [
-          {
-            id: 'cost-1',
-            name: 'Raw Materials',
-            description: 'Construction materials and supplies',
-            isDirect: true,
-            isIndirect: false,
-            isContingency: false,
-            subcategories: [
-              {
-                id: 'sub-1',
-                name: 'Sand',
-                description: 'Fine aggregate',
-                costElementId: 'cost-1',
-                createdAt: new Date().toISOString(),
-                costAmount: 1000,
-                markupType: 'percent',
-                markupValue: 15
-              },
-              {
-                id: 'sub-2',
-                name: 'Aggregate',
-                description: 'Coarse aggregate',
-                costElementId: 'cost-1',
-                createdAt: new Date().toISOString(),
-                costAmount: 1500,
-                markupType: 'percent',
-                markupValue: 20
-              }
-            ],
-            createdAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString()
-          },
-          {
-            id: 'cost-2',
-            name: 'Labor',
-            description: 'Workforce and personnel costs',
-            isDirect: true,
-            isIndirect: false,
-            isContingency: false,
-            subcategories: [],
-            createdAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString()
-          }
-        ];
-        
-        DataStorage.saveCostElements(sampleElements);
-        loadedElements = sampleElements;
-        console.log('CostBreakdownManager: Sample data created and saved');
-      }
-      
       setCostElements(loadedElements);
       if (loadedElements.length > 0 && !selectedElementId) {
         setSelectedElementId(loadedElements[0].id);
