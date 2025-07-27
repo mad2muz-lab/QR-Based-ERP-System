@@ -1,18 +1,21 @@
 import * as XLSX from 'xlsx';
 import { Employee, Equipment, Material, Site } from '../types';
 
+import { v4 as uuidv4 } from 'uuid';
+
 // Excel template generators
 export const generateEmployeeTemplate = () => {
+  const employeeId = uuidv4();
   const template = [
     {
-      id: 'EMP-001',
+      id: employeeId,
       name: 'John Doe',
       type: 'full-time',
       department: 'Construction',
       position: 'Site Engineer',
       blood_group: 'O+',
       site: 'site-001',
-      qr_code: 'EMP-001',
+      qr_code: employeeId, // Use UUID for QR code (like equipment)
       status: 'active',
       created_at: '2024-01-01T08:00:00Z',
       last_updated: '2024-01-01T08:00:00Z',
@@ -47,14 +50,15 @@ export const generateEquipmentTemplate = () => {
 };
 
 export const generateMaterialTemplate = () => {
+  const materialId = uuidv4();
   const template = [
     {
-      id: 'MAT-001',
+      id: materialId,
       name: 'Bitumen (60/70)',
       type: 'Bituminous Materials',
       unit: 'Tons',
       site: 'site-001',
-      qr_code: 'MAT-001',
+      qr_code: materialId, // Use UUID for QR code (like equipment)
       quantity: 150,
       status: 'available',
       created_at: '2024-01-01T08:00:00Z',

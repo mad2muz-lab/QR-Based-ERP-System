@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
-import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog, EquipmentMaintenanceLog, EquipmentMaintenanceSchedule } from '../types';
+import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog } from '../types';
 import { CSVAppendManager } from './csvAppendUtils';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Department {
   id: string;
@@ -553,28 +554,13 @@ export class DataStorage {
 
   // ID Generation
   static generateEmployeeId(): string {
-    const counters = this.getCounters();
-    const timestamp = Date.now().toString().slice(-5);
-    const random = Math.random().toString(36).substr(2, 3).toUpperCase();
-    
-    counters.employee++;
-    this.saveCounters(counters);
-    
-    return `EMP-${timestamp}${random}`;
+    // Generate UUID for employee ID (like equipment)
+    return uuidv4();
   }
 
   static generateMaterialId(): string {
-    const counters = this.getCounters();
-    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const counter = String(counters.material).padStart(3, '0');
-    // Add timestamp and random component to ensure uniqueness across sessions
-    const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp
-    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-    
-    counters.material++;
-    this.saveCounters(counters);
-    
-    return `MAT-${date}-${counter}-${timestamp}${random}`;
+    // Generate UUID for material ID (like equipment)
+    return uuidv4();
   }
 
   static generateSiteId(): string {

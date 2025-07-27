@@ -1,10 +1,13 @@
 import { Employee, Equipment, Material, Site, User, TimeLog } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
 export class TestUtils {
+
   // Generate mock data for testing
   static generateMockEmployee(overrides: Partial<Employee> = {}): Employee {
+    const employeeId = uuidv4();
     return {
-      id: `EMP-${Math.floor(Math.random() * 10000)}`,
+      id: employeeId,
       name: `Test Employee ${Math.floor(Math.random() * 1000)}`,
       type: 'full-time',
       department: 'Engineering',
@@ -15,7 +18,7 @@ export class TestUtils {
       photo: '',
       email: `test${Math.floor(Math.random() * 1000)}@example.com`,
       phone: `+966${Math.floor(Math.random() * 900000000) + 100000000}`,
-      qrCode: `EMP-${Math.floor(Math.random() * 10000)}`,
+      qrCode: employeeId, // Use UUID for QR code (like equipment)
       createdAt: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       ...overrides
@@ -40,15 +43,16 @@ export class TestUtils {
   }
 
   static generateMockMaterial(overrides: Partial<Material> = {}): Material {
+    const materialId = uuidv4();
     return {
-      id: `MAT-${Math.floor(Math.random() * 10000)}`,
+      id: materialId,
       name: `Test Material ${Math.floor(Math.random() * 1000)}`,
       type: 'Cement',
       unit: 'pieces',
       quantity: Math.floor(Math.random() * 100),
       status: 'available',
       site: 'Main Office',
-      qrCode: `MAT-${Math.floor(Math.random() * 10000)}`,
+      qrCode: materialId, // Use UUID for QR code (like equipment)
       createdAt: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       ...overrides

@@ -250,12 +250,12 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
       } else {
         // Create new employee
         if (useSupabase) {
-          // Generate employee ID for Supabase (since it uses TEXT, not UUID)
+          // Generate UUID for employee ID (like equipment)
           const employeeId = DataStorage.generateEmployeeId();
           const newEmployee: Employee = {
             ...employeeData,
             id: employeeId,
-            qrCode: employeeId,
+            qrCode: employeeId, // Use UUID for QR code (like equipment)
             createdAt: new Date().toISOString(),
             lastUpdated: new Date().toISOString()
           };
@@ -278,12 +278,12 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             throw new Error(result.error || 'Failed to create employee');
           }
         } else {
-          // For offline mode, generate custom string ID
-          const employeeId = generateEntityId('employee');
+          // For offline mode, generate UUID (like equipment)
+          const employeeId = DataStorage.generateEmployeeId();
           const newEmployee: Employee = {
             ...employeeData,
             id: employeeId,
-            qrCode: employeeId,
+            qrCode: employeeId, // Use UUID for QR code (like equipment)
             createdAt: new Date().toISOString(),
             lastUpdated: new Date().toISOString()
           };
@@ -608,12 +608,12 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
       } else {
         // Create new material
         if (useSupabase) {
-          // Generate material ID for Supabase (since it uses TEXT, not UUID)
+          // Generate UUID for material ID (like equipment)
           const materialId = DataStorage.generateMaterialId();
           const newMaterial: Material = {
             ...materialData,
             id: materialId,
-            qrCode: materialId,
+            qrCode: materialId, // Use UUID for QR code (like equipment)
             createdAt: new Date().toISOString(),
             lastUpdated: new Date().toISOString()
           };
@@ -636,12 +636,12 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             showMessage('error', `Failed to create material: ${result.error}`);
           }
         } else {
-          // For offline mode, generate custom string ID
+          // For offline mode, generate UUID (like equipment)
           const materialId = DataStorage.generateMaterialId();
           const newMaterial: Material = {
             ...materialData,
             id: materialId,
-            qrCode: materialId,
+            qrCode: materialId, // Use UUID for QR code (like equipment)
             createdAt: new Date().toISOString(),
             lastUpdated: new Date().toISOString()
           };

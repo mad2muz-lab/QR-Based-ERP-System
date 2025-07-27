@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { v4 as uuidv4 } from 'uuid';
 
 export const generateQRCode = async (data: string): Promise<string> => {
   try {
@@ -23,10 +24,6 @@ export const parseQRCode = async (qrData: string): Promise<{
 }> => {
   console.log('🔍 Parsing QR code:', qrData);
   
-  // For Honeywell device compatibility, treat all QR codes as potentially unknown first
-  // This allows the scanner to check all entity databases regardless of prefix
-  console.log('🔍 Treating as unknown for comprehensive database lookup');
-  
   // For Honeywell device compatibility, always check databases first
   // This ensures we find entities even if there are slight differences in the scanned data
   try {
@@ -38,23 +35,23 @@ export const parseQRCode = async (qrData: string): Promise<{
     const materials = DataStorage.loadMaterials();
     const sites = DataStorage.loadSites();
     
-    // Check employees first (for EMP- prefixed codes)
-    const matchingEmployee = employees.find(emp => emp.id === qrData);
+    // Check employees (now using UUIDs like equipment)
+    const matchingEmployee = employees.find(emp => emp.id === qrData || emp.qrCode === qrData);
     if (matchingEmployee) {
       console.log('✅ Found matching employee in database:', matchingEmployee.name);
       return { type: 'employee', id: qrData };
     }
     
-    // Check materials (for MAT- prefixed codes)
-    const matchingMaterial = materials.find(mat => mat.id === qrData);
+    // Check materials (now using UUIDs like equipment)
+    const matchingMaterial = materials.find(mat => mat.id === qrData || mat.qrCode === qrData);
     if (matchingMaterial) {
       console.log('✅ Found matching material in database:', matchingMaterial.name);
       return { type: 'material', id: qrData };
     }
     
-    // Check equipment (for EQP- prefixed codes and UUIDs)
+    // Check equipment (for custom_equipment_id and UUIDs)
     const matchingEquipment = equipment.find(eq => 
-      eq.custom_equipment_id === qrData || eq.id === qrData
+      eq.custom_equipment_id === qrData || eq.id === qrData || eq.qrCode === qrData
     );
     if (matchingEquipment) {
       console.log('✅ Found matching equipment in database:', matchingEquipment.name);
@@ -62,7 +59,7 @@ export const parseQRCode = async (qrData: string): Promise<{
     }
     
     // Check sites (for SITE- prefixed codes)
-    const matchingSite = sites.find(site => site.id === qrData);
+    const matchingSite = sites.find(site => site.id === qrData || site.qrCode === qrData);
     if (matchingSite) {
       console.log('✅ Found matching site in database:', matchingSite.name);
       return { type: 'site', id: qrData };
@@ -72,8 +69,8 @@ export const parseQRCode = async (qrData: string): Promise<{
   } catch (error) {
     console.warn('Could not check entity databases:', error);
   }
-  
-  // If not found in database, fall back to prefix-based identification
+
+  // If not found in database, fall back to prefix-based identification for backward compatibility
   if (qrData.startsWith('EMP-')) {
     console.log('✅ Identified as employee QR code (prefix only)');
     return { type: 'employee', id: qrData };
@@ -87,7 +84,7 @@ export const parseQRCode = async (qrData: string): Promise<{
     console.log('✅ Identified as site QR code (prefix only)');
     return { type: 'site', id: qrData };
   }
-  
+
   // Return as unknown type so the scanner can check all entity types
   console.log('🔍 Returning as unknown type for further processing');
   return { type: 'unknown', id: qrData };
@@ -99,11 +96,11 @@ export const generateEntityId = (type: 'employee' | 'equipment' | 'material' | '
   
   switch (type) {
     case 'employee':
-      return `EMP-${timestamp}${random}`;
+      return uuidv4(); // Use UUID for employees (like equipment)
     case 'equipment':
       return `EQP-${timestamp}${random}`;
     case 'material':
-      return `MAT-${timestamp}${random}`;
+      return uuidv4(); // Use UUID for materials (like equipment)
     case 'site':
       return `SITE-${timestamp}${random}`;
     default:
