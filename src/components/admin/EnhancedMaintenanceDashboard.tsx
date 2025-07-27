@@ -16,7 +16,7 @@ import {
 import { DataStorage } from '../../utils/dataStorage';
 import { PreventiveMaintenanceService } from '../../utils/preventiveMaintenanceService';
 import { Equipment, EquipmentMaintenanceLog } from '../../types';
-import PreventiveServiceModal from './PreventiveServiceModal';
+import MaintenanceDetailsModal from './MaintenanceDetailsModal';
 import ActivityTimer from '../common/ActivityTimer';
 import TotalDurationDisplay from '../common/TotalDurationDisplay';
 
@@ -39,6 +39,9 @@ const EnhancedMaintenanceDashboard: React.FC<EnhancedMaintenanceDashboardProps> 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -109,30 +112,15 @@ const EnhancedMaintenanceDashboard: React.FC<EnhancedMaintenanceDashboardProps> 
   };
 
   const handleStartMaintenance = (schedule: any) => {
-    setSelectedSchedule(schedule);
-    setShowServiceModal(true);
+    setSelectedRequest(schedule);
+    setShowDetailsModal(true);
   };
 
-  const handleServiceComplete = async (data: any) => {
-    try {
-      if (selectedSchedule) {
-        const service = PreventiveMaintenanceService.getInstance();
-        await service.startPreventiveMaintenance(
-          selectedSchedule.id,
-          undefined // technicianId
-        );
-        
-        setSuccess('Maintenance started successfully!');
-        setTimeout(() => setSuccess(''), 3000);
-        await loadData();
-      }
-    } catch (error) {
-      console.error('Error starting maintenance:', error);
-      setError('Failed to start maintenance');
-    } finally {
-      setShowServiceModal(false);
-      setSelectedSchedule(null);
-    }
+  const handleDetailsModalUpdated = async () => {
+    setShowDetailsModal(false);
+    await loadData();
+    setNotification({ type: 'success', message: 'Maintenance updated successfully.' });
+    setTimeout(() => setNotification(null), 3000);
   };
 
   const getFilteredSchedules = () => {
@@ -610,14 +598,19 @@ const EnhancedMaintenanceDashboard: React.FC<EnhancedMaintenanceDashboardProps> 
         </div>
       </div>
 
-      {/* Preventive Service Modal */}
-      {showServiceModal && selectedSchedule && (
-        <PreventiveServiceModal
-          isOpen={showServiceModal}
-          onClose={() => setShowServiceModal(false)}
-          schedule={selectedSchedule}
-          onComplete={handleServiceComplete}
+      {/* Preventive Service Modal (replaced with MaintenanceDetailsModal) */}
+      {showDetailsModal && selectedRequest && (
+        <MaintenanceDetailsModal
+          request={selectedRequest}
+          onClose={() => setShowDetailsModal(false)}
+          onUpdated={handleDetailsModalUpdated}
         />
+      )}
+      {/* Notification Toast */}
+      {notification && (
+        <div className={`fixed top-6 right-6 z-50 px-6 py-3 rounded shadow-lg text-white ${notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          {notification.message}
+        </div>
       )}
     </div>
   );

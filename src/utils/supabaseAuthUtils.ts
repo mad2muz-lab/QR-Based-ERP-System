@@ -1,6 +1,4 @@
-import { User } from '../types';
 import { supabase } from './supabaseClient';
-import { DataStorage } from './dataStorage';
 
 export class SupabaseAuthManager {
   // Check if Supabase is configured
@@ -9,7 +7,7 @@ export class SupabaseAuthManager {
   }
 
   // Sign in with username and password
-  static async signIn(username: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
+  static async signIn(username: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> {
     try {
       if (!supabase) {
         throw new Error('Supabase not configured');
@@ -47,7 +45,7 @@ export class SupabaseAuthManager {
       }
 
       // Convert to application User format
-      const user: User = {
+      const user: any = {
         id: userData.id,
         username: userData.username,
         password: '', // We don't store or return passwords
@@ -75,7 +73,7 @@ export class SupabaseAuthManager {
   }
 
   // Get current user
-  static async getCurrentUser(): Promise<User | null> {
+  static async getCurrentUser(): Promise<any | null> {
     try {
       if (!supabase) {
         return null;
@@ -128,7 +126,7 @@ export class SupabaseAuthManager {
   }
 
   // Create a new user
-  static async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<{ success: boolean; user?: User; error?: string }> {
+  static async createUser(userData: any): Promise<{ success: boolean; user?: any; error?: string }> {
     try {
       if (!supabase) {
         throw new Error('Supabase not configured');
@@ -184,7 +182,7 @@ export class SupabaseAuthManager {
         throw updateError;
       }
 
-      const newUser: User = {
+      const newUser: any = {
         id: updatedProfile.id,
         username: updatedProfile.username,
         password: '', // We don't store or return passwords
@@ -204,7 +202,7 @@ export class SupabaseAuthManager {
   }
 
   // Get all users
-  static async getUsers(): Promise<{ success: boolean; data?: User[]; error?: string }> {
+  static async getUsers(): Promise<{ success: boolean; data?: any[]; error?: string }> {
     try {
       if (!supabase) {
         throw new Error('Supabase not configured');
@@ -219,7 +217,7 @@ export class SupabaseAuthManager {
         throw error;
       }
 
-      const users: User[] = data.map(userData => ({
+      const users: any[] = data.map(userData => ({
         id: userData.id,
         username: userData.username,
         password: '', // We don't store or return passwords
@@ -240,7 +238,7 @@ export class SupabaseAuthManager {
   }
 
   // Update user
-  static async updateUser(userId: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<{ success: boolean; user?: User; error?: string }> {
+  static async updateUser(userId: string, updates: any): Promise<{ success: boolean; user?: any; error?: string }> {
     try {
       if (!supabase) {
         throw new Error('Supabase not configured');
@@ -281,7 +279,7 @@ export class SupabaseAuthManager {
         }
       }
 
-      const updatedUser: User = {
+      const updatedUser: any = {
         id: profileData.id,
         username: profileData.username,
         password: '', // We don't store or return passwords

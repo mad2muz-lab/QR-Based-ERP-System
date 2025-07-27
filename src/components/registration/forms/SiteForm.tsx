@@ -121,7 +121,7 @@ const SiteForm: React.FC<SiteFormProps> = ({ onSubmit, initialData, onClose }) =
     };
     
     // Remove customType and selectedLocation from the final data
-    const { customType, selectedLocation, ...finalData } = siteData;
+    const { customType: _, selectedLocation: __, ...finalData } = siteData;
     
 
     try {

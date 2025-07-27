@@ -2,10 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { DataStorage } from '../../utils/dataStorage';
 import { SupabaseDataService } from '../../utils/supabaseDataService';
 import { AuthManager } from '../../utils/authUtils';
-import MaintenancePage from './MaintenancePage';
-import InventoryMaintenanceRequests from '../admin/InventoryMaintenanceRequests';
-import MaintenanceWorkflowDashboard from '../admin/MaintenanceWorkflowDashboard';
-import MaintenanceNotifications from '../admin/MaintenanceNotifications';
 import { Building2, Wrench, Users, Truck, Shield, Settings, Package, Briefcase } from 'lucide-react';
 
 interface Department {
@@ -27,18 +23,25 @@ const DepartmentsPage: React.FC = () => {
   }, []);
 
   const loadDepartments = async () => {
+    console.log('🏢 DepartmentsPage: Starting to load departments...');
     try {
-      const useSupabase = await AuthManager.useSupabase();
+      const useSupabase = await AuthManager.shouldUseSupabase();
+      console.log('🏢 DepartmentsPage: useSupabase result:', useSupabase);
       let loadedDepartments: Department[] = [];
       
       if (useSupabase) {
+        console.log('🏢 DepartmentsPage: Loading from Supabase...');
         // Load from Supabase
         loadedDepartments = await SupabaseDataService.getDepartments();
+        console.log('🏢 DepartmentsPage: Supabase departments loaded:', loadedDepartments.length);
       } else {
+        console.log('🏢 DepartmentsPage: Loading from local storage...');
         // Load from local storage
         loadedDepartments = DataStorage.loadDepartments();
+        console.log('🏢 DepartmentsPage: Local departments loaded:', loadedDepartments.length);
       }
       
+      console.log('🏢 DepartmentsPage: Setting departments:', loadedDepartments);
       setDepartments(loadedDepartments);
       
       // Set default active tab to maintenance if it exists
@@ -46,12 +49,20 @@ const DepartmentsPage: React.FC = () => {
         dept.name.toLowerCase() === 'maintenance'
       );
       if (maintenanceDept) {
+        console.log('🏢 DepartmentsPage: Setting active tab to maintenance:', maintenanceDept.id);
         setActiveTab(maintenanceDept.id);
+      } else {
+        console.log('🏢 DepartmentsPage: No maintenance department found, using first department');
+        if (loadedDepartments.length > 0) {
+          setActiveTab(loadedDepartments[0].id);
+        }
       }
     } catch (error) {
-      console.error('Error loading departments:', error);
+      console.error('🏢 DepartmentsPage: Error loading departments:', error);
       // Fallback to local storage
+      console.log('🏢 DepartmentsPage: Falling back to local storage...');
       const loadedDepartments = DataStorage.loadDepartments();
+      console.log('🏢 DepartmentsPage: Fallback departments loaded:', loadedDepartments.length);
       setDepartments(loadedDepartments);
       
       const maintenanceDept = loadedDepartments.find(dept => 
@@ -59,8 +70,11 @@ const DepartmentsPage: React.FC = () => {
       );
       if (maintenanceDept) {
         setActiveTab(maintenanceDept.id);
+      } else if (loadedDepartments.length > 0) {
+        setActiveTab(loadedDepartments[0].id);
       }
     } finally {
+      console.log('🏢 DepartmentsPage: Loading complete, setting loading to false');
       setLoading(false);
     }
   };
@@ -81,53 +95,6 @@ const DepartmentsPage: React.FC = () => {
 
   const renderDepartmentContent = (department: Department) => {
     const departmentName = department.name.toLowerCase();
-    
-    // Special handling for maintenance department
-    if (departmentName.includes('maintenance')) {
-      return (
-        <div className="space-y-6">
-          <MaintenancePage />
-        </div>
-      );
-    }
-    
-    // Special handling for inventory department
-    if (departmentName.includes('inventory')) {
-      return (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Inventory Content */}
-            <div className="lg:col-span-2">
-              <InventoryMaintenanceRequests />
-            </div>
-            
-            {/* Notifications Sidebar */}
-            <div className="lg:col-span-1">
-              <MaintenanceNotifications maxNotifications={8} />
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    // Special handling for procurement department
-    if (departmentName.includes('procurement')) {
-      return (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Procurement Content */}
-            <div className="lg:col-span-2">
-              <MaintenanceWorkflowDashboard />
-            </div>
-            
-            {/* Notifications Sidebar */}
-            <div className="lg:col-span-1">
-              <MaintenanceNotifications maxNotifications={8} />
-            </div>
-          </div>
-        </div>
-      );
-    }
     
     // Placeholder content for other departments
   return (
@@ -216,6 +183,7 @@ const DepartmentsPage: React.FC = () => {
 };
 
   if (loading) {
+    console.log('🏢 DepartmentsPage: Rendering loading state');
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <div className="text-center">
@@ -225,6 +193,8 @@ const DepartmentsPage: React.FC = () => {
       </div>
     );
   }
+
+  console.log('🏢 DepartmentsPage: Rendering main content, departments:', departments.length, 'activeTab:', activeTab);
 
   return (
     <div className="space-y-6">
@@ -282,4 +252,4 @@ const DepartmentsPage: React.FC = () => {
   );
 };
 
-export default DepartmentsPage; 
+export default DepartmentsPage;

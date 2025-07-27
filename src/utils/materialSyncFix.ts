@@ -44,7 +44,7 @@ export class MaterialSyncFix {
   private static async ensureSupabaseMode(): Promise<void> {
     console.log('🔍 Checking Supabase mode...');
     
-    const isSupabaseMode = await AuthManager.useSupabase();
+    const isSupabaseMode = await AuthManager.shouldUseSupabase();
     if (!isSupabaseMode) {
       console.log('🔄 Supabase mode not enabled. Material sync may not work properly.');
     } else {

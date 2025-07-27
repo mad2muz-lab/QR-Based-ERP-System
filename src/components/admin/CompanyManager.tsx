@@ -24,12 +24,15 @@ const CompanyManager: React.FC = () => {
 
   const loadCompanies = async () => {
     setIsLoading(true);
-    if (AuthManager.useSupabase()) {
+    if (await AuthManager.shouldUseSupabase()) {
       const result = await SupabaseRegistrationService.getCompanies();
       if (result.success && result.data) {
         setCompanies(result.data);
+        // Also save to localStorage for Header component access
+        localStorage.setItem('companies', JSON.stringify(result.data));
       } else {
         setCompanies([]);
+        localStorage.setItem('companies', '[]');
       }
     } else {
       setCompanies([]); // Optionally, fallback to localStorage if needed
@@ -92,12 +95,18 @@ const CompanyManager: React.FC = () => {
     if (editingId) {
       result = await SupabaseRegistrationService.updateCompany({ id: editingId, name, logoUrl });
       if (result.success && result.data) {
-        setCompanies(companies.map(c => c.id === editingId ? result.data : c));
+        const updatedCompanies = companies.map(c => c.id === editingId ? result.data : c);
+        setCompanies(updatedCompanies);
+        // Update localStorage
+        localStorage.setItem('companies', JSON.stringify(updatedCompanies));
       }
     } else {
       result = await SupabaseRegistrationService.createCompany({ name, logoUrl });
       if (result.success && result.data) {
-        setCompanies([...companies, result.data]);
+        const updatedCompanies = [...companies, result.data];
+        setCompanies(updatedCompanies);
+        // Update localStorage
+        localStorage.setItem('companies', JSON.stringify(updatedCompanies));
       }
     }
     if (!result.success) {
@@ -122,7 +131,10 @@ const CompanyManager: React.FC = () => {
     setIsLoading(true);
     const result = await SupabaseRegistrationService.deleteCompany(id);
     if (result.success) {
-      setCompanies(companies.filter(c => c.id !== id));
+      const updatedCompanies = companies.filter(c => c.id !== id);
+      setCompanies(updatedCompanies);
+      // Update localStorage
+      localStorage.setItem('companies', JSON.stringify(updatedCompanies));
     }
     if (editingId === id) {
       setName('');
@@ -131,6 +143,7 @@ const CompanyManager: React.FC = () => {
       setEditingId(null);
     }
     setIsLoading(false);
+    window.dispatchEvent(new Event('companyUpdated'));
   };
 
   const handleCancel = () => {

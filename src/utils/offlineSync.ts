@@ -279,24 +279,25 @@ export class OfflineSyncManager {
           transformed.old_id = transformed.oldId;
           delete transformed.oldId;
         }
-        if (transformed.unit !== undefined) {
-          transformed.unit = transformed.unit;
-        }
-        if (transformed.status !== undefined) {
-          transformed.status = transformed.status;
-        }
-        if (transformed.type !== undefined) {
-          transformed.type = transformed.type;
-        }
-        if (transformed.site !== undefined) {
-          transformed.site = transformed.site;
-        }
-        if (transformed.use !== undefined) {
-          transformed.use = transformed.use;
-        }
-        if (transformed.quantity !== undefined) {
-          transformed.quantity = transformed.quantity;
-        }
+        // Remove self-assignments:
+        // if (transformed.unit !== undefined) {
+        //   transformed.unit = transformed.unit;
+        // }
+        // if (transformed.status !== undefined) {
+        //   transformed.status = transformed.status;
+        // }
+        // if (transformed.type !== undefined) {
+        //   transformed.type = transformed.type;
+        // }
+        // if (transformed.site !== undefined) {
+        //   transformed.site = transformed.site;
+        // }
+        // if (transformed.use !== undefined) {
+        //   transformed.use = transformed.use;
+        // }
+        // if (transformed.quantity !== undefined) {
+        //   transformed.quantity = transformed.quantity;
+        // }
         // Add any other field mappings as needed
         try {
           if (type === 'update') {
@@ -472,14 +473,15 @@ export class OfflineSyncManager {
     
     try {
       switch (type) {
-        case 'create':
+        case 'create': {
           const { error: createError } = await supabase
             .from(tableName)
             .insert(dbData);
           if (createError) throw createError;
           break;
+        }
           
-        case 'update':
+        case 'update': {
           // Use the custom ID directly for TEXT-based tables
           const { error: updateError } = await supabase
             .from(tableName)
@@ -487,8 +489,9 @@ export class OfflineSyncManager {
             .eq('id', entityId);
           if (updateError) throw updateError;
           break;
+        }
           
-        case 'delete':
+        case 'delete': {
           // Use the custom ID directly for TEXT-based tables
           const { error: deleteError } = await supabase
             .from(tableName)
@@ -496,6 +499,7 @@ export class OfflineSyncManager {
             .eq('id', entityId);
           if (deleteError) throw deleteError;
           break;
+        }
       }
       
       console.log(`Successfully synced operation: ${operation.type} ${operation.entityType} ${operation.entityId}`);

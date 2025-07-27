@@ -1,20 +1,34 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Support both Vite and Node environments for env variables
+let supabaseUrl: string | undefined;
+let supabaseAnonKey: string | undefined;
 
-// Check if environment variables are properly set
-const isSupabaseConfigured = Boolean(supabaseUrl) && Boolean(supabaseAnonKey);
+if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_URL) {
+  supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+} else if (typeof process !== 'undefined' && process.env) {
+  // Only load dotenv if not already loaded
+  if (!process.env.__DOTENV_LOADED) {
+    try {
+       
+      require('dotenv').config();
+      process.env.__DOTENV_LOADED = 'true';
+    } catch (e) {
+      // ignore
+    }
+  }
+  supabaseUrl = process.env.VITE_SUPABASE_URL;
+  supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+}
 
-if (!isSupabaseConfigured) {
-  console.error('Supabase configuration missing! Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file.');
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Supabase environment variables are not set. Please check your .env or Vite config.');
 }
 
 // Create a single supabase client for the entire app
-export const supabase = isSupabaseConfigured
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
-  : null;
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Function to test connection
 export const testConnection = async () => {

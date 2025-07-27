@@ -22,6 +22,7 @@ export interface Employee {
   companyId?: string;
   costCenterCode?: string; // Cost center code for financial analysis
   profitCenterCode?: string; // Profit center code for financial analysis
+  hourlyRate: number;
 }
 
 export interface Equipment {
@@ -41,6 +42,10 @@ export interface Equipment {
   companyId?: string;
   costCenterCode?: string; // Cost center code for financial analysis
   profitCenterCode?: string; // Profit center code for financial analysis
+  hourly_rate?: number; // Hourly rate for usage revenue calculation
+  usageDuration?: number; // Cumulative usage duration in hours
+  standbyDuration?: number; // Cumulative standby duration in hours
+  maintenanceDuration?: number; // Cumulative maintenance duration in hours
 }
 
 export interface Material {
@@ -60,6 +65,7 @@ export interface Material {
   companyId?: string;
   costCenterCode?: string; // Cost center code for financial analysis
   profitCenterCode?: string; // Profit center code for financial analysis
+  cost?: number; // Cost per material unit
 }
 
 export interface Site {
@@ -102,6 +108,9 @@ export interface EmployeeLog {
   notes?: string;
   location?: [number, number];
   oldId?: string; // Legacy ID from previous system
+  regular_hours?: number;
+  overtime_hours?: number;
+  total_work_hours?: number;
 }
 
 export interface EquipmentLog {
@@ -118,6 +127,16 @@ export interface EquipmentLog {
   notes?: string;
   location?: [number, number];
   oldId?: string; // Legacy ID from previous system
+  usageDuration?: number; // Duration in hours, only for 'stop-use' logs
+  standbyDuration?: number; // Duration in hours, only for 'standby-end' logs
+  maintenanceDuration?: number; // Duration in hours, only for 'maintenance-end' logs
+  // Supabase column mappings (snake_case)
+  equipment_id?: string;
+  equipment_name?: string;
+  equipment_type?: string;
+  usage_duration?: number;
+  standby_duration?: number;
+  maintenance_duration?: number;
 }
 
 export interface MaterialLog {
@@ -168,59 +187,7 @@ export interface AuthState {
 }
 
 // Equipment Maintenance System Types
-export interface EquipmentMaintenanceLog {
-  id: string;
-  equipment_id: string; // This is TEXT in database, not UUID
-  maintenance_type: 'repair' | 'service';
-  repair_type?: 'on_site' | 'yard_repair';
-  service_type?: 'type_a' | 'type_b' | 'type_c';
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-  description?: string;
-  technician_notes?: string;
-  parts_used?: string;
-  start_date: string;
-  completion_date?: string;
-  completed_by?: string; // user_id of technician who completed, not name
-  estimated_duration_hours?: number; // Can be decimal like 1.5
-  actual_duration_hours?: number; // Can be decimal like 1.5
-  cost?: number;
-  next_maintenance_date?: string;
-  created_at: string;
-  updated_at: string;
-  // New fields for reporting
-  equipment_name?: string;
-  old_equipment_id?: string;
-  equipment_type?: string;
-  model?: string;
-  serial_number?: string;
-  site_assignment?: string;
-  // Enhanced workflow fields
-  assigned_technician?: string; // user_id of technician, not name
-  workflow_step?: 'marked' | 'inspected' | 'in_progress' | 'completed';
-  inspection_date?: string;
-  work_start_date?: string;
-  work_completion_date?: string;
-  equipment_condition_before?: string;
-  equipment_condition_after?: string;
-  safety_checks_completed?: boolean;
-  quality_checks_completed?: boolean;
-}
 
-export interface EquipmentMaintenanceSchedule {
-  id: string;
-  equipment_id: string; // This is TEXT in database, not UUID
-  schedule_type: 'preventive' | 'corrective' | 'emergency';
-  maintenance_type: 'repair' | 'service';
-  frequency_days?: number;
-  last_maintenance_date?: string;
-  next_maintenance_date: string;
-  assigned_technician?: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  description?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 // Purchase Request System Types
 export interface PurchaseRequest {
@@ -289,7 +256,7 @@ export interface UserRole {
   id: string;
   user_id: string;
   role: 'technician' | 'manager' | 'admin' | 'viewer';
-  permissions: Record<string, any>;
+  permissions: Record<string, unknown>;
   assigned_by?: string;
   assigned_at: string;
   is_active: boolean;
@@ -307,47 +274,7 @@ export interface PageAccess {
 }
 
 // Enhanced maintenance workflow types
-export interface MaintenanceWorkflowHistory {
-  id: string;
-  maintenance_log_id: string;
-  workflow_step: string;
-  action_performed: string;
-  performed_by?: string;
-  performed_at: string;
-  notes?: string;
-  equipment_status_before?: string;
-  equipment_status_after?: string;
-}
 
-export interface MaintenanceDashboardView {
-  id: string;
-  equipment_id: string;
-  maintenance_type: 'repair' | 'service';
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-  description?: string;
-  start_date: string;
-  completion_date?: string;
-  equipment_name: string;
-  custom_equipment_id: string;
-  equipment_type: string;
-  equipment_site: string;
-  equipment_operational_status: string;
-  workflow_status_display: string;
-  workflow_step_display: string;
-  total_hours_elapsed: number;
-  work_hours_elapsed: number;
-}
-
-export interface MaintenanceStatistics {
-  total_maintenance_requests: number;
-  completed_maintenance: number;
-  in_progress_maintenance: number;
-  scheduled_maintenance: number;
-  average_completion_time_hours: number;
-  total_cost: number;
-  repair_count: number;
-  service_count: number;
-}
 
 export interface Role {
   id: string;
@@ -419,85 +346,4 @@ export interface MaterialSelection {
 }
 
 // Maintenance Material Request System
-export interface MaintenanceMaterialRequest {
-  id?: string;
-  maintenance_log_id: string;
-  equipment_id: string;
-  equipment_name: string;
-  maintenance_class: 'A' | 'B' | 'C';
-  maintenance_type: string;
-  status: 'pending' | 'awaiting_inventory' | 'pending_service' | 'in_progress' | 'completed' | 'cancelled';
-  requested_by: string;
-  requested_at?: string;
-  issued_by?: string;
-  issued_at?: string;
-  completed_by?: string; // user_id of technician who completed, not name
-  completed_at?: string;
-  site: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  notes?: string;
-  estimated_duration_hours?: number;
-  actual_duration_hours?: number;
-  total_estimated_cost?: number;
-  total_actual_cost?: number;
-  created_at?: string;
-  updated_at?: string;
-  // Additional fields for UI
-  equipment_type?: string;
-  equipment_model?: string;
-  equipment_operational_status?: string;
-  maintenance_description?: string;
-  technician_notes?: string;
-  assigned_technician?: string;
-  workflow_step?: string;
-  status_display?: string;
-  priority_color?: string;
-  total_items?: number;
-  issued_items?: number;
-  unavailable_items?: number;
-}
 
-export interface MaintenanceMaterialRequestItem {
-  id?: string;
-  request_id: string;
-  material_name: string;
-  material_type: string;
-  quantity_requested: number;
-  quantity_issued: number;
-  uom: string;
-  estimated_unit_cost: number;
-  actual_unit_cost: number;
-  status: 'pending' | 'available' | 'issued' | 'unavailable' | 'pr_generated';
-  inventory_notes?: string;
-  pr_id?: string;
-  material_id?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-// Class Maintenance Type
-export interface ClassMaintenanceType {
-  id?: string;
-  maintenance_type: string;
-  typical_equipment: string;
-  spare_part: string;
-  estimated_quantity: number;
-  uom: string;
-  is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-// Maintenance Workflow Notification
-export interface MaintenanceNotification {
-  id: string;
-  type: 'material_request' | 'inventory_ready' | 'maintenance_complete' | 'pr_generated';
-  title: string;
-  message: string;
-  entity_id: string;
-  entity_type: 'maintenance_request' | 'equipment' | 'purchase_request';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  is_read: boolean;
-  action_url?: string;
-  created_at: string;
-}

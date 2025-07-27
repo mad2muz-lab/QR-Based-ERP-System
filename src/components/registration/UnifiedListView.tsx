@@ -1,22 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Trash2, 
   Edit, 
   Eye, 
   Download, 
   Upload, 
-  Filter, 
-  ArrowUp, 
-  ArrowDown, 
   Search, 
   Printer,
-  CheckSquare,
-  Square,
   AlertCircle
 } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
-import { Employee, Equipment, Material, Site } from '../../types';
-import { generateQRCode } from '../../utils/qrCodeUtils';
+
 import QRCodeDisplay from './QRCodeDisplay';
 import ProfileView from './ProfileView';
 import { AuthManager } from '../../utils/authUtils';
@@ -60,20 +54,9 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
   const currentUser = AuthManager.getCurrentUserSync();
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'developer';
 
-  useEffect(() => {
-    const fetchData = async () => {
-      await loadData();
-    };
-    fetchData();
-  }, [type, refreshTrigger]);
-
-  useEffect(() => {
-    filterAndSortItems();
-  }, [items, searchTerm, sortField, sortDirection, statusFilter, typeFilter, departmentFilter, siteFilter]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     let loadedItems: any[] = [];
-    const useSupabase = await AuthManager.useSupabase();
+    const useSupabase = await AuthManager.shouldUseSupabase();
     
     try {
       if (useSupabase) {
@@ -139,7 +122,18 @@ const UnifiedListView: React.FC<UnifiedListViewProps> = ({
     
     setItems(loadedItems);
     setSelectedItems([]);
-  };
+  }, [type]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await loadData();
+    };
+    fetchData();
+  }, [loadData, refreshTrigger]);
+
+  useEffect(() => {
+    filterAndSortItems();
+  }, [items, searchTerm, sortField, sortDirection, statusFilter, typeFilter, departmentFilter, siteFilter]);
 
   const filterAndSortItems = () => {
     let filtered = [...items];

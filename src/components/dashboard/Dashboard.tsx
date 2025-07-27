@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, Wrench, Package, Clock, TrendingUp, AlertTriangle, 
-  Building, BarChart3, FileText, RefreshCw, Wifi, 
-  WifiOff, CheckCircle, Database 
+  Building, BarChart3, FileText, RefreshCw, 
+  WifiOff, CheckCircle
 } from 'lucide-react';
 import StatsCard from './StatsCard';
 import ReportsPanel from '../scanner/ReportsPanel';
-import { DataStorage } from '../../utils/dataStorage';
-import { SupabaseDataService } from '../../utils/supabaseDataService';
-import { AuthManager } from '../../utils/authUtils';
+
 import { offlineSyncManager, SyncStatus } from '../../utils/offlineSync';
 import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
 import { fetchData, getAllLogs, getCurrentDataSource } from '../../utils/dataProxy';
@@ -181,7 +179,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
   
   const lowStockMaterials = materials.filter(m => m.status === 'low-stock').length;
   const outOfStockMaterials = materials.filter(m => m.status === 'out-of-stock').length;
-  const totalMaterials = materials.length;
+  
   
   const totalSites = sites.length;
   
@@ -413,7 +411,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                       const endActions = {
                         'clock-in': 'clock-out',
                         'start-use': 'stop-use',
-                        'maintenance-start': 'maintenance-complete'
+                        'maintenance-start': 'maintenance-end',
+                        'standby-start': 'standby-end'
                       };
                       
                       const expectedEndAction = endActions[log.action as keyof typeof endActions];
@@ -462,7 +461,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                                 <TotalDurationDisplay 
                                   startTime={startLog.timestamp}
                                   endTime={log.timestamp}
-                                  variant="short" 
                                   showIcon={true}
                                 />
                               </>

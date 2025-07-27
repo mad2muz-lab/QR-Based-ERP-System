@@ -5,19 +5,12 @@ import {
   Wrench, 
   AlertTriangle, 
   CheckCircle, 
-  Clock,
   Settings,
   Hammer,
-  AlertCircle,
   Play,
   Pause,
   X,
-  RotateCcw,
-  Scan,
-  User,
-  Calendar,
-  DollarSign,
-  FileText
+  RotateCcw
 } from 'lucide-react';
 import { parseQRCode } from '../../utils/qrCodeUtils';
 import { DataStorage } from '../../utils/dataStorage';
@@ -88,7 +81,7 @@ const EquipmentScanner: React.FC<EquipmentScannerProps> = ({ onClose }) => {
       setError('');
       setIsScanning(true);
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
+      await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 640, min: 320 },
           height: { ideal: 480, min: 240 },
@@ -152,7 +145,7 @@ const EquipmentScanner: React.FC<EquipmentScannerProps> = ({ onClose }) => {
       // If equipment not found locally and Supabase is configured, try loading from Supabase
       if (!foundEquipment) {
         try {
-          const useSupabase = await AuthManager.useSupabase();
+          const useSupabase = await AuthManager.shouldUseSupabase();
           if (useSupabase) {
             setError('Loading equipment data from server...');
             const supabaseEquipment = await SupabaseDataService.getEquipment();
@@ -231,7 +224,6 @@ const EquipmentScanner: React.FC<EquipmentScannerProps> = ({ onClose }) => {
     setError('');
 
     try {
-      const timestamp = new Date().toISOString();
       let notes = '';
 
       if (action === 'start_use') {
@@ -266,7 +258,6 @@ const EquipmentScanner: React.FC<EquipmentScannerProps> = ({ onClose }) => {
     setError('');
 
     try {
-      const timestamp = new Date().toISOString();
       let notes = '';
 
       if (action === 'need_repair') {

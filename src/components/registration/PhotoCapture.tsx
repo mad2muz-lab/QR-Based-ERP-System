@@ -50,7 +50,7 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoCapture, onClose }) 
             facingMode: 'user'
           }
         });
-      } catch (idealError) {
+      } catch {
         // Fallback to basic constraints
         mediaStream = await navigator.mediaDevices.getUserMedia({
           video: true

@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { CheckCircle, Clock, User, Wrench, Package, Building, AlertTriangle, UserPlus } from 'lucide-react';
+import { 
+  Clock, 
+  Users, 
+  Package, 
+  Wrench, 
+  CheckCircle, 
+  AlertTriangle, 
+  Building 
+} from 'lucide-react';
 import { formatDuration } from '../../utils/timeUtils';
 
 interface TimeTrackingPanelProps {
@@ -32,7 +40,7 @@ const TimeTrackingPanel: React.FC<TimeTrackingPanelProps> = ({ scanResult, onAct
   const getEntityIcon = (type: string) => {
     switch (type) {
       case 'employee':
-        return User;
+        return Users;
       case 'equipment':
         return Wrench;
       case 'material':

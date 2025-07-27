@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { User, Edit, Trash2, Printer, Eye } from 'lucide-react';
+import { User, Edit, Trash2, Printer } from 'lucide-react';
 import { Employee } from '../../../types';
-import { generateQRCode } from '../../../utils/qrCodeUtils';
 import QRCodeDisplay from '../QRCodeDisplay';
 
 interface EmployeeListProps {

@@ -1,4 +1,3 @@
-import { DataStorage } from './dataStorage';
 import { UNITS_OF_MEASUREMENT } from '../types/constants';
 
 export class CustomUnitManager {

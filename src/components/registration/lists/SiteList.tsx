@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Building, Edit, Trash2, Printer, MapPin } from 'lucide-react';
 import { Site } from '../../../types';
-import { generateQRCode } from '../../../utils/qrCodeUtils';
 import QRCodeDisplay from '../QRCodeDisplay';
 
 interface SiteListProps {

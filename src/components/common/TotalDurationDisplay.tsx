@@ -5,7 +5,6 @@ import { calculateTotalDuration, formatElapsedTimeShort } from '../../utils/time
 interface TotalDurationDisplayProps {
   startTime: string;
   endTime: string;
-  variant?: 'full' | 'short' | 'compact';
   showIcon?: boolean;
   className?: string;
 }
@@ -13,7 +12,6 @@ interface TotalDurationDisplayProps {
 const TotalDurationDisplay: React.FC<TotalDurationDisplayProps> = ({
   startTime,
   endTime,
-  variant = 'short',
   showIcon = false,
   className = ''
 }) => {

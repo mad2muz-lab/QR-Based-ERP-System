@@ -13,7 +13,7 @@ interface AuditLogEntry {
   action: string;
   entity_type: string;
   entity_id: string;
-  details: any;
+  details: unknown;
   created_at: string;
 }
 
@@ -80,7 +80,7 @@ const UserAuditLogModal: React.FC<UserAuditLogModalProps> = ({ userId, userName,
           .limit(50);
         if (error) throw error;
         setLogs(data || []);
-      } catch (e: any) {
+      } catch {
         setError('Failed to load audit log');
       } finally {
         setLoading(false);

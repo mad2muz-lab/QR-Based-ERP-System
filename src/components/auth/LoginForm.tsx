@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Lock, User, Eye, EyeOff, AlertCircle, Database } from 'lucide-react';
+import React, { useState } from 'react';
+import { Lock, User as UserIcon, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { AuthManager } from '../../utils/authUtils';
-import { SupabaseAuthManager } from '../../utils/supabaseAuthUtils';
+import { User } from '../../types';
 
 interface LoginFormProps {
-  onLogin: (user: any) => void;
+  onLogin: (user: User) => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
@@ -25,8 +25,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
       } else {
         setError(result.error || 'Login failed');
       }
-    } catch (error: any) {
-      setError(error.message || 'An unexpected error occurred');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +54,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 value={username}

@@ -50,7 +50,7 @@ const SitesPage: React.FC = () => {
   };
 
   const filterAndSortSites = () => {
-    let filtered = sites.filter(site => {
+    const filtered = sites.filter(site => {
       const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            site.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            site.address.toLowerCase().includes(searchTerm.toLowerCase()) ||

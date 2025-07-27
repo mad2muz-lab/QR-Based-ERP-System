@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Wrench, AlertCircle, X } from 'lucide-react';
 import { Equipment } from '../../../types';
 import { equipmentCategories } from '../../../data/materialTypes';
-import { DataStorage } from '../../../utils/dataStorage';
 import { EquipmentMigration } from '../../../utils/equipmentMigration';
 import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
 
@@ -25,7 +24,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     status: 'available' as 'available' | 'in-use' | 'maintenance' | 'down',
     oldId: '',
     costCenterCode: '',
-    profitCenterCode: ''
+    profitCenterCode: '',
+    hourly_rate: ''
   });
   const [showCustomType, setShowCustomType] = useState(false);
   const [customIdError, setCustomIdError] = useState('');
@@ -49,7 +49,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
         status: initialData.status || 'available',
         oldId: initialData.oldId || '',
         costCenterCode: initialData.costCenterCode || '',
-        profitCenterCode: initialData.profitCenterCode || ''
+        profitCenterCode: initialData.profitCenterCode || '',
+        hourly_rate: initialData.hourly_rate !== undefined && initialData.hourly_rate !== null ? String(initialData.hourly_rate) : ''
       });
       
       const allTypes = getAllEquipmentTypes();
@@ -70,7 +71,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
         status: 'available',
         oldId: '',
         costCenterCode: '',
-        profitCenterCode: ''
+        profitCenterCode: '',
+        hourly_rate: ''
       });
       setShowCustomType(false);
       setCustomIdError('');
@@ -159,17 +161,18 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
       ...formData,
       type: showCustomType ? formData.customType : formData.type,
       operational_status: 'working' as 'working' | 'not_working' | 'in_use' | 'standby' | 'under_repair' | 'under_service',
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate as any) : undefined
     };
     
-    const { customType, ...finalData } = equipmentData;
+    const { customType: _, ...finalData } = equipmentData;
     
     try {
       onSubmit(finalData, isEditMode);
       setMessage({ type: 'success', text: isEditMode ? 'Equipment updated successfully!' : 'Equipment added successfully!' });
       // Only reset form if not editing
       if (!isEditMode) {
-        setFormData({ custom_equipment_id: '', name: '', type: '', customType: '', model: '', serialNumber: '', site: '', status: 'available', oldId: '', costCenterCode: '', profitCenterCode: '' });
+        setFormData({ custom_equipment_id: '', name: '', type: '', customType: '', model: '', serialNumber: '', site: '', status: 'available', oldId: '', costCenterCode: '', profitCenterCode: '', hourly_rate: '' });
         setShowCustomType(false);
         setCustomIdError('');
       }
@@ -402,6 +405,19 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Rate (SAR)</label>
+            <input
+              type="number"
+              value={formData.hourly_rate}
+              onChange={e => setFormData({ ...formData, hourly_rate: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              min={0}
+              step={0.01}
+              placeholder="Enter hourly rate"
+            />
           </div>
         </div>
 

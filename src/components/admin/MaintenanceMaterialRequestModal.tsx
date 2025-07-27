@@ -49,23 +49,51 @@ export default function MaintenanceMaterialRequestModal({
       setCreating(true);
       setError('');
 
+      // 1. Create the maintenance log in Supabase first
+      const maintenanceLogData = {
+        ...maintenanceLog, // Use all fields from the passed maintenanceLog
+        equipment_id: equipment.id,
+        // Ensure required fields are present
+        maintenance_type: maintenanceLog.maintenance_type,
+        status: maintenanceLog.status || 'scheduled',
+        description: maintenanceLog.description || '',
+        start_date: maintenanceLog.start_date || new Date().toISOString(),
+        estimated_duration_hours: maintenanceLog.estimated_duration_hours || 1,
+        // Add any other required fields here
+      };
+      // Import SupabaseRegistrationService dynamically to avoid circular deps
+      const { SupabaseRegistrationService } = await import('../../utils/supabaseRegistrationService');
+      const logResult = await SupabaseRegistrationService.createMaintenanceLog(maintenanceLogData);
+      if (!logResult.success || !logResult.data || !logResult.data.id || logResult.data.id.startsWith('maint-log-')) {
+        setError('Cannot create material request: maintenance log was not created in Supabase. Please check your connection and try again.');
+        setCreating(false);
+        return;
+      }
+      const supabaseLogId = logResult.data.id;
+
+      // 2. Now create the material request with the correct FK
       const workflowService = MaintenanceWorkflowService.getInstance();
       const result = await workflowService.createMaintenanceMaterialRequest(
         equipment,
-        maintenanceLog.id,
+        supabaseLogId,
         maintenanceClass,
         maintenanceLog.maintenance_type,
         maintenanceLog.estimated_duration_hours
       );
 
       if (result.success) {
-        onCreated();
+        if (result.data && result.data.id && result.data.id.startsWith('mmr-')) {
+          // Likely local storage fallback
+          setError('Warning: Request was saved locally but not in the main database. Please check your internet connection or try again later.');
+        } else {
+          onCreated();
+        }
       } else {
-        setError(result.error || 'Failed to create maintenance material request');
+        setError(result.error || 'Failed to create maintenance material request. The request was not saved in the database.');
       }
     } catch (error) {
       console.error('Error creating maintenance material request:', error);
-      setError('Failed to create maintenance material request');
+      setError('Failed to create maintenance material request. Please check your connection and try again.');
     } finally {
       setCreating(false);
     }

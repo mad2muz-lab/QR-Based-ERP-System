@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, TrendingUp, Users, Wrench, Package, Download, Filter, BarChart3, PieChart, FileText } from 'lucide-react';
+import { 
+  Download, 
+  BarChart3, 
+  Activity, 
+  Users, 
+  Package, 
+  Wrench 
+} from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
-import { formatDuration, calculateWorkingHours, isOvertime } from '../../utils/timeUtils';
+import { formatDuration, calculateWorkingHours } from '../../utils/timeUtils';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { Employee, Equipment, Material } from '../../types';
 
@@ -544,7 +551,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({
       {/* Activity Log */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <div className="flex items-center space-x-3 mb-4">
-          <FileText className="w-5 h-5 text-gray-600" />
+          <Activity className="w-5 h-5 text-gray-600" />
           <h3 className="text-lg font-semibold text-gray-900">Activity Log</h3>
         </div>
 

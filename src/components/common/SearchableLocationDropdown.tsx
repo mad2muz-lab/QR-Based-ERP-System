@@ -32,8 +32,7 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const currentUser = AuthManager.getCurrentUserSync();
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'developer';
+
   // Allow custom locations for all users
   const canAddCustomLocation = true;
 
@@ -85,7 +84,7 @@ const SearchableLocationDropdown: React.FC<SearchableLocationDropdownProps> = ({
     }
 
     // Check if Supabase is enabled
-    const useSupabase = AuthManager.useSupabase ? await AuthManager.useSupabase() : false;
+    const useSupabase = AuthManager.shouldUseSupabase ? await AuthManager.shouldUseSupabase() : false;
     if (useSupabase) {
       const result = await SupabaseRegistrationService.createLocationWithDuplicateCheck({
         city: customLocation.city,

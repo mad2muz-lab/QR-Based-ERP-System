@@ -6,17 +6,13 @@ import {
   Package, 
   AlertTriangle, 
   CheckCircle, 
-  Plus, 
-  Minus,
   X,
-  RotateCcw,
-  Scan,
   ArrowUp,
   ArrowDown
 } from 'lucide-react';
 import { parseQRCode } from '../../utils/qrCodeUtils';
 import { DataStorage } from '../../utils/dataStorage';
-import { Material, MaterialLog } from '../../types';
+import { Material } from '../../types';
 import { OfflineDataManager } from '../../utils/offlineDataManager';
 import { AuthManager } from '../../utils/authUtils';
 import { SupabaseDataService } from '../../utils/supabaseDataService';
@@ -89,7 +85,7 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
       setError('');
       setIsScanning(true);
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
+      await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 640, min: 320 },
           height: { ideal: 480, min: 240 },
@@ -134,7 +130,7 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
   };
 
   const handleScanResult = async (qrData: string) => {
-    const parsed = parseQRCode(qrData);
+    const parsed = await parseQRCode(qrData);
     
     if (parsed.type !== 'material') {
       setError('Invalid material QR code. Please scan a material QR code.');
@@ -144,7 +140,7 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
     let material = materials.find(mat => mat.id === parsed.id);
     
     // If material not found locally and Supabase is configured, try loading from Supabase
-    if (!material && AuthManager.useSupabase()) {
+    if (!material) {
       try {
         setError('Loading material data from server...');
         const supabaseMaterials = await SupabaseDataService.getMaterials();
@@ -200,6 +196,10 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
   };
 
   const validateOperation = async (): Promise<string | null> => {
+    if (!operation.material.id) {
+      return 'No material selected';
+    }
+
     if (operation.quantity <= 0) {
       return 'Quantity must be greater than 0';
     }
@@ -207,14 +207,14 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
     // Always fetch the latest available quantity from the source before Material OUT
     if (selectedOperation === 'out') {
       let latestMaterial: Material | undefined;
-      if (AuthManager.useSupabase()) {
-        try {
-          const supabaseMaterials = await SupabaseDataService.getMaterials();
-          latestMaterial = supabaseMaterials.find(m => m.id === operation.material.id);
-        } catch (e) {
-          return 'Failed to fetch latest material data from server.';
-        }
-      } else {
+      try {
+        const supabaseMaterials = await SupabaseDataService.getMaterials();
+        latestMaterial = supabaseMaterials.find(m => m.id === operation.material.id);
+      } catch {
+        return 'Failed to fetch latest material data from server.';
+      }
+      
+      if (!latestMaterial) {
         const localMaterials = DataStorage.loadMaterials();
         latestMaterial = localMaterials.find(m => m.id === operation.material.id);
       }
@@ -238,12 +238,6 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
         return;
       }
 
-      // Ensure we're in Supabase mode for proper sync
-      if (!AuthManager.useSupabase()) {
-        console.log('Switching to Supabase mode for material operations...');
-        AuthManager.setUseSupabase(true);
-      }
-
       // Check authentication
       const isAuthenticated = await AuthManager.isAuthenticated();
       if (!isAuthenticated) {
@@ -256,7 +250,6 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
       }
 
       console.log('Material operation - User authenticated:', currentUser.username || currentUser.email);
-      console.log('Material operation - Supabase mode:', AuthManager.useSupabase());
 
       const previousStock = operation.material.quantity;
       const newStock = selectedOperation === 'in' 
@@ -490,7 +483,7 @@ const MaterialScanner: React.FC<MaterialScannerProps> = ({ onClose }) => {
                 {!isScanning && (
                   <div className="h-64 flex items-center justify-center bg-gray-100">
                     <div className="text-center">
-                      <Scan className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 mb-4">Material QR Scanner</p>
                       <p className="text-sm text-gray-500">Camera preview will appear here</p>
                     </div>

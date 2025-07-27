@@ -44,7 +44,7 @@ const EmployeesPage: React.FC = () => {
   };
 
   const filterAndSortEmployees = () => {
-    let filtered = employees.filter(employee => {
+    const filtered = employees.filter(employee => {
       const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            employee.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (employee.oldId && employee.oldId.toLowerCase().includes(searchTerm.toLowerCase())) ||

@@ -1,6 +1,5 @@
 import React, { Suspense } from 'react';
 import { RouteObject } from 'react-router-dom';
-import ProtectedRoute from './components/auth/ProtectedRoute';
 import {
   Dashboard,
   QRScanner,
@@ -9,9 +8,13 @@ import {
   AdminPanel,
   DatabaseConnectionTest,
   LoadingSpinner,
-  LazyComponentErrorBoundary
+  LazyComponentErrorBoundary,
+  DirectMaintenanceForm
 } from './components/common/LazyComponents';
 import DepartmentsPage from './components/pages/DepartmentsPage';
+import MaintenancePage from './components/maintenance/MaintenancePage';
+import InventoryPage from './components/inventory/InventoryPage';
+import InventoryRequestDetail from './components/inventory/InventoryRequestDetail';
 import { User } from './types';
 import LoginForm from './components/auth/LoginForm';
 
@@ -97,6 +100,46 @@ export const AppRoutes = ({ currentUser }: AppRoutesProps): RouteObject[] => [
       <LazyComponentErrorBoundary>
         <Suspense fallback={<LoadingSpinner message="Loading Login..." />}>
           <LoginForm onLogin={() => {}} />
+        </Suspense>
+      </LazyComponentErrorBoundary>
+    ),
+  },
+  {
+    path: '/maintenance',
+    element: (
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Maintenance Page..." />}>
+          <MaintenancePage />
+        </Suspense>
+      </LazyComponentErrorBoundary>
+    ),
+  },
+  {
+    path: '/maintenance/corrective/new',
+    element: (
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Corrective Maintenance Form..." />}>
+          <DirectMaintenanceForm />
+        </Suspense>
+      </LazyComponentErrorBoundary>
+    ),
+  },
+  {
+    path: '/inventory',
+    element: (
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Inventory Page..." />}>
+          <InventoryPage />
+        </Suspense>
+      </LazyComponentErrorBoundary>
+    ),
+  },
+  {
+    path: '/inventory/requests/:requestId',
+    element: (
+      <LazyComponentErrorBoundary>
+        <Suspense fallback={<LoadingSpinner message="Loading Request Details..." />}>
+          <InventoryRequestDetail />
         </Suspense>
       </LazyComponentErrorBoundary>
     ),

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, User, Wrench, Package, Building, AlertTriangle, UserPlus, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Clock, User, Wrench, Package, Building, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { formatDuration } from '../../utils/timeUtils';
 
 interface UnifiedScanResultProps {
@@ -331,30 +331,48 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
           </div>
         ) : (
           <div className="space-y-3">
-            {scanResult.actions.map((action: any) => (
-              <button
-                key={action.id}
-                onClick={() => {
-                  if (action.id === 'material-out' && scanResult.entity.quantity <= 0) {
-                    alert('Cannot issue material: Stock is zero. Please add inventory first.');
-                    return;
-                  }
-                  handleActionClick(action.id);
-                }}
-                disabled={action.id === 'material-out' && scanResult.entity.quantity <= 0}
-                className={`w-full flex items-center justify-between px-6 py-4 rounded-lg font-semibold text-lg transition-colors
-                  ${action.id === 'material-in' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
-                  ${action.id === 'material-out' ? (scanResult.entity.quantity <= 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700 text-white') : ''}
-                  ${action.id !== 'material-in' && action.id !== 'material-out' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
-                `}
-              >
-                <span className="flex items-center space-x-3">
-                  {action.icon && <action.icon className="w-6 h-6" />}
-                  <span>{action.label}</span>
-                </span>
-                <span className="text-sm font-normal">{action.description}</span>
-              </button>
-            ))}
+            {scanResult.actions.length === 0 ? (
+              // Show message when no actions are available (e.g., equipment in maintenance)
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-orange-900 mb-2">Equipment in Maintenance</h4>
+                    <p className="text-orange-800 text-sm mb-3">
+                      This equipment is currently marked for maintenance and no actions are available on the QR scanner.
+                    </p>
+                    <p className="text-orange-700 text-sm">
+                      To change the equipment status, please use the corrective maintenance form from the maintenance page or notification.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              scanResult.actions.map((action: any) => (
+                <button
+                  key={action.id}
+                  onClick={() => {
+                    if (action.id === 'material-out' && scanResult.entity.quantity <= 0) {
+                      alert('Cannot issue material: Stock is zero. Please add inventory first.');
+                      return;
+                    }
+                    handleActionClick(action.id);
+                  }}
+                  disabled={action.id === 'material-out' && scanResult.entity.quantity <= 0}
+                  className={`w-full flex items-center justify-between px-6 py-4 rounded-lg font-semibold text-lg transition-colors
+                    ${action.id === 'material-in' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                    ${action.id === 'material-out' ? (scanResult.entity.quantity <= 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700 text-white') : ''}
+                    ${action.id !== 'material-in' && action.id !== 'material-out' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
+                  `}
+                >
+                  <span className="flex items-center space-x-3">
+                    {action.icon && <action.icon className="w-6 h-6" />}
+                    <span>{action.label}</span>
+                  </span>
+                  <span className="text-sm font-normal">{action.description}</span>
+                </button>
+              ))
+            )}
           </div>
         )}
       </div>

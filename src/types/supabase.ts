@@ -55,6 +55,9 @@ export interface Database {
           notes: string | null
           location: string | null
           old_id: string | null
+          regular_hours: number | null
+          overtime_hours: number | null
+          total_work_hours: number | null
         }
         Insert: {
           id?: string
@@ -69,6 +72,9 @@ export interface Database {
           notes?: string | null
           location?: string | null
           old_id?: string | null
+          regular_hours?: number | null
+          overtime_hours?: number | null
+          total_work_hours?: number | null
         }
         Update: {
           id?: string
@@ -83,6 +89,9 @@ export interface Database {
           notes?: string | null
           location?: string | null
           old_id?: string | null
+          regular_hours?: number | null
+          overtime_hours?: number | null
+          total_work_hours?: number | null
         }
       }
       equipment_logs: {

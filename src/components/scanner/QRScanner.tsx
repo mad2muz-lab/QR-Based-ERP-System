@@ -1,22 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import QrScanner from 'qr-scanner';
-import { Camera, Upload, Clock, AlertCircle, CheckCircle, UserPlus, Package, Scan, User, Wrench, Building, Pause, AlertTriangle, Settings } from 'lucide-react';
-import TimeTrackingPanel from './TimeTrackingPanel';
-import MaterialScanner from './MaterialScanner';
-// Equipment scanner functionality now integrated directly into main QR scanner
+import { 
+  Camera, 
+  Upload,
+  Clock, 
+  AlertCircle, 
+  UserPlus, 
+  Package, 
+  Scan, 
+  User, 
+  Wrench, 
+  Building, 
+  Pause, 
+  CheckCircle 
+} from 'lucide-react';
 import { parseQRCode } from '../../utils/qrCodeUtils';
-import { DataStorage } from '../../utils/dataStorage';
 import { getShiftStatus } from '../../utils/timeUtils';
 import { useHardwareScanner } from '../../hooks/useHardwareScanner';
-import { OfflineDataManager } from '../../utils/offlineDataManager';
 import { logManager } from '../../utils/logManager';
-import { AuthManager } from '../../utils/authUtils';
-import { SupabaseDataService } from '../../utils/supabaseDataService';
+import { DataStorage } from '../../utils/dataStorage';
 import { fetchData, getAllLogs } from '../../utils/dataProxy';
-import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
 import UnifiedScanResult from './UnifiedScanResult';
-import { maintenanceService } from '../../utils/maintenanceService';
-import EquipmentMaintenanceModal from './EquipmentMaintenanceModal';
+import { supabase } from '../../utils/supabaseClient';
 
 
 const QRScanner: React.FC = () => {
@@ -46,10 +51,6 @@ const QRScanner: React.FC = () => {
   const qrScannerRef = useRef<QrScanner | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isProcessingRef = useRef<boolean>(false);
-  
-  // Maintenance modal state
-  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
-  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
   
   // Use hardware scanner hook
   useHardwareScanner({
@@ -103,7 +104,7 @@ const QRScanner: React.FC = () => {
       ]);
       setIsSearching(false);
     }, 200);
-    // eslint-disable-next-line
+     
   }, [searchQuery, allEntities]);
 
   // Simulate QR scan on selection
@@ -354,57 +355,34 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
         console.log('🔍 Searching for equipment with ID:', parsed.id);
         console.log('🔍 Available equipment:', equipment);
         
-        // Find equipment by custom_equipment_id first, then by id
+        // Find equipment by ID
         if (!entity) {
-          entity = (equipment as any[]).find((eq: any) => 
-            eq.custom_equipment_id === parsed.id || eq.id === parsed.id
-          );
+          entity = (equipment as any[]).find((eq: any) => eq.id === parsed.id || eq.custom_equipment_id === parsed.id);
         }
         
         console.log('🔍 Found equipment:', entity);
         
         if (entity) {
-          // Check equipment logs to determine current status
-          const equipmentLogs = allLogs.equipmentLogs || [];
-          const equipmentUUID = entity.id;
+          // Use both status and operational_status fields to determine available actions
+          const currentStatus = entity.status || 'available';
+          const operationalStatus = entity.operational_status || 'working';
+          console.log('🔍 Equipment status from Supabase:', currentStatus, 'operational_status:', operationalStatus);
           
-          // Find the most recent equipment log for this equipment
-          const recentLog = equipmentLogs
-            .filter((log: any) => 
-              log.entity_id === equipmentUUID || log.entityId === equipmentUUID || 
-              log.equipmentId === equipmentUUID || log.equipment_id === equipmentUUID ||
-              // Also check for custom_equipment_id in logs for backward compatibility
-              log.entity_id === parsed.id || log.entityId === parsed.id
-            )
-            .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+          let actions: Array<any> = [];
           
-          console.log('🔍 Recent equipment log:', recentLog);
-          
-          // Determine current status based on recent log
-          let currentStatus = 'available';
-          if (recentLog) {
-            console.log('🔍 Recent log action:', recentLog.action);
-            if (recentLog.action === 'start-use') {
-              currentStatus = 'in_use';
-            } else if (recentLog.action === 'standby-start') {
-              currentStatus = 'standby';
-            } else if (recentLog.action === 'maintenance-start') {
-              currentStatus = 'maintenance';
-            } else if (recentLog.action === 'stop-use' || recentLog.action === 'standby-end' || recentLog.action === 'maintenance-end') {
-              currentStatus = 'available';
-            }
-          } else {
-            console.log('🔍 No recent log found, using equipment status:', entity.status);
-            // Fallback to equipment's own status if no logs found
-            if (entity.status === 'in-use' || entity.status === 'maintenance' || entity.status === 'standby') {
-              currentStatus = entity.status;
-            }
-          }
-          
-          console.log('🔍 Equipment current status:', currentStatus);
-          
-          // Set up equipment-specific actions based on current status
-          if (currentStatus === 'available') {
+          // Check if equipment is in standby mode (operational_status = 'standby')
+          if (operationalStatus === 'standby') {
+            actions = [
+              {
+                id: 'standby_end',
+                label: 'End Standby',
+                description: 'End standby mode',
+                icon: Pause,
+                color: 'orange'
+              }
+            ];
+          } else if (currentStatus === 'available' && operationalStatus === 'working') {
+            // Equipment is available and working - show start actions
             actions = [
               {
                 id: 'start_use',
@@ -428,84 +406,20 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
                 color: 'orange'
               }
             ];
-          } else if (currentStatus === 'in_use') {
-            // Calculate usage time from the start log
-            let usageHours = 0;
-            if (recentLog) {
-              const startTime = new Date(recentLog.timestamp);
-              const now = new Date();
-              usageHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60); // Convert to hours
-            }
-            
+          } else if (currentStatus === 'in-use') {
             actions = [
               {
                 id: 'stop_use',
                 label: 'Stop Use',
-                description: `End usage (${usageHours.toFixed(1)}h used)`,
+                description: 'End usage',
                 icon: Clock,
                 color: 'red'
               }
             ];
-          } else if (currentStatus === 'standby') {
-            // Calculate standby time from the standby start log
-            let standbyHours = 0;
-            if (recentLog) {
-              const startTime = new Date(recentLog.timestamp);
-              const now = new Date();
-              standbyHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60); // Convert to hours
-            }
-            
-            actions = [
-              {
-                id: 'standby_end',
-                label: 'End Standby',
-                description: `End standby (${standbyHours.toFixed(1)}h in standby)`,
-                icon: Pause,
-                color: 'orange'
-              }
-            ];
           } else if (currentStatus === 'maintenance') {
-            // Equipment is under maintenance
-            // Check for active maintenance log
-            let hasActiveMaintenanceLog = false;
-            let hasScheduledMaintenanceLog = false;
-            try {
-              const logs = await maintenanceService.getMaintenanceLogs(entity.id);
-              hasActiveMaintenanceLog = logs && logs.length > 0 && logs.some(log => log.status === 'in_progress');
-              hasScheduledMaintenanceLog = logs && logs.length > 0 && logs.some(log => log.status === 'scheduled');
-            } catch {}
-            
-            if (hasActiveMaintenanceLog) {
-              actions = [
-                {
-                  id: 'complete_maintenance',
-                  label: 'Maintenance Completed',
-                  description: 'Mark maintenance as completed and equipment ready',
-                  icon: CheckCircle,
-                  color: 'green'
-                }
-              ];
-            } else if (hasScheduledMaintenanceLog) {
-              actions = [
-                {
-                  id: 'start_maintenance_work',
-                  label: 'Start Maintenance Work',
-                  description: 'Begin maintenance work on equipment',
-                  icon: Wrench,
-                  color: 'orange'
-                }
-              ];
-            } else {
-              actions = [
-                {
-                  id: 'mark_working',
-                  label: 'Mark as Working',
-                  description: 'Mark equipment as operational',
-                  icon: CheckCircle,
-                  color: 'green'
-                }
-              ];
-            }
+            // Equipment is in maintenance - no actions available on QR scanner
+            // Status changes should be done through the corrective maintenance form
+            actions = [];
           }
           
           setScanResult({
@@ -611,9 +525,8 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     setIsProcessingAction(true);
 
     // Load current data from storage
-    const materials = await fetchData('materials');
+    // const materials = await fetchData('materials');
 
-    const timestamp = new Date().toISOString();
     let notes = '';
     
     // Calculate overtime for employee clock-out
@@ -631,13 +544,11 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     }
 
     try {
-      let operationId: string;
-      
       // Use the new LogManager to create entity-specific logs
       switch (scanResult.type) {
         case 'employee':
           if (actionId === 'clock-in' || actionId === 'clock-out') {
-            operationId = await logManager.createEmployeeLog(
+            await logManager.createEmployeeLog(
               scanResult.entity,
               actionId as 'clock-in' | 'clock-out',
               scanResult.entity.site || 'Unknown',
@@ -650,134 +561,304 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           
         case 'equipment':
           if (actionId === 'start_use') {
-            // Convert start_use to start-use
-            operationId = await logManager.createEquipmentLog(
+            // Handle starting equipment use
+            notes = 'Equipment usage started';
+            // 1. Create an equipment log entry for start-use
+            await logManager.createEquipmentLog(
               scanResult.entity,
               'start-use',
               scanResult.entity.site || 'Unknown',
-              'in-use', // Use valid status
+              'in-use',
               notes
             );
+            // 2. Update equipment status in Supabase
+            await supabase.from('equipment').update({ 
+              status: 'in-use', 
+              operational_status: 'in_use',
+              last_updated: new Date().toISOString()
+            }).eq('id', scanResult.entity.id);
+            // 3. Re-fetch the updated equipment from Supabase
+            const { data: updatedEquipment, error: fetchError } = await supabase.from('equipment').select('*').eq('id', scanResult.entity.id).single();
+            if (fetchError) {
+              console.error('❌ Failed to fetch updated equipment:', fetchError);
+            } else {
+              console.log('🔄 Refetched equipment after update:', updatedEquipment);
+              setScanResult(null);
+              const allEquipment = DataStorage.loadEquipment();
+              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
+              if (idx !== -1) {
+                allEquipment[idx] = updatedEquipment;
+                DataStorage.saveEquipment(allEquipment);
+              }
+            }
+            isProcessingRef.current = false;
+            setIsProcessingAction(false);
+            return;
           } else if (actionId === 'stop_use') {
-            // Convert stop_use to stop-use
-            operationId = await logManager.createEquipmentLog(
+            // Handle stopping equipment use
+            notes = 'Equipment usage stopped';
+            // 1. Create an equipment log entry for stop-use
+            await logManager.createEquipmentLog(
               scanResult.entity,
               'stop-use',
-              scanResult.entity.site || 'Unknown',
-              'available', // Use valid status
-              notes
-            );
-          } else if (actionId === 'standby_start') {
-            // Handle standby start action
-            notes = 'Equipment set to standby mode';
-            operationId = await logManager.createEquipmentLog(
-              scanResult.entity,
-              'standby-start',
-              scanResult.entity.site || 'Unknown',
-              'standby',
-              notes
-            );
-          } else if (actionId === 'standby_end') {
-            // Handle standby end action
-            notes = 'Equipment standby ended';
-            operationId = await logManager.createEquipmentLog(
-              scanResult.entity,
-              'standby-end',
               scanResult.entity.site || 'Unknown',
               'available',
               notes
             );
-          } else if (actionId === 'mark_for_maintenance') {
-            // Directly mark equipment for maintenance and start time tracker
-            setIsProcessingAction(true);
-            setError('');
+            // 2. Update equipment status in Supabase
+            await supabase.from('equipment').update({ 
+              status: 'available', 
+              operational_status: 'working',
+              last_updated: new Date().toISOString()
+            }).eq('id', scanResult.entity.id);
+            // 3. Re-fetch the updated equipment from Supabase
+            const { data: updatedEquipment, error: fetchError } = await supabase.from('equipment').select('*').eq('id', scanResult.entity.id).single();
+            if (fetchError) {
+              console.error('❌ Failed to fetch updated equipment:', fetchError);
+            } else {
+              console.log('🔄 Refetched equipment after update:', updatedEquipment);
+              setScanResult(null);
+              const allEquipment = DataStorage.loadEquipment();
+              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
+              if (idx !== -1) {
+                allEquipment[idx] = updatedEquipment;
+                DataStorage.saveEquipment(allEquipment);
+              }
+            }
+            isProcessingRef.current = false;
+            setIsProcessingAction(false);
+            return;
+          } else if (actionId === 'standby_start') {
+            // Handle starting standby mode
+            notes = 'Equipment set to standby mode';
+            console.log('🔄 Starting standby for equipment:', scanResult.entity.id);
             
             try {
-              const timestamp = new Date().toISOString();
-              const notes = 'Equipment marked for maintenance - time tracking started';
+              // 1. Create an equipment log entry for standby-start
+              await logManager.createEquipmentLog(
+                scanResult.entity,
+                'standby-start',
+                scanResult.entity.site || 'Unknown',
+                'standby',
+                notes
+              );
+              console.log('✅ Equipment log created for standby-start');
               
-              // Create equipment log for maintenance start
-              const operationId = await logManager.createEquipmentLog(
+              // 2. Update equipment status in Supabase (use 'available' for status, 'standby' for operational_status)
+              const { error: updateError } = await supabase
+                .from('equipment')
+                .update({ 
+                  status: 'available', // Use allowed status value
+                  operational_status: 'standby', // Use operational_status for detailed state
+                  last_updated: new Date().toISOString()
+                })
+                .eq('id', scanResult.entity.id);
+                
+              if (updateError) {
+                console.error('❌ Failed to update equipment status in Supabase:', updateError);
+                throw new Error(`Failed to update equipment status: ${updateError.message}`);
+              }
+              console.log('✅ Equipment status updated to standby in Supabase');
+              
+              // 3. Re-fetch the updated equipment from Supabase
+              const { data: updatedEquipment, error: fetchError } = await supabase
+                .from('equipment')
+                .select('*')
+                .eq('id', scanResult.entity.id)
+                .single();
+                
+              if (fetchError) {
+                console.error('❌ Failed to fetch updated equipment:', fetchError);
+                throw new Error(`Failed to fetch updated equipment: ${fetchError.message}`);
+              }
+              
+              console.log('🔄 Refetched equipment after update:', updatedEquipment);
+              
+              // 4. Update local equipment list
+              const allEquipment = DataStorage.loadEquipment();
+              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
+              if (idx !== -1) {
+                allEquipment[idx] = updatedEquipment;
+                DataStorage.saveEquipment(allEquipment);
+                console.log('✅ Updated equipment in local storage');
+              }
+              
+              // 5. Clear processing state (scan result cleared centrally)
+              isProcessingRef.current = false;
+              setIsProcessingAction(false);
+              
+              console.log('✅ Standby start completed successfully');
+              return;
+              
+            } catch (error) {
+              console.error('❌ Error during standby start:', error);
+              setError(`Failed to start standby: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              isProcessingRef.current = false;
+              setIsProcessingAction(false);
+              return;
+            }
+          } else if (actionId === 'standby_end') {
+            // Handle ending standby mode
+            notes = 'Equipment standby ended';
+            console.log('🔄 Ending standby for equipment:', scanResult.entity.id);
+            
+            try {
+              // 1. Create an equipment log entry for standby-end
+              await logManager.createEquipmentLog(
+                scanResult.entity,
+                'standby-end',
+                scanResult.entity.site || 'Unknown',
+                'available',
+                notes
+              );
+              console.log('✅ Equipment log created for standby-end');
+              
+              // 2. Update equipment status in Supabase
+              const { error: updateError } = await supabase
+                .from('equipment')
+                .update({ 
+                  status: 'available', 
+                  operational_status: 'working',
+                  last_updated: new Date().toISOString()
+                })
+                .eq('id', scanResult.entity.id);
+                
+              if (updateError) {
+                console.error('❌ Failed to update equipment status in Supabase:', updateError);
+                throw new Error(`Failed to update equipment status: ${updateError.message}`);
+              }
+              console.log('✅ Equipment status updated to available in Supabase');
+              
+              // 3. Re-fetch the updated equipment from Supabase
+              const { data: updatedEquipment, error: fetchError } = await supabase
+                .from('equipment')
+                .select('*')
+                .eq('id', scanResult.entity.id)
+                .single();
+                
+              if (fetchError) {
+                console.error('❌ Failed to fetch updated equipment:', fetchError);
+                throw new Error(`Failed to fetch updated equipment: ${fetchError.message}`);
+              }
+              
+              console.log('🔄 Refetched equipment after update:', updatedEquipment);
+              
+              // 4. Update local equipment list
+              const allEquipment = DataStorage.loadEquipment();
+              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
+              if (idx !== -1) {
+                allEquipment[idx] = updatedEquipment;
+                DataStorage.saveEquipment(allEquipment);
+                console.log('✅ Updated equipment in local storage');
+              }
+              
+              // 5. Clear processing state (scan result cleared centrally)
+              isProcessingRef.current = false;
+              setIsProcessingAction(false);
+              
+              console.log('✅ Standby end completed successfully');
+              return;
+              
+            } catch (error) {
+              console.error('❌ Error during standby end:', error);
+              setError(`Failed to end standby: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              isProcessingRef.current = false;
+              setIsProcessingAction(false);
+              return;
+            }
+          } else if (actionId === 'mark_for_maintenance') {
+            // Handle marking equipment for maintenance
+            notes = 'Equipment marked for maintenance';
+            console.log('🔄 Marking equipment for maintenance:', scanResult.entity.id);
+            
+            try {
+              // Create equipment log entry for maintenance-start
+              await logManager.createEquipmentLog(
                 scanResult.entity,
                 'maintenance-start',
                 scanResult.entity.site || 'Unknown',
                 'maintenance',
-                notes
+                'Marked for maintenance via QR scanner'
               );
+              console.log('✅ Equipment log entry created for maintenance-start');
               
-              // Create maintenance log with 'in_progress' status to start time tracking
-              const maintenanceLogId = await maintenanceService.createMaintenanceLog({
-                equipment_id: scanResult.entity.id,
-                maintenance_type: 'service', // Default to service type
-                status: 'in_progress',
-                description: 'Equipment marked for maintenance - time tracking active',
-                start_date: timestamp,
-                estimated_duration_hours: 1,
-                equipment: scanResult.entity
-              });
+              // Update equipment status to 'maintenance' in Supabase
+              const { error: updateError } = await supabase
+                .from('equipment')
+                .update({ 
+                  status: 'maintenance', 
+                  operational_status: 'under_service',
+                  last_updated: new Date().toISOString()
+                })
+                .eq('id', scanResult.entity.id);
+                
+              if (updateError) {
+                console.error('❌ Failed to update equipment status in Supabase:', updateError);
+                throw new Error(`Failed to update equipment status: ${updateError.message}`);
+              }
+              console.log('✅ Equipment status updated to maintenance in Supabase');
               
-              setSuccess('Equipment marked for maintenance and time tracking started!');
-              setTimeout(() => setSuccess(''), 3000);
-              resetScanner();
-            } catch (error: any) {
-              console.error('Error marking equipment for maintenance:', error);
-              setError(`Failed to mark equipment for maintenance. Please try again.`);
-            } finally {
+              // Re-fetch the updated equipment from Supabase
+              const { data: updatedEquipment, error: fetchError } = await supabase
+                .from('equipment')
+                .select('*')
+                .eq('id', scanResult.entity.id)
+                .single();
+                
+              if (fetchError) {
+                console.error('❌ Failed to fetch updated equipment:', fetchError);
+                throw new Error(`Failed to fetch updated equipment: ${fetchError.message}`);
+              }
+              
+              console.log('🔄 Refetched equipment after update:', updatedEquipment);
+              
+              // Update local equipment list
+              const allEquipment = DataStorage.loadEquipment();
+              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
+              if (idx !== -1) {
+                allEquipment[idx] = updatedEquipment;
+                DataStorage.saveEquipment(allEquipment);
+                console.log('✅ Updated equipment in local storage');
+              }
+              
+              // Clear processing state (scan result cleared centrally)
+              isProcessingRef.current = false;
               setIsProcessingAction(false);
+              
+              console.log('✅ Mark for maintenance completed successfully');
+              return;
+              
+            } catch (error) {
+              console.error('❌ Error during mark for maintenance:', error);
+              setError(`Failed to mark for maintenance: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              isProcessingRef.current = false;
+              setIsProcessingAction(false);
+              return;
             }
-            return; // Don't proceed with the action, we've handled it
-          } else if (actionId === 'mark_working') {
-            // Handle marking equipment as working
-            notes = 'Equipment marked as operational';
-            operationId = await logManager.createEquipmentLog(
-              scanResult.entity,
-              'maintenance-end',
-              scanResult.entity.site || 'Unknown',
-              'available',
-              notes
-            );
           } else if (actionId === 'start_maintenance_work') {
             // Handle starting maintenance work
             notes = 'Maintenance work started';
-            operationId = await logManager.createEquipmentLog(
-              scanResult.entity,
-              'maintenance-start',
-              scanResult.entity.site || 'Unknown',
-              'maintenance',
-              notes
-            );
+            // operationId = await logManager.createEquipmentLog(
+            //   scanResult.entity,
+            //   'maintenance-start',
+            //   scanResult.entity.site || 'Unknown',
+            //   'maintenance',
+            //   notes
+            // );
             
-            // Update maintenance log status to in_progress
-            try {
-              const logs = await maintenanceService.getMaintenanceLogs(scanResult.entity.id);
-              const scheduledLog = logs.find(log => log.status === 'scheduled');
-              if (scheduledLog) {
-                await maintenanceService.updateMaintenanceStatus(scheduledLog.id, 'in_progress');
-              }
-            } catch (error) {
-              console.error('Failed to update maintenance log status:', error);
-            }
+
           } else if (actionId === 'complete_maintenance') {
             // Handle completing maintenance
             notes = 'Maintenance completed - equipment ready for use';
-            operationId = await logManager.createEquipmentLog(
-              scanResult.entity,
-              'maintenance-end',
-              scanResult.entity.site || 'Unknown',
-              'available',
-              notes
-            );
+            // operationId = await logManager.createEquipmentLog(
+            //   scanResult.entity,
+            //   'maintenance-end',
+            //   scanResult.entity.site || 'Unknown',
+            //   'available',
+            //   notes
+            // );
             
-            // Update maintenance log status to completed
-            try {
-              const logs = await maintenanceService.getMaintenanceLogs(scanResult.entity.id);
-              const inProgressLog = logs.find(log => log.status === 'in_progress');
-              if (inProgressLog) {
-                await maintenanceService.updateMaintenanceStatus(inProgressLog.id, 'completed');
-              }
-            } catch (error) {
-              console.error('Failed to update maintenance log status:', error);
-            }
+
           } else {
             throw new Error(`Invalid action for equipment: ${actionId}`);
           }
@@ -788,14 +869,14 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
             if (!quantity || quantity <= 0) {
               throw new Error('Valid quantity is required for material operations');
             }
-            operationId = await logManager.createMaterialLog(
-              scanResult.entity,
-              actionId as 'material-in' | 'material-out',
-              quantity,
-              scanResult.entity.site || 'Unknown',
-              scanResult.entity.status || 'available',
-              notes
-            );
+            // operationId = await logManager.createMaterialLog(
+            //   scanResult.entity,
+            //   actionId as 'material-in' | 'material-out',
+            //   quantity,
+            //   scanResult.entity.site || 'Unknown',
+            //   scanResult.entity.status || 'available',
+            //   notes
+            // );
             
             // Material quantity update is now handled within logManager.createMaterialLog
           } else {
@@ -805,7 +886,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           
         case 'site':
           // For site check-ins, use the legacy method for now
-          operationId = await logManager.createTimeLog(
+          await logManager.createTimeLog(
             scanResult.entity.id,
             'employee', // Assuming site check-ins are employee-related
             actionId,
@@ -824,8 +905,14 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
       setError(`✅ ${actionId.replace('-', ' ').toUpperCase()} recorded successfully!`);
       
       // For equipment actions, add a small delay to ensure log is persisted before potential re-scan
-      if (scanResult.type === 'equipment' && (actionId === 'start-use' || actionId === 'stop-use')) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+      if (scanResult.type === 'equipment' && (
+        actionId === 'start_use' || 
+        actionId === 'stop_use' || 
+        actionId === 'standby_start' || 
+        actionId === 'standby_end' ||
+        actionId === 'mark_for_maintenance'
+      )) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Increased delay to prevent rapid scanning
       }
     } catch (error) {
       console.error('Failed to log action:', error);
@@ -833,25 +920,15 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     } finally {
         console.log('🏁 Action completed:', actionId);
         
-        // For equipment stop-use, clear debounce immediately to allow instant re-scanning
-        if (actionId === 'stop-use') {
-          setLastScannedCode('');
-          setLastScanTime(0);
-        }
-        
-        // Clear scan result after action to allow rescanning
-        // Keep processing state active until scan result is cleared to prevent duplicate actions
+        // Clear scan result and processing state after a delay to prevent rapid re-scanning
         setTimeout(() => {
-  console.log('🔄 Clearing scan result and processing state for:', actionId);
-  setScanResult(null);
-  isProcessingRef.current = false;
-  setIsProcessingAction(false);
-  setLastScannedCode(''); // Reset to allow future scans after delay
-  if (actionId !== 'stop-use') {
-            setLastScannedCode('');
-            setLastScanTime(0);
-          }
-        }, actionId === 'stop-use' ? 500 : 800);
+          console.log('🔄 Clearing scan result and processing state for:', actionId);
+          setScanResult(null);
+          isProcessingRef.current = false;
+          setIsProcessingAction(false);
+          setLastScannedCode(''); // Reset to allow future scans after delay
+          setLastScanTime(0);
+        }, 1000); // Increased delay to prevent rapid scanning issues
       }
     
     setTimeout(() => setError(''), 3000);
@@ -897,72 +974,11 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
   };
 
   // Maintenance modal handlers
-  const handleMaintenanceStart = async (maintenanceData: any) => {
-    try {
-      // Create equipment log for maintenance start
-      const notes = `Maintenance started: ${maintenanceData.description}`;
-      await logManager.createEquipmentLog(
-        selectedEquipment,
-        'maintenance-start',
-        selectedEquipment.site || 'Unknown',
-        'maintenance',
-        notes
-      );
-
-      // Create detailed maintenance log
-      await maintenanceService.startMaintenance(maintenanceData);
-
-      setSuccess('Maintenance started successfully!');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
-      console.error('Failed to start maintenance:', error);
-      setError('Failed to start maintenance. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
 
 
 
-  const handleMaintenanceComplete = async (maintenanceData: any) => {
-    try {
-      // Create equipment log for maintenance end
-      const notes = `Maintenance completed: ${maintenanceData.description}`;
-      await logManager.createEquipmentLog(
-        selectedEquipment,
-        'maintenance-end',
-        selectedEquipment.site || 'Unknown',
-        'available',
-        notes
-      );
 
-      // Update maintenance log
-      await maintenanceService.completeMaintenance(maintenanceData.maintenanceId, {
-        actual_duration_hours: maintenanceData.actual_duration_hours,
-        cost: maintenanceData.cost,
-        completed_by: maintenanceData.completed_by,
-        technician_notes: maintenanceData.technician_notes,
-        parts_used: maintenanceData.parts_used
-      });
 
-      setSuccess('Maintenance completed successfully!');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
-      console.error('Failed to complete maintenance:', error);
-      setError('Failed to complete maintenance. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
-  const resetScanner = () => {
-    setScanResult(null);
-    setError('');
-    setSuccess('');
-    setIsProcessingAction(false);
-    setSelectedEquipment(null);
-    setIsMaintenanceModalOpen(false);
-    setSearchQuery('');
-    setSearchResults([]);
-  };
 
 
   return (
@@ -1135,22 +1151,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
         </div>
       </div>
 
-      {/* Maintenance Type Selection Modal */}
 
-
-      {/* Maintenance Modal */}
-      {selectedEquipment && (
-        <EquipmentMaintenanceModal
-          equipment={selectedEquipment}
-          isOpen={isMaintenanceModalOpen}
-          onClose={() => {
-            setIsMaintenanceModalOpen(false);
-            setSelectedEquipment(null);
-          }}
-          onMaintenanceStart={handleMaintenanceStart}
-          onMaintenanceComplete={handleMaintenanceComplete}
-        />
-      )}
     </div>
   );
 };

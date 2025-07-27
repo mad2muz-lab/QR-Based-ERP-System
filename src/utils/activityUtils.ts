@@ -32,7 +32,8 @@ export const isActiveActivity = (action: string): boolean => {
   const activeActions = [
     'clock-in',      // Employee clocked in
     'start-use',     // Equipment started being used
-    'maintenance-start' // Equipment maintenance started
+    'maintenance-start', // Equipment maintenance started
+    'standby-start'  // Equipment set to standby mode
   ];
   
   return activeActions.includes(action);
@@ -45,7 +46,8 @@ export const isCompletionActivity = (action: string): boolean => {
   const completionActions = [
     'clock-out',     // Employee clocked out
     'stop-use',      // Equipment stopped being used
-    'maintenance-complete' // Equipment maintenance completed
+    'maintenance-end', // Equipment maintenance completed
+    'standby-end'    // Equipment standby ended
   ];
   
   return completionActions.includes(action);
@@ -58,7 +60,8 @@ export const getStartActionForCompletion = (completionAction: string): string =>
   const actionMap = {
     'clock-out': 'clock-in',
     'stop-use': 'start-use',
-    'maintenance-complete': 'maintenance-start'
+    'maintenance-end': 'maintenance-start',
+    'standby-end': 'standby-start'
   };
   
   return actionMap[completionAction as keyof typeof actionMap] || '';
@@ -109,7 +112,7 @@ export const getActiveActivities = (logs: ActivityLog[]): ActiveActivity[] => {
   });
   
   // For each entity, check if their most recent activity is active
-  entityGroups.forEach((entityLogs, key) => {
+  entityGroups.forEach((entityLogs) => {
     // Sort by timestamp descending to get most recent first
     const sortedLogs = entityLogs.sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -122,7 +125,8 @@ export const getActiveActivities = (logs: ActivityLog[]): ActiveActivity[] => {
       const endActions = {
         'clock-in': 'clock-out',
         'start-use': 'stop-use',
-        'maintenance-start': 'maintenance-complete'
+        'maintenance-start': 'maintenance-end',
+        'standby-start': 'standby-end'
       };
       
       const expectedEndAction = endActions[mostRecentLog.action as keyof typeof endActions];
@@ -195,7 +199,8 @@ export const getActiveActivitiesForEntity = (
     const endActions = {
       'clock-in': 'clock-out',
       'start-use': 'stop-use',
-      'maintenance-start': 'maintenance-complete'
+      'maintenance-start': 'maintenance-end',
+      'standby-start': 'standby-end'
     };
     
     const expectedEndAction = endActions[mostRecentLog.action as keyof typeof endActions];

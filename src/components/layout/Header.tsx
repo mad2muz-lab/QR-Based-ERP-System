@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Activity, MapPin, QrCode, Users, Shield, LogOut, User, Wrench, Package, Building, Database, Menu, WifiOff, Wifi } from 'lucide-react';
+import { Activity, MapPin, QrCode, Users, Shield, LogOut, User, Building, Menu, WifiOff, Wifi, Wrench, Package } from 'lucide-react';
+import NotificationButton from '../../components/common/NotificationButton';
+import { DataStorage } from '../../utils/dataStorage';
+import { supabase } from '../../utils/supabaseClient';
 import { AuthManager } from '../../utils/authUtils';
+import { SupabaseRegistrationService } from '../../utils/supabaseRegistrationService';
 
 interface HeaderProps {
   currentUser?: any;
   onLogout?: () => void;
+  onNotificationClick?: (notification: any) => void;
 }
 
 const ALL_NAV_ITEMS = [
@@ -13,13 +18,15 @@ const ALL_NAV_ITEMS = [
   { path: '/scan', label: 'QR Scanner', icon: QrCode, page_name: 'equipment_scanner' },
   { path: '/register', label: 'Register', icon: Users, page_name: 'registration_form' },
   { path: '/map', label: 'Map View', icon: MapPin, page_name: 'map_view' },
+  { path: '/maintenance', label: 'Maintenance', icon: Wrench, page_name: 'maintenance' },
+  { path: '/inventory', label: 'Inventory', icon: Package, page_name: 'inventory' },
   { path: '/admin', label: 'Admin Panel', icon: Shield, page_name: 'admin_panel' },
   { path: '/departments', label: 'Departments', icon: Building, page_name: 'departments' },
 
   // Add more as needed
 ];
 
-const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onNotificationClick }) => {
   const [company, setCompany] = useState<{ name: string; logoUrl?: string } | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
@@ -27,16 +34,80 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
   const navigate = useNavigate();
   const [navItems, setNavItems] = useState<typeof ALL_NAV_ITEMS>([]);
   const [navLoading, setNavLoading] = useState(true);
+  const [isInventoryMode, setIsInventoryMode] = useState(false);
+
+  // Function to load company data from both sources
+  const loadCompanyData = async () => {
+    try {
+      const useSupabase = await AuthManager.shouldUseSupabase();
+      
+      if (useSupabase) {
+        // Load from Supabase
+        const result = await SupabaseRegistrationService.getCompanies();
+        if (result.success && result.data && result.data.length > 0) {
+          const companyData = result.data[0];
+          // Also save to localStorage for consistency
+          localStorage.setItem('companies', JSON.stringify(result.data));
+          setCompany({ name: companyData.name, logoUrl: companyData.logo_url });
+        } else {
+          // Fallback to localStorage if Supabase has no data
+          const companies = JSON.parse(localStorage.getItem('companies') || '[]');
+          if (companies.length > 0) {
+            setCompany({ name: companies[0].name, logoUrl: companies[0].logoUrl });
+          } else {
+            setCompany(null);
+          }
+        }
+      } else {
+        // Load from localStorage
+        const companies = JSON.parse(localStorage.getItem('companies') || '[]');
+        if (companies.length > 0) {
+          setCompany({ name: companies[0].name, logoUrl: companies[0].logoUrl });
+        } else {
+          setCompany(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading company data:', error);
+      // Fallback to localStorage on error
+      try {
+        const companies = JSON.parse(localStorage.getItem('companies') || '[]');
+        if (companies.length > 0) {
+          setCompany({ name: companies[0].name, logoUrl: companies[0].logoUrl });
+        } else {
+          setCompany(null);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback company loading also failed:', fallbackError);
+        setCompany(null);
+      }
+    }
+  };
 
   useEffect(() => {
-    try {
-      const companies = JSON.parse(localStorage.getItem('companies') || '[]');
-      if (companies.length > 0) {
-        setCompany({ name: companies[0].name, logoUrl: companies[0].logoUrl });
+    loadCompanyData();
+    
+    // Listen for company updates
+    const handleCompanyUpdate = () => {
+      console.log('Company updated, reloading company data...');
+      loadCompanyData();
+    };
+    
+    // Listen for data source changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'selectedDataSource') {
+        console.log('Data source changed, reloading company data...');
+        loadCompanyData();
       }
-    } catch {
-      setCompany(null);
-    }
+    };
+    
+    window.addEventListener('companyUpdated', handleCompanyUpdate);
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('companyUpdated', handleCompanyUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -117,6 +188,49 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout }) => {
           </nav>
           {currentUser && (
             <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
+              <NotificationButton
+                currentUser={currentUser}
+                onNotificationClick={onNotificationClick || (async (notification: any) => {
+                  console.log('[DEBUG] Notification clicked:', notification);
+                  const allEquipment = DataStorage.loadEquipment();
+                  console.log('[DEBUG] All equipment IDs:', allEquipment.map((eq: any) => eq.id), 'Notification entity_id:', notification.entity_id);
+                  let equipment = allEquipment.find((eq: any) => eq.id === notification.entity_id || eq.custom_equipment_id === notification.entity_id);
+                  // If not found in local storage, fetch from Supabase
+                  if (!equipment) {
+                    const { data, error } = await supabase
+                      .from('equipment')
+                      .select('*')
+                      .eq('id', notification.entity_id)
+                      .single();
+                    if (!error && data) {
+                      // Normalize fields to match frontend Equipment interface
+                      equipment = {
+                        id: data.id,
+                        custom_equipment_id: data.custom_equipment_id || data.customEquipmentId || '',
+                        name: data.name || '',
+                        type: data.type || '',
+                        model: data.model || '',
+                        site: data.site || '',
+                        qrCode: data.qr_code || data.qrCode || '',
+                        status: data.status || 'available',
+                        operational_status: data.operational_status || data.operationalStatus || 'working',
+                        createdAt: data.created_at || data.createdAt || '',
+                        lastUpdated: data.last_updated || data.lastUpdated || '',
+                        serialNumber: data.serial_number || data.serialNumber || '',
+                        oldId: data.old_id || data.oldId || '',
+                        companyId: data.company_id || data.companyId || '',
+                        costCenterCode: data.cost_center_code || data.costCenterCode || '',
+                        profitCenterCode: data.profit_center_code || data.profitCenterCode || '',
+                        hourly_rate: data.hourly_rate || 0,
+                      };
+                      console.log('[DEBUG] Equipment fetched and normalized from Supabase:', equipment);
+                    } else {
+                      console.log('[DEBUG] Equipment not found in Supabase:', error);
+                    }
+                  }
+                  console.log('[DEBUG] Notification type not handled:', notification.type, notification.entity_type);
+                })}
+              />
               <div className="flex items-center space-x-2">
                 <User className="w-4 h-4 text-gray-500" />
                 <div className="text-sm">

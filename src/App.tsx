@@ -13,7 +13,6 @@ import { DataStorage } from './utils/dataStorage';
 import { User } from './types';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { AppRoutes } from './routes';
-import { startPreventiveMaintenanceService, requestNotificationPermission } from './utils/preventiveMaintenanceAutoStart';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -45,9 +44,6 @@ function App() {
               setShowPasswordModal(true);
             }
             
-            // Start preventive maintenance service for authenticated users
-            startPreventiveMaintenanceService();
-            await requestNotificationPermission();
           }
           setIsInitialized(true);
         };
@@ -80,6 +76,12 @@ function App() {
     }
   };
 
+  const handleNotificationClick = (notification: any) => {
+    if ((notification.type === 'maintenance' || notification.type === 'inventory') && notification.action_url) {
+      navigate(notification.action_url);
+    }
+  };
+
   if (!isInitialized) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -107,6 +109,7 @@ function App() {
       <Header
         currentUser={currentUser}
         onLogout={handleLogout}
+        onNotificationClick={handleNotificationClick}
       />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {routes}

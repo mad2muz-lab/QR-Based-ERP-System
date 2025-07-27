@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { Employee, Equipment, Material, TimeLog } from '../types';
+import { TimeLog } from '../types';
 
 export const exportToCSV = (data: any[], filename: string) => {
   const csv = Papa.unparse(data);

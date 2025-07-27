@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Package, X, Plus, Check, Trash2 } from 'lucide-react';
+import { Package, X, Plus } from 'lucide-react';
 import { Material } from '../../../types';
 import { materialCategories } from '../../../data/materialTypes';
 import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
 import { CustomMaterialTypeManager } from '../../../utils/customMaterialTypeManager';
 import { CustomUnitManager } from '../../../utils/customUnitManager';
-import { UNITS_OF_MEASUREMENT } from '../../../types/constants';
+// import { supabase } from '../../../utils/supabaseClient';
 
 interface MaterialFormProps {
   sites: any[];
@@ -27,18 +27,18 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     oldId: '',
     accessLevel: 'basic' as 'basic' | 'restricted' | 'admin',
     costCenterCode: '',
-    profitCenterCode: ''
+    profitCenterCode: '',
+    cost: '' // cost is always a string in form state
   });
   const [showCustomType, setShowCustomType] = useState(false);
   const [costCenters, setCostCenters] = useState<any[]>([]);
   const [profitCenters, setProfitCenters] = useState<any[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [customMaterialTypes, setCustomMaterialTypes] = useState<string[]>([]);
-  const [customTypeInput, setCustomTypeInput] = useState('');
-  const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
   const [customUnitInput, setCustomUnitInput] = useState('');
   const [showCustomUnitInput, setShowCustomUnitInput] = useState(false);
   const [availableUnits, setAvailableUnits] = useState<string[]>([]);
+  const [nameUnique, setNameUnique] = useState(true);
 
   // Handle initial data for editing
   useEffect(() => {
@@ -52,10 +52,11 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
         site: initialData.site || '',
         use: initialData.use || '',
         status: initialData.status || 'available',
-        accessLevel: initialData.accessLevel || 'basic',
         oldId: initialData.oldId || '',
+        accessLevel: 'basic', // No direct mapping for accessLevel in Material type
         costCenterCode: initialData.costCenterCode || '',
-        profitCenterCode: initialData.profitCenterCode || ''
+        profitCenterCode: initialData.profitCenterCode || '',
+        cost: initialData.cost !== undefined ? initialData.cost.toString() : '' // Ensure cost is a string
       });
       
       // Check if we need to show custom type
@@ -76,10 +77,11 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
         site: '',
         use: '',
         status: 'available',
-        accessLevel: 'basic',
         oldId: '',
+        accessLevel: 'basic',
         costCenterCode: '',
-        profitCenterCode: ''
+        profitCenterCode: '',
+        cost: ''
       });
       setShowCustomType(false);
     }
@@ -176,22 +178,38 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     }
   };
 
+  // Simple name validation
+  useEffect(() => {
+    const name = formData.name.trim();
+    if (!name) {
+      setNameUnique(true);
+      return;
+    }
+    // For now, assume name is unique - can be enhanced later
+    setNameUnique(true);
+  }, [formData.name, initialData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!nameUnique) {
+      setMessage({ type: 'error', text: 'Material name must be unique.' });
+      return;
+    }
     
     const materialData = {
       ...formData,
       type: (showCustomType ? formData.customType : formData.type) as any,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      cost: formData.cost !== '' ? parseFloat(formData.cost) : undefined // Ensure cost is a number
     };
     
     // Remove customType from the final data
-    const { customType, ...finalData } = materialData;
+    const { customType: _, ...finalData } = materialData;
     
     try {
       onSubmit(finalData);
       setMessage({ type: 'success', text: 'Material added successfully!' });
-      setFormData({ name: '', type: '', customType: '', unit: '', quantity: 0, site: '', use: '', status: 'available', accessLevel: 'basic', oldId: '', costCenterCode: '', profitCenterCode: '' });
+      setFormData({ name: '', type: '', customType: '', unit: '', quantity: 0, site: '', use: '', status: 'available', oldId: '', accessLevel: 'basic', costCenterCode: '', profitCenterCode: '', cost: '' });
       setShowCustomType(false);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to register material. Please try again.' });
@@ -224,11 +242,6 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     setShowCustomType(false);
   };
 
-  // Get all material types from categories
-  const getAllMaterialTypes = () => {
-    return Object.keys(materialCategories);
-  };
-
   return (
     <div className="relative space-y-6">
       {onClose && (
@@ -251,15 +264,18 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">Material Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-3 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!nameUnique ? 'border-red-500' : 'border-gray-300'}`}
               required
             />
+            {!nameUnique && (
+              <div className="text-xs text-red-600 mt-1">Material name must be unique.</div>
+            )}
           </div>
 
           <div>
@@ -398,6 +414,20 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
               onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}
               className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cost per Unit *</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.cost}
+              onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+              placeholder="Enter cost per unit"
             />
           </div>
 

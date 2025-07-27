@@ -5,13 +5,6 @@ import { AuthManager } from '../../utils/authUtils';
 import UnauthorizedAccess from './UnauthorizedAccess';
 
 const DatabaseConnectionTest: React.FC = () => {
-  // Check if user has admin access
-  const hasAdminAccess = AuthManager.hasPermission('admin');
-  
-  if (!hasAdminAccess) {
-    return <UnauthorizedAccess requiredRole="admin" />;
-  }
-
   const [connectionStatus, setConnectionStatus] = useState<{
     loading: boolean;
     success?: boolean;
@@ -46,6 +39,13 @@ const DatabaseConnectionTest: React.FC = () => {
   }>({
     loading: false
   });
+
+  // Check if user has admin access
+  const hasAdminAccess = AuthManager.hasPermission('admin');
+  
+  if (!hasAdminAccess) {
+    return <UnauthorizedAccess requiredRole="admin" />;
+  }
 
   useEffect(() => {
     checkConnection();

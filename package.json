@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:analyze": "vite build --mode analyze",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "backfill-equipment-usage": "tsx scripts/backfillEquipmentUsage.ts"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.5",
     "@supabase/supabase-js": "^2.50.5",
     "@types/qrcode": "^1.5.5",
     "@types/react-router-dom": "^5.3.3",
@@ -17,6 +20,7 @@
     "@types/w3c-permissions": "^1.0.1",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "dotenv": "^17.2.0",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.344.0",
     "maplibre-gl": "^5.6.1",
@@ -42,6 +46,7 @@
     "globals": "^15.9.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.7.0",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
     "vite": "^5.4.2"

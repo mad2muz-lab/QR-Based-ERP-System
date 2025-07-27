@@ -44,7 +44,7 @@ const EquipmentPage: React.FC = () => {
   };
 
   const filterAndSortEquipment = () => {
-    let filtered = equipment.filter(eq => {
+    const filtered = equipment.filter(eq => {
       const matchesSearch = eq.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (eq.custom_equipment_id && eq.custom_equipment_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
                            (eq.oldId && eq.oldId.toLowerCase().includes(searchTerm.toLowerCase())) ||

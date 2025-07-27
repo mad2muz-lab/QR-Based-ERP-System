@@ -12,21 +12,95 @@ export const QRScanner = React.lazy(() =>
   import('../scanner/QRScanner')
 );
 
+// Split RegistrationForm into smaller chunks
 export const RegistrationForm = React.lazy(() => 
   import('../registration/RegistrationForm')
+);
+
+// Lazy load individual registration forms separately
+export const EmployeeForm = React.lazy(() => 
+  import('../registration/forms/EmployeeForm')
+);
+
+export const EquipmentForm = React.lazy(() => 
+  import('../registration/forms/EquipmentForm')
+);
+
+export const MaterialForm = React.lazy(() => 
+  import('../registration/forms/MaterialForm')
+);
+
+export const SiteForm = React.lazy(() => 
+  import('../registration/forms/SiteForm')
+);
+
+// Lazy load registration lists separately
+export const EmployeeList = React.lazy(() => 
+  import('../registration/lists/EmployeeList')
+);
+
+export const EquipmentList = React.lazy(() => 
+  import('../registration/lists/EquipmentList')
+);
+
+export const MaterialList = React.lazy(() => 
+  import('../registration/lists/MaterialList')
+);
+
+export const SiteList = React.lazy(() => 
+  import('../registration/lists/SiteList')
 );
 
 export const MapView = React.lazy(() => 
   import('../map/MapView')
 );
 
+// Split AdminPanel into smaller chunks
 export const AdminPanel = React.lazy(() => 
   import('../admin/AdminPanel')
+);
+
+// Lazy load admin components separately
+export const UserManagement = React.lazy(() => 
+  import('../admin/components/UserManagement')
+);
+
+export const EquipmentManagement = React.lazy(() => 
+  import('../admin/components/EquipmentManagement')
+);
+
+export const MaterialManagement = React.lazy(() => 
+  import('../admin/components/MaterialManagement')
+);
+
+export const DepartmentManager = React.lazy(() => 
+  import('../admin/DepartmentManager')
+);
+
+export const RoleManagement = React.lazy(() => 
+  import('../admin/RoleManagement')
+);
+
+export const UnitManagement = React.lazy(() => 
+  import('../admin/UnitManagement')
+);
+
+export const CompanyManager = React.lazy(() => 
+  import('../admin/CompanyManager')
+);
+
+export const CostBreakdownManager = React.lazy(() => 
+  import('../admin/CostBreakdownManager')
 );
 
 // Authentication components
 export const LoginForm = React.lazy(() => 
   import('../auth/LoginForm')
+);
+
+// Maintenance components
+export const DirectMaintenanceForm = React.lazy(() => 
+  import('../maintenance/DirectMaintenanceForm')
 );
 
 export const ChangePasswordModal = React.lazy(() => 

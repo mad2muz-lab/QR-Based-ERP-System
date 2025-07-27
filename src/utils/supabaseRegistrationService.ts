@@ -5,7 +5,7 @@ import { AuthManager } from './authUtils';
 export class SupabaseRegistrationService {
   // Employee Operations
   static async createEmployee(employee: Employee): Promise<{ success: boolean; data?: Employee; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -16,18 +16,20 @@ export class SupabaseRegistrationService {
         last_updated: employee.lastUpdated,
         blood_group: employee.bloodGroup,
         created_at: employee.createdAt,
-        qr_code: employee.id, // Use the full employee ID (already includes EMP- prefix)
+        qr_code: employee.qrCode, // Use the full employee ID (already includes EMP- prefix)
         old_id: employee.oldId, // Handle oldId field
         cost_center_code: employee.costCenterCode, // Handle cost center code
-        profit_center_code: employee.profitCenterCode // Handle profit center code
+        profit_center_code: employee.profitCenterCode, // Handle profit center code
+        hourly_rate: employee.hourlyRate // Add hourly_rate mapping
       };
-      delete (supabaseEmployee as any).lastUpdated;
-      delete (supabaseEmployee as any).bloodGroup;
-      delete (supabaseEmployee as any).createdAt;
-      delete (supabaseEmployee as any).qrCode;
-      delete (supabaseEmployee as any).oldId;
-      delete (supabaseEmployee as any).costCenterCode;
-      delete (supabaseEmployee as any).profitCenterCode;
+      delete (supabaseEmployee as Record<string, unknown>).lastUpdated;
+      delete (supabaseEmployee as Record<string, unknown>).bloodGroup;
+      delete (supabaseEmployee as Record<string, unknown>).createdAt;
+      delete (supabaseEmployee as Record<string, unknown>).qrCode;
+      delete (supabaseEmployee as Record<string, unknown>).oldId;
+      delete (supabaseEmployee as Record<string, unknown>).costCenterCode;
+      delete (supabaseEmployee as Record<string, unknown>).profitCenterCode;
+      delete (supabaseEmployee as Record<string, unknown>).hourlyRate;
 
       const { data, error } = await supabase
         .from('employees')
@@ -49,10 +51,10 @@ export class SupabaseRegistrationService {
         costCenterCode: data.cost_center_code, // Handle cost center code
         profitCenterCode: data.profit_center_code // Handle profit center code
       };
-      delete (transformedData as any).last_updated;
-      delete (transformedData as any).old_id;
-      delete (transformedData as any).cost_center_code;
-      delete (transformedData as any).profit_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).last_updated;
+      delete (transformedData as unknown as Record<string, unknown>).old_id;
+      delete (transformedData as unknown as Record<string, unknown>).cost_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).profit_center_code;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -62,7 +64,7 @@ export class SupabaseRegistrationService {
   }
 
   static async updateEmployee(employee: Employee): Promise<{ success: boolean; data?: Employee; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -106,10 +108,10 @@ export class SupabaseRegistrationService {
         costCenterCode: data.cost_center_code, // Handle cost center code
         profitCenterCode: data.profit_center_code // Handle profit center code
       };
-      delete (transformedData as any).last_updated;
-      delete (transformedData as any).old_id;
-      delete (transformedData as any).cost_center_code;
-      delete (transformedData as any).profit_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).last_updated;
+      delete (transformedData as unknown as Record<string, unknown>).old_id;
+      delete (transformedData as unknown as Record<string, unknown>).cost_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).profit_center_code;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -119,7 +121,7 @@ export class SupabaseRegistrationService {
   }
 
   static async deleteEmployee(employeeId: string): Promise<{ success: boolean; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -143,7 +145,7 @@ export class SupabaseRegistrationService {
 
   // Equipment Operations
   static async createEquipment(equipment: Equipment): Promise<{ success: boolean; data?: Equipment; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -161,16 +163,16 @@ export class SupabaseRegistrationService {
         profit_center_code: equipment.profitCenterCode // Handle profit center code
       };
       // Remove camelCase properties
-      delete (supabaseEquipment as any).createdAt;
-      delete (supabaseEquipment as any).lastUpdated;
-      delete (supabaseEquipment as any).serialNumber;
-      delete (supabaseEquipment as any).qrCode;
-      delete (supabaseEquipment as any).oldId;
-      delete (supabaseEquipment as any).costCenterCode;
-      delete (supabaseEquipment as any).profitCenterCode;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).createdAt;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).lastUpdated;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).serialNumber;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).qrCode;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).oldId;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).costCenterCode;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).profitCenterCode;
       // Remove id if it's empty (let Supabase generate UUID)
       if (!supabaseEquipment.id) {
-        delete (supabaseEquipment as any).id;
+        delete (supabaseEquipment as unknown as Record<string, unknown>).id;
       }
 
       const { data, error } = await supabase
@@ -196,12 +198,12 @@ export class SupabaseRegistrationService {
         costCenterCode: data.cost_center_code, // Handle cost center code
         profitCenterCode: data.profit_center_code // Handle profit center code
       };
-      delete (transformedData as any).created_at;
-      delete (transformedData as any).last_updated;
-      delete (transformedData as any).serial_number;
-      delete (transformedData as any).old_id;
-      delete (transformedData as any).cost_center_code;
-      delete (transformedData as any).profit_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).created_at;
+      delete (transformedData as unknown as Record<string, unknown>).last_updated;
+      delete (transformedData as unknown as Record<string, unknown>).serial_number;
+      delete (transformedData as unknown as Record<string, unknown>).old_id;
+      delete (transformedData as unknown as Record<string, unknown>).cost_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).profit_center_code;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -211,7 +213,7 @@ export class SupabaseRegistrationService {
   }
 
   static async updateEquipment(equipment: Equipment): Promise<{ success: boolean; data?: Equipment; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -228,13 +230,13 @@ export class SupabaseRegistrationService {
         cost_center_code: equipment.costCenterCode, // Handle cost center code
         profit_center_code: equipment.profitCenterCode // Handle profit center code
       };
-      delete (supabaseEquipment as any).createdAt;
-      delete (supabaseEquipment as any).lastUpdated;
-      delete (supabaseEquipment as any).serialNumber;
-      delete (supabaseEquipment as any).qrCode;
-      delete (supabaseEquipment as any).oldId;
-      delete (supabaseEquipment as any).costCenterCode;
-      delete (supabaseEquipment as any).profitCenterCode;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).createdAt;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).lastUpdated;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).serialNumber;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).qrCode;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).oldId;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).costCenterCode;
+      delete (supabaseEquipment as unknown as Record<string, unknown>).profitCenterCode;
 
       const { data, error } = await supabase
         .from('equipment')
@@ -260,12 +262,12 @@ export class SupabaseRegistrationService {
         costCenterCode: data.cost_center_code, // Handle cost center code
         profitCenterCode: data.profit_center_code // Handle profit center code
       };
-      delete (transformedData as any).created_at;
-      delete (transformedData as any).last_updated;
-      delete (transformedData as any).serial_number;
-      delete (transformedData as any).old_id;
-      delete (transformedData as any).cost_center_code;
-      delete (transformedData as any).profit_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).created_at;
+      delete (transformedData as unknown as Record<string, unknown>).last_updated;
+      delete (transformedData as unknown as Record<string, unknown>).serial_number;
+      delete (transformedData as unknown as Record<string, unknown>).old_id;
+      delete (transformedData as unknown as Record<string, unknown>).cost_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).profit_center_code;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -275,7 +277,7 @@ export class SupabaseRegistrationService {
   }
 
   static async deleteEquipment(equipmentId: string): Promise<{ success: boolean; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -299,7 +301,7 @@ export class SupabaseRegistrationService {
 
   // Material Operations
   static async createMaterial(material: Material): Promise<{ success: boolean; data?: Material; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -367,7 +369,7 @@ export class SupabaseRegistrationService {
   }
 
   static async updateMaterial(material: Material): Promise<{ success: boolean; data?: Material; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -454,7 +456,7 @@ export class SupabaseRegistrationService {
   }
 
   static async deleteMaterial(materialId: string): Promise<{ success: boolean; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -478,7 +480,7 @@ export class SupabaseRegistrationService {
 
   // Site Operations
   static async createSite(site: Site): Promise<{ success: boolean; data?: Site; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -545,7 +547,7 @@ export class SupabaseRegistrationService {
   }
 
   static async updateSite(site: Site): Promise<{ success: boolean; data?: Site; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -600,7 +602,7 @@ export class SupabaseRegistrationService {
   }
 
   static async deleteSite(siteId: string): Promise<{ success: boolean; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -624,7 +626,7 @@ export class SupabaseRegistrationService {
 
   // Bulk Operations
   static async bulkCreateEmployees(employees: Employee[]): Promise<{ success: boolean; data?: Employee[]; error?: string; errors?: string[] }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -636,7 +638,8 @@ export class SupabaseRegistrationService {
         created_at: employee.createdAt,
         qr_code: `EMP-${employee.id}`, // Use the actual UUID for QR code
         cost_center_code: employee.costCenterCode, // Handle cost center code
-        profit_center_code: employee.profitCenterCode // Handle profit center code
+        profit_center_code: employee.profitCenterCode, // Handle profit center code
+        hourly_rate: employee.hourlyRate // Add hourly_rate mapping
       }));
 
       // Clean up camelCase properties
@@ -647,6 +650,7 @@ export class SupabaseRegistrationService {
         delete (emp as any).qrCode;
         delete (emp as any).costCenterCode;
         delete (emp as any).profitCenterCode;
+        delete (emp as any).hourlyRate;
       });
 
       const { data, error } = await supabase
@@ -665,7 +669,8 @@ export class SupabaseRegistrationService {
         lastUpdated: employee.last_updated,
         qrCode: `EMP-${employee.id}`,
         costCenterCode: employee.cost_center_code, // Handle cost center code
-        profitCenterCode: employee.profit_center_code // Handle profit center code
+        profitCenterCode: employee.profit_center_code, // Handle profit center code
+        hourlyRate: employee.hourly_rate // Map hourly_rate back to camelCase
       }));
 
       return { success: true, data: transformedData };
@@ -676,7 +681,7 @@ export class SupabaseRegistrationService {
   }
 
   static async bulkCreateEquipment(equipment: Equipment[]): Promise<{ success: boolean; data?: Equipment[]; error?: string; errors?: string[] }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -725,7 +730,7 @@ export class SupabaseRegistrationService {
 
   // Log Operations
   static async createMaterialLog(materialLog: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -767,20 +772,35 @@ export class SupabaseRegistrationService {
   }
 
   static async createEmployeeLog(employeeLog: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
     try {
       console.log('Creating employee log in Supabase:', employeeLog);
-      
+      // Extract hours from notes if present and numeric, else set to null
+      let regularHours = null;
+      let overtimeHours = null;
+      let totalWorkHours = null;
+      if (employeeLog.notes) {
+        // Parse numbers with optional decimal and 'h' suffix (e.g., 'Regular: 1.2h')
+        const regMatch = employeeLog.notes.match(/Regular\s*:?[\s]*([0-9]+(?:\.[0-9]+)?)h?/i);
+        const otMatch = employeeLog.notes.match(/OT\s*:?[\s]*([0-9]+(?:\.[0-9]+)?)h?/i);
+        const totalMatch = employeeLog.notes.match(/Total\s*:?[\s]*([0-9]+(?:\.[0-9]+)?)h?/i);
+        if (regMatch) regularHours = parseFloat(regMatch[1]);
+        if (otMatch) overtimeHours = parseFloat(otMatch[1]);
+        if (totalMatch) totalWorkHours = parseFloat(totalMatch[1]);
+      }
       // Transform camelCase to snake_case for Supabase
       const supabaseEmployeeLog = {
         ...employeeLog,
         employee_id: employeeLog.employeeId,
         employee_name: employeeLog.employeeName,
         created_at: employeeLog.createdAt,
-        old_id: employeeLog.oldId // Use snake_case for DB
+        old_id: employeeLog.oldId, // Use snake_case for DB
+        regular_hours: regularHours,
+        overtime_hours: overtimeHours,
+        total_work_hours: totalWorkHours
       };
       delete (supabaseEmployeeLog as any).employeeId;
       delete (supabaseEmployeeLog as any).employeeName;
@@ -807,13 +827,12 @@ export class SupabaseRegistrationService {
   }
 
   static async createEquipmentLog(equipmentLog: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
     try {
       console.log('Creating equipment log in Supabase:', equipmentLog);
-      
       // Transform camelCase to snake_case for Supabase
       const supabaseEquipmentLog = {
         ...equipmentLog,
@@ -821,13 +840,15 @@ export class SupabaseRegistrationService {
         equipment_name: equipmentLog.equipmentName,
         equipment_type: equipmentLog.equipmentType,
         created_at: equipmentLog.createdAt,
-        old_id: equipmentLog.oldId // Use snake_case for DB
+        old_id: equipmentLog.oldId, // Use snake_case for DB
+        usage_duration: equipmentLog.usageDuration // Map usageDuration to usage_duration
       };
       delete (supabaseEquipmentLog as any).equipmentId;
       delete (supabaseEquipmentLog as any).equipmentName;
       delete (supabaseEquipmentLog as any).equipmentType;
       delete (supabaseEquipmentLog as any).createdAt;
       delete (supabaseEquipmentLog as any).oldId; // Remove camelCase property
+      delete (supabaseEquipmentLog as any).usageDuration;
 
       const { data, error } = await supabase
         .from('equipment_logs')
@@ -850,7 +871,7 @@ export class SupabaseRegistrationService {
 
   // Maintenance Log Operations
   static async createMaintenanceLog(maintenanceLog: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -906,7 +927,7 @@ export class SupabaseRegistrationService {
   }
 
   static async updateMaintenanceLog(maintenanceId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -935,7 +956,7 @@ export class SupabaseRegistrationService {
 
   // Maintenance Schedule Operations
   static async createMaintenanceSchedule(maintenanceSchedule: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -979,7 +1000,7 @@ export class SupabaseRegistrationService {
   }
 
   static async updateMaintenanceSchedule(scheduleId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -1008,7 +1029,7 @@ export class SupabaseRegistrationService {
 
   // Company Operations
   static async createCompany(company: { name: string; logoUrl?: string }): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
     try {
@@ -1029,7 +1050,7 @@ export class SupabaseRegistrationService {
   }
 
   static async updateCompany(company: { id: string; name: string; logoUrl?: string }): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
     try {
@@ -1051,7 +1072,7 @@ export class SupabaseRegistrationService {
   }
 
   static async deleteCompany(companyId: string): Promise<{ success: boolean; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
     try {
@@ -1071,7 +1092,7 @@ export class SupabaseRegistrationService {
   }
 
   static async getCompanies(): Promise<{ success: boolean; data?: any[]; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
     try {
@@ -1133,7 +1154,7 @@ export class SupabaseRegistrationService {
 
   // Preventive Maintenance Configuration Operations
   static async getAllPreventiveMaintenanceConfigs(): Promise<{ success: boolean; data?: any[]; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -1156,7 +1177,7 @@ export class SupabaseRegistrationService {
   }
 
   static async createPreventiveMaintenanceConfig(config: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -1183,7 +1204,7 @@ export class SupabaseRegistrationService {
   }
 
   static async updatePreventiveMaintenanceConfig(configId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
@@ -1211,7 +1232,7 @@ export class SupabaseRegistrationService {
   }
 
   static async deletePreventiveMaintenanceConfig(configId: string): Promise<{ success: boolean; error?: string }> {
-    if (!supabase || !AuthManager.useSupabase()) {
+    if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Package, Edit, Trash2, Printer } from 'lucide-react';
 import { Material } from '../../../types';
-import { generateQRCode } from '../../../utils/qrCodeUtils';
 import QRCodeDisplay from '../QRCodeDisplay';
 
 interface MaterialListProps {
@@ -71,6 +70,9 @@ const MaterialList: React.FC<MaterialListProps> = ({ materials, sites, onEdit, o
               )}
               {material.use && (
                 <div><span className="font-medium">Use:</span> {material.use}</div>
+              )}
+              {material.cost !== undefined && material.cost !== null && (
+                <div><span className="font-medium">Cost:</span> {material.cost} </div>
               )}
             </div>
 

@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { User, Camera, Trash2, AlertCircle, X } from 'lucide-react';
+import { User, Camera, Trash2, X } from 'lucide-react';
 import { Employee } from '../../../types';
-import { employeeTypes, EmployeeTypeManager } from '../../../data/materialTypes';
+import { EmployeeTypeManager } from '../../../data/materialTypes';
 import { DataStorage } from '../../../utils/dataStorage';
-import { AuthManager } from '../../../utils/authUtils';
 import PhotoCapture from '../PhotoCapture';
-import { generateQRCode } from '../../../utils/qrCodeUtils';
-import { SupabaseRegistrationService } from '../../../utils/supabaseRegistrationService';
+// import { generateQRCode } from '../../../utils/qrCodeUtils';
 import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
 
 interface EmployeeFormProps {
@@ -39,21 +37,19 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
     oldId: '',
     companyId: '',
     costCenterCode: '',
-    profitCenterCode: ''
+    profitCenterCode: '',
+    hourlyRate: 0,
   });
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showCustomType, setShowCustomType] = useState(false);
-  const [idError, setIdError] = useState('');
-  const [isCheckingId, setIsCheckingId] = useState(false);
   const [departments, setDepartments] = useState<any[]>([]);
   const [showCustomDepartment, setShowCustomDepartment] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [qrCodeImage, setQrCodeImage] = useState<string>('');
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies] = useState<Company[]>([]);
   const [costCenters, setCostCenters] = useState<any[]>([]);
   const [profitCenters, setProfitCenters] = useState<any[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [nameUnique, setNameUnique] = useState(true);
 
   const isEditMode = !!initialData;
 
@@ -75,7 +71,8 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
         oldId: initialData.oldId || '',
         companyId: initialData.companyId || '',
         costCenterCode: initialData.costCenterCode || '',
-        profitCenterCode: initialData.profitCenterCode || ''
+        profitCenterCode: initialData.profitCenterCode || '',
+        hourlyRate: initialData.hourlyRate || 0,
       });
       
       const allTypes = EmployeeTypeManager.getAllEmployeeTypesWithCodes();
@@ -102,62 +99,43 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
         oldId: '',
         companyId: '',
         costCenterCode: '',
-        profitCenterCode: ''
+        profitCenterCode: '',
+        hourlyRate: 0,
       });
       setShowCustomType(false);
-      setIdError('');
     }
   }, [initialData]);
 
   useEffect(() => {
-    if (formData.id.trim() === '') {
-      setIdError('');
+    if (formData.name.trim() === '') {
+      setNameUnique(true);
       return;
     }
 
     // Skip validation for edit mode
     if (isEditMode) {
-      setIdError('');
+      setNameUnique(true);
       return;
     }
 
-    // Validate EMP- prefix
-    if (!formData.id.startsWith('EMP-')) {
-      setIdError('Employee ID must start with "EMP-" (e.g., EMP-001)');
-      return;
+    const existingEmployees = DataStorage.loadEmployees();
+    const isDuplicate = existingEmployees.some(emp => emp.name === formData.name);
+    
+    if (isDuplicate) {
+      setNameUnique(false);
+    } else {
+      setNameUnique(true);
     }
-
-    // Validate format: EMP- followed by alphanumeric characters
-    const idPattern = /^EMP-[A-Za-z0-9]+$/;
-    if (!idPattern.test(formData.id)) {
-      setIdError('Employee ID must follow format: EMP-XXX (e.g., EMP-001, EMP-ABC)');
-      return;
-    }
-
-    setIsCheckingId(true);
-    const timeoutId = setTimeout(() => {
-      const existingEmployees = DataStorage.loadEmployees();
-      const isDuplicate = existingEmployees.some(emp => emp.id === formData.id);
-      
-      if (isDuplicate) {
-        setIdError('Employee ID already exists. Please choose a different ID.');
-      } else {
-        setIdError('');
-      }
-      setIsCheckingId(false);
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [formData.id, isEditMode]);
+  }, [formData.name, isEditMode]);
 
   useEffect(() => {
     loadDepartments();
-    setCurrentUser(AuthManager.getCurrentUser());
+    // setCurrentUser(AuthManager.getCurrentUser()); // Removed as per edit hint
     // Fetch companies from Supabase
-    SupabaseRegistrationService.getCompanies().then(result => {
-      if (result.success && result.data) setCompanies(result.data);
-      else setCompanies([]);
-    });
+    // SupabaseRegistrationService.getCompanies().then(result => {
+    //   if (result.success && result.data) setCompanies(result.data);
+    //   else setCompanies([]);
+    // });
     
     // Load cost centers and profit centers
     const loadCostProfitCenters = async () => {
@@ -206,21 +184,21 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
     setIsSubmitting(true);
     
     // Validate required fields
-    if (!formData.id.trim()) {
-      setIdError('Employee ID is required');
+    if (!formData.name.trim()) {
+      setNameUnique(true);
       setIsSubmitting(false);
       return;
     }
 
-    if (idError) {
+    if (!nameUnique) {
       setIsSubmitting(false);
       return;
     }
 
     try {
       // Generate QR code using the full user-provided ID (already includes EMP- prefix)
-      const qrCode = await generateQRCode(formData.id);
-      setQrCodeImage(qrCode);
+      // const qrCode = await generateQRCode(formData.id);
+      // setQrCodeImage(qrCode); // Removed as per edit hint
       
       let finalType = formData.type;
       
@@ -236,17 +214,16 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
         lastUpdated: new Date().toISOString()
       };
       
-      const { customType, ...finalData } = employeeData;
+      const { customType: _, ...finalData } = employeeData;
       
       onSubmit(finalData, isEditMode);
       setMessage({ type: 'success', text: isEditMode ? 'Employee updated successfully!' : 'Employee added successfully!' });
       // Only reset form if not editing
       if (!isEditMode) {
               setFormData({
-        id: '', name: '', type: '', customType: '', department: '', position: '', bloodGroup: '', site: '', status: 'active', photo: '', email: '', phone: '', oldId: '', companyId: '', costCenterCode: '', profitCenterCode: ''
+        id: '', name: '', type: '', customType: '', department: '', position: '', bloodGroup: '', site: '', status: 'active', photo: '', email: '', phone: '', oldId: '', companyId: '', costCenterCode: '', profitCenterCode: '', hourlyRate: 0,
       });
         setShowCustomType(false);
-        setIdError('');
       }
       
     } catch (error) {
@@ -318,29 +295,27 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
               type="text"
               value={formData.id}
               onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-              className={`w-full px-3 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base ${
-                idError ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="Enter Employee ID (e.g., EMP-001)"
               required
               disabled={isEditMode}
             />
-            {isCheckingId && (
+            {/* {isCheckingId && ( // Removed as per edit hint
               <div className="text-sm text-blue-600 mt-1">
                 Checking availability...
               </div>
-            )}
-            {idError && (
+            )} */}
+            {/* {idError && ( // Removed as per edit hint
               <div className="text-sm text-red-600 mt-1 flex items-center">
                 <AlertCircle className="w-4 h-4 mr-1" />
                 {idError}
               </div>
-            )}
-            {!idError && formData.id && !isCheckingId && !isEditMode && (
+            )} */}
+            {/* {!idError && formData.id && !isCheckingId && !isEditMode && ( // Removed as per edit hint
               <div className="text-sm text-green-600 mt-1">
                 ✓ ID is available
               </div>
-            )}
+            )} */}
             <div className="text-xs text-gray-500 mt-1">
               Employee ID must start with "EMP-" followed by alphanumeric characters (e.g., EMP-001, EMP-ABC).
             </div>
@@ -495,6 +470,20 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Rate (SAR) *</label>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={formData.hourlyRate}
+              onChange={(e) => setFormData({ ...formData, hourlyRate: parseInt(e.target.value, 10) || 0 })}
+              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+              placeholder="Enter hourly rate in SAR"
+              required
+            />
+          </div>
+
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Company</label>
             <select
@@ -613,11 +602,11 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
           }
         </div>
 
-        <button
-          type="submit"
-          disabled={!!idError || (isCheckingId && !isEditMode) || !formData.id.trim() || isSubmitting}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-lg font-semibold mt-2"
-        >
+                  <button
+            type="submit"
+            disabled={!nameUnique || isSubmitting}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-lg font-semibold mt-2"
+          >
           {isSubmitting ? (isEditMode ? 'Updating...' : 'Registering...') : (isEditMode ? 'Update Employee' : 'Register Employee')}
         </button>
       </form>

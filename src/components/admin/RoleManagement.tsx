@@ -1,24 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  User, 
-  Shield, 
-  Settings, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Search,
-  Check,
-  X,
-  Eye,
-  EyeOff,
-  Save,
-  RefreshCw,
-  AlertTriangle
-} from 'lucide-react';
 import { Role } from '../../types';
-import { EquipmentMaintenanceService } from '../../utils/equipmentMaintenanceService';
 import { AuthManager } from '../../utils/authUtils';
-import { Tooltip } from 'react-tooltip';
 import UserAuditLogModal from './UserAuditLogModal';
 import RoleHierarchyTree from './RoleHierarchyTree';
 
@@ -40,15 +22,9 @@ const AVAILABLE_PAGES = [
   'map_view'
 ];
 
-const ROLE_DESCRIPTIONS = {
-  technician: 'Can perform maintenance tasks, complete repairs, and view maintenance logs',
-  manager: 'Can manage maintenance schedules, assign technicians, and view all reports',
-  admin: 'Full system access including user management and system configuration',
-  viewer: 'Can view reports and equipment status, no editing capabilities'
-};
 
-const RoleManagement: React.FC<RoleManagementProps> = ({ onClose }) => {
-  const [activeTab, setActiveTab] = useState<'roles' | 'permissions'>('roles');
+
+const RoleManagement: React.FC<RoleManagementProps> = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<any[]>([]); // TODO: Replace any with User type if available
   const [loading, setLoading] = useState(true);
@@ -120,7 +96,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onClose }) => {
     try {
       const rolesData = await AuthManager.listRoles();
       setRoles(rolesData);
-    } catch (error: any) {
+    } catch {
       setError('Failed to load roles');
     } finally {
       setLoading(false);
@@ -141,7 +117,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onClose }) => {
         map[user.id] = userRoles.map(r => r.id);
       }
       setUserRolesMap(map);
-    } catch (e) {
+    } catch {
       setUserRolesError('Failed to load users or roles');
     } finally {
       setUserRolesLoading(false);
@@ -181,7 +157,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onClose }) => {
       } else {
         setError(result.error || 'Failed to delete role');
       }
-    } catch (error: any) {
+    } catch {
       setError('Failed to delete role');
     } finally {
       setLoading(false);
@@ -224,7 +200,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onClose }) => {
           setError(result.error || 'Failed to create role');
         }
       }
-    } catch (error: any) {
+    } catch {
       setError('Failed to save role');
     } finally {
       setLoading(false);
@@ -260,7 +236,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onClose }) => {
       } else {
         setPermissionsError(result.error || 'Failed to update permissions');
       }
-    } catch (e) {
+    } catch {
       setPermissionsError('Failed to update permissions');
     } finally {
       setPermissionsLoading(false);
@@ -279,7 +255,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onClose }) => {
       }
       setUserRolesSuccess('User roles updated');
       await loadUsersAndRoles();
-    } catch (e) {
+    } catch {
       setUserRolesError('Failed to update user roles');
     } finally {
       setUserRolesLoading(false);

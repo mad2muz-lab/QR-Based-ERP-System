@@ -8,13 +8,17 @@ import './utils/materialSyncFix';
 
 // Make offlineSyncManager globally accessible for debugging
 if (typeof window !== 'undefined') {
-  (window as any).offlineSyncManager = offlineSyncManager;
+  (window as unknown as Record<string, unknown>).offlineSyncManager = offlineSyncManager;
 }
 
 // Handle Vite dynamic import errors
 window.addEventListener('vite:preloadError', (event) => {
-  console.warn('Module preload error, reloading page...');
+  console.warn('Module preload error:', event, 'reloading page...');
   window.location.reload();
+});
+
+window.addEventListener('error', (event) => {
+  console.error('Global error:', event);
 });
 
 createRoot(document.getElementById('root')!).render(

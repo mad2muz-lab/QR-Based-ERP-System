@@ -31,7 +31,7 @@ const DepartmentManager: React.FC<DepartmentManagerProps> = ({ onDepartmentUpdat
 
   const loadDepartments = async () => {
     try {
-      const useSupabase = await AuthManager.useSupabase();
+      const useSupabase = await AuthManager.shouldUseSupabase();
       let loadedDepartments: Department[] = [];
       
       if (useSupabase) {
@@ -92,7 +92,7 @@ const DepartmentManager: React.FC<DepartmentManagerProps> = ({ onDepartmentUpdat
       setDepartments(updatedDepartments);
       
       // Save to appropriate storage
-      const useSupabase = await AuthManager.useSupabase();
+      const useSupabase = await AuthManager.shouldUseSupabase();
       if (useSupabase) {
         // Save to Supabase
         const result = await SupabaseDataService.updateDepartment(updatedDepartment);
@@ -122,7 +122,7 @@ const DepartmentManager: React.FC<DepartmentManagerProps> = ({ onDepartmentUpdat
       setDepartments(updatedDepartments);
       
       // Save to appropriate storage
-      const useSupabase = await AuthManager.useSupabase();
+      const useSupabase = await AuthManager.shouldUseSupabase();
       if (useSupabase) {
         // Save to Supabase
         const result = await SupabaseDataService.createDepartment({
@@ -168,7 +168,7 @@ const DepartmentManager: React.FC<DepartmentManagerProps> = ({ onDepartmentUpdat
       setDepartments(updatedDepartments);
       
       // Save to appropriate storage
-      const useSupabase = await AuthManager.useSupabase();
+      const useSupabase = await AuthManager.shouldUseSupabase();
       if (useSupabase) {
         // Delete from Supabase
         const result = await SupabaseDataService.deleteDepartment(department.id);

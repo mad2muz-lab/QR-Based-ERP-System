@@ -3,7 +3,6 @@ import {
   Package, 
   Plus, 
   Trash2, 
-  Settings, 
   CheckCircle, 
   AlertTriangle,
   Download,
@@ -107,7 +106,7 @@ export default function UnitManagement({ className = '' }: UnitManagementProps) 
         } else {
           setMessage({ type: 'error', text: 'Invalid file format' });
         }
-      } catch (error) {
+      } catch {
         setMessage({ type: 'error', text: 'Failed to parse import file' });
       }
     };

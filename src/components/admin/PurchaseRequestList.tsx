@@ -8,9 +8,7 @@ import {
   Eye, 
   Edit, 
   Trash2,
-  Filter,
   Search,
-  Calendar,
   DollarSign,
   User,
   Building

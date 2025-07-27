@@ -23,30 +23,15 @@ import EmployeeList from './lists/EmployeeList';
 import EquipmentList from './lists/EquipmentList';
 import MaterialList from './lists/MaterialList';
 import SiteList from './lists/SiteList';
-// Remove DepartmentManager import
-// import DepartmentManager from '../admin/DepartmentManager';
 
-// Import page components
-import EmployeesPage from '../pages/EmployeesPage';
-import EquipmentPage from '../pages/EquipmentPage';
-import MaterialsPage from '../pages/MaterialsPage';
-import SitesPage from '../pages/SitesPage';
-
-// Import Excel utilities
-import {
-  downloadEmployeeTemplate,
-  downloadEquipmentTemplate,
-  downloadMaterialTemplate,
-  downloadSiteTemplate,
-  exportEmployeesToExcel,
-  exportEquipmentToExcel,
-  exportMaterialsToExcel,
-  exportSitesToExcel,
-  importEmployeesFromExcel,
-  importEquipmentFromExcel,
-  importMaterialsFromExcel,
-  importSitesFromExcel
-} from '../../utils/excelUtils';
+// Dynamic imports for heavy features
+const loadExcelUtils = () => import('../../utils/excelUtils');
+const loadPageComponents = () => import('../pages/EmployeesPage').then(module => ({
+  EmployeesPage: module.default,
+  EquipmentPage: () => import('../pages/EquipmentPage').then(m => m.default),
+  MaterialsPage: () => import('../pages/MaterialsPage').then(m => m.default),
+  SitesPage: () => import('../pages/SitesPage').then(m => m.default)
+}));
 
 interface RegistrationFormProps {
   currentUser?: User;
@@ -56,12 +41,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
   // Check if user has manager access
   const hasManagerAccess = AuthManager.hasPermission('manager');
   
-  if (!hasManagerAccess) {
-    return <UnauthorizedAccess requiredRole="manager" />;
-  }
-
   // Fix the activeTab type to include 'departments'
-  const [activeTab, setActiveTab] = useState<'employees' | 'equipment' | 'materials' | 'sites'>('employees');
+  const [activeTab, setActiveTab] = useState<'employees' | 'equipment' | 'materials' | 'sites' | 'departments'>('employees');
   const [activeView, setActiveView] = useState<'form' | 'list'>('form');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -89,6 +70,10 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
   // Add refresh trigger for UnifiedListView
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  if (!hasManagerAccess) {
+    return <UnauthorizedAccess requiredRole="manager" />;
+  }
+
   // Function to toggle between form and list views
   const toggleView = () => {
     if (activeView === 'form') {
@@ -102,7 +87,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
 
   useEffect(() => {
     const checkSupabase = async () => {
-      const currentUseSupabase = await AuthManager.useSupabase();
+      const currentUseSupabase = await AuthManager.shouldUseSupabase();
       setUseSupabase(currentUseSupabase);
       setDataSource(currentUseSupabase ? 'supabase' : 'local');
       loadData(currentUseSupabase);
@@ -163,6 +148,53 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
 
   const acknowledgeMessage = () => {
     setMessage(null);
+  };
+
+  // Excel utility functions with dynamic imports
+  const handleDownloadTemplate = async (type: string) => {
+    try {
+      const excelUtils = await loadExcelUtils();
+      switch (type) {
+        case 'employees':
+          await excelUtils.downloadEmployeeTemplate();
+          break;
+        case 'equipment':
+          await excelUtils.downloadEquipmentTemplate();
+          break;
+        case 'materials':
+          await excelUtils.downloadMaterialTemplate();
+          break;
+        case 'sites':
+          await excelUtils.downloadSiteTemplate();
+          break;
+      }
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      showMessage('error', 'Failed to download template');
+    }
+  };
+
+  const handleExportToExcel = async (type: string, data: any[]) => {
+    try {
+      const excelUtils = await loadExcelUtils();
+      switch (type) {
+        case 'employees':
+          await excelUtils.exportEmployeesToExcel(data);
+          break;
+        case 'equipment':
+          await excelUtils.exportEquipmentToExcel(data);
+          break;
+        case 'materials':
+          await excelUtils.exportMaterialsToExcel(data);
+          break;
+        case 'sites':
+          await excelUtils.exportSitesToExcel(data);
+          break;
+      }
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      showMessage('error', 'Failed to export data');
+    }
   };
 
   // Employee handlers
@@ -871,20 +903,23 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
     try {
       let importedData: any[] = [];
       
+      // Dynamically load Excel utilities
+      const excelUtils = await loadExcelUtils();
+      
       switch (type) {
         case 'employees':
-          importedData = await importEmployeesFromExcel(file);
+          importedData = await excelUtils.importEmployeesFromExcel(file);
           
           // Process imported employees and generate QR codes
           break;
         case 'equipment':
-          importedData = await importEquipmentFromExcel(file);
+          importedData = await excelUtils.importEquipmentFromExcel(file);
           break;
         case 'materials':
-          importedData = await importMaterialsFromExcel(file);
+          importedData = await excelUtils.importMaterialsFromExcel(file);
           break;
         case 'sites':
-          importedData = await importSitesFromExcel(file);
+          importedData = await excelUtils.importSitesFromExcel(file);
           break;
       }
 
@@ -1133,7 +1168,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                   {activeTab === 'employees' && (
                     <>
                       <button
-                        onClick={() => downloadEmployeeTemplate()}
+                        onClick={() => handleDownloadTemplate('employees')}
                         className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                       >
                         <Download className="w-4 h-4" />
@@ -1150,7 +1185,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                         />
                       </label>
                       <button
-                        onClick={() => exportEmployeesToExcel(employees)}
+                        onClick={() => handleExportToExcel('employees', employees)}
                         className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                       >
                         <Download className="w-4 h-4" />
@@ -1161,7 +1196,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                   {activeTab === 'equipment' && (
                     <>
                       <button
-                        onClick={() => downloadEquipmentTemplate()}
+                        onClick={() => handleDownloadTemplate('equipment')}
                         className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                       >
                         <Download className="w-4 h-4" />
@@ -1178,7 +1213,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                         />
                       </label>
                       <button
-                        onClick={() => exportEquipmentToExcel(equipment)}
+                        onClick={() => handleExportToExcel('equipment', equipment)}
                         className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                       >
                         <Download className="w-4 h-4" />
@@ -1189,7 +1224,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                   {activeTab === 'materials' && (
                     <>
                       <button
-                        onClick={() => downloadMaterialTemplate()}
+                        onClick={() => handleDownloadTemplate('materials')}
                         className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                       >
                         <Download className="w-4 h-4" />
@@ -1206,7 +1241,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                         />
                       </label>
                       <button
-                        onClick={() => exportMaterialsToExcel(materials)}
+                        onClick={() => handleExportToExcel('materials', materials)}
                         className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                       >
                         <Download className="w-4 h-4" />
@@ -1217,7 +1252,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                   {activeTab === 'sites' && (
                     <>
                       <button
-                        onClick={() => downloadSiteTemplate()}
+                        onClick={() => handleDownloadTemplate('sites')}
                         className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                       >
                         <Download className="w-4 h-4" />
@@ -1234,7 +1269,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                         />
                       </label>
                       <button
-                        onClick={() => exportSitesToExcel(sites)}
+                        onClick={() => handleExportToExcel('sites', sites)}
                         className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                       >
                         <Download className="w-4 h-4" />
@@ -1316,7 +1351,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                     onEdit={handleEmployeeEdit} 
                     onDelete={handleEmployeeDelete}
                     onImport={(e) => handleImport(e, 'employees')}
-                    onExport={() => exportEmployeesToExcel(employees)}
+                    onExport={() => handleExportToExcel('employees', employees)}
                     refreshTrigger={refreshTrigger}
                   />
                 )}
@@ -1326,7 +1361,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                     onEdit={handleEquipmentEdit} 
                     onDelete={handleEquipmentDelete}
                     onImport={(e) => handleImport(e, 'equipment')}
-                    onExport={() => exportEquipmentToExcel(equipment)}
+                    onExport={() => handleExportToExcel('equipment', equipment)}
                     refreshTrigger={refreshTrigger}
                   />
                 )}
@@ -1336,7 +1371,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                     onEdit={handleMaterialEdit} 
                     onDelete={handleMaterialDelete}
                     onImport={(e) => handleImport(e, 'materials')}
-                    onExport={() => exportMaterialsToExcel(materials)}
+                    onExport={() => handleExportToExcel('materials', materials)}
                     refreshTrigger={refreshTrigger}
                   />
                 )}
@@ -1346,7 +1381,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                     onEdit={handleSiteEdit} 
                     onDelete={handleSiteDelete}
                     onImport={(e) => handleImport(e, 'sites')}
-                    onExport={() => exportSitesToExcel(sites)}
+                    onExport={() => handleExportToExcel('sites', sites)}
                     refreshTrigger={refreshTrigger}
                   />
                 )}

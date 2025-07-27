@@ -85,7 +85,8 @@ export class SupabaseDataService {
         createdAt: material.created_at || material.createdAt,
         qrCode: material.qr_code,
         accessLevel: material.access_level,
-        oldId: material.old_id // Map old_id to oldId
+        oldId: material.old_id, // Map old_id to oldId
+        cost: material.cost !== undefined ? Number(material.cost) : undefined // Ensure cost is a number
       }));
       
       return transformedData;
@@ -288,10 +289,18 @@ export class SupabaseDataService {
   static async getDepartments(): Promise<Department[]> {
     if (!supabase) return [];
     try {
-      const { data, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('getDepartments timeout')), 10000); // 10 second timeout
+      });
+      
+      const fetchPromise = supabase
         .from('departments')
         .select('*')
         .order('created_at', { ascending: false });
+        
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      
       if (error) {
         console.error('Error fetching departments:', error);
         return [];
@@ -760,6 +769,50 @@ export class SupabaseDataService {
     } catch (error) {
       console.error('Error fetching materials:', error);
       return [];
+    }
+  }
+
+  /**
+   * Clear all notifications for a specific user or role
+   * @param userId - The user ID to clear notifications for
+   * @param role - The role to clear notifications for
+   * @returns Promise<boolean> - Success status
+   */
+  static async clearAllNotifications(userId?: string, role?: string): Promise<boolean> {
+    try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
+      let query = supabase.from('notifications').delete();
+      
+      if (userId && role) {
+        // Clear notifications for specific user OR role
+        query = query.or(`user_id.eq.${userId},role.eq.${role}`);
+      } else if (userId) {
+        // Clear notifications for specific user only
+        query = query.eq('user_id', userId);
+      } else if (role) {
+        // Clear notifications for specific role only
+        query = query.eq('role', role);
+      } else {
+        // Clear all notifications (admin only)
+        console.warn('Clearing all notifications - this should only be done by admin users');
+      }
+
+      const { error } = await query;
+      
+      if (error) {
+        console.error('Error clearing notifications:', error);
+        return false;
+      }
+
+      console.log('All notifications cleared successfully');
+      return true;
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+      return false;
     }
   }
 }

@@ -13,10 +13,10 @@ export const generateEmployeeIDCard = (employee: Employee, qrCodeImage: string, 
   let companyLogo = '';
   if (companyId) {
     const companies = JSON.parse(localStorage.getItem('companies') || '[]');
-    const company = companies.find((c: any) => c.id === companyId);
+    const company = companies.find((c: Record<string, unknown>) => c.id === companyId);
     if (company) {
-      companyName = company.name;
-      companyLogo = company.logoUrl || '';
+      companyName = company.name as string;
+      companyLogo = company.logoUrl as string || '';
     }
   }
 
@@ -285,18 +285,6 @@ export const downloadEmployeeIDCard = async (employee: Employee, qrCodeImage: st
   cardDiv.style.left = '-9999px';
   cardDiv.style.top = '0';
   document.body.appendChild(cardDiv);
-
-  // Fetch company info
-  let companyName = '';
-  let companyLogo = '';
-  if (companyId) {
-    const companies = JSON.parse(localStorage.getItem('companies') || '[]');
-    const company = companies.find((c: any) => c.id === companyId);
-    if (company) {
-      companyName = company.name;
-      companyLogo = company.logoUrl || '';
-    }
-  }
 
   // Render the card HTML (reuse the printContent from generateEmployeeIDCard, but as a div)
   cardDiv.innerHTML = `<div id="employee-id-card-download" style="width:336px;height:256px;box-sizing:border-box;">${/* ...card HTML, same as printContent, but as a div... */''}</div>`;

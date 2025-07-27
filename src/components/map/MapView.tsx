@@ -12,17 +12,13 @@ const MapView: React.FC = () => {
   // Check if user has operator access
   const hasOperatorAccess = AuthManager.hasPermission('operator');
   
-  if (!hasOperatorAccess) {
-    return <UnauthorizedAccess requiredRole="operator" />;
-  }
-
   const [selectedProvince, setSelectedProvince] = useState<string>('');
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [hoveredProvince, setHoveredProvince] = useState<string>('');
   const [hoveredSite, setHoveredSite] = useState<string>('');
-  const [ksaGeoData, setKsaGeoData] = useState<any>(null);
+  const [ksaGeoData, setKsaGeoData] = useState<unknown>(null);
   const [drillDownLevel, setDrillDownLevel] = useState<'country' | 'province' | 'site'>('country');
-  const [drillDownHistory, setDrillDownHistory] = useState<Array<{level: string, data: any}>>([{ level: 'country', data: null }]);
+  const [drillDownHistory, setDrillDownHistory] = useState<Array<{level: string, data: unknown}>>([{ level: 'country', data: null }]);
   const [activeCallout, setActiveCallout] = useState<{type: 'province' | 'site', id: string, position: {x: number, y: number}} | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [dataTimestamp, setDataTimestamp] = useState<number>(Date.now());
@@ -36,6 +32,10 @@ const MapView: React.FC = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
   const [mapDebug, setMapDebug] = useState<string>('');
+
+  if (!hasOperatorAccess) {
+    return <UnauthorizedAccess requiredRole="operator" />;
+  }
 
   // Load data with refresh capability
   const loadData = useCallback(async () => {

@@ -1,8 +1,7 @@
-import { User, AuthState } from '../types';
 import { DataStorage } from './dataStorage';
 import { SupabaseAuthManager } from './supabaseAuthUtils';
 import { supabase } from './supabaseClient';
-import { Role, RolePageAccess } from '../types';
+import { User, Role } from '../types';
 
 export class AuthManager {
   private static readonly AUTH_TOKEN_KEY = 'qr_system_auth_token';
@@ -10,15 +9,20 @@ export class AuthManager {
   private static readonly USE_SUPABASE_KEY = 'qr_system_use_supabase';
 
   // Check if we should use Supabase (now always true if Supabase is configured and reachable)
-  static async useSupabase(): Promise<boolean> {
+  static async shouldUseSupabase(): Promise<boolean> {
     if (!SupabaseAuthManager.isSupabaseConfigured()) {
       console.log('❌ Supabase not configured');
       return false;
     }
     
-    // Try a quick Supabase ping (e.g., getSession)
+    // Try a quick Supabase ping with timeout to prevent hanging
     try {
-      const online = await SupabaseAuthManager.pingSupabase();
+      const timeoutPromise = new Promise<boolean>((_, reject) => {
+        setTimeout(() => reject(new Error('Supabase ping timeout')), 5000); // 5 second timeout
+      });
+      
+      const pingPromise = SupabaseAuthManager.pingSupabase();
+      const online = await Promise.race([pingPromise, timeoutPromise]);
       console.log('🔍 Supabase ping result:', online);
       return online;
     } catch (error) {
@@ -30,7 +34,7 @@ export class AuthManager {
   // Enhanced authentication check with better logging
   static async isAuthenticated(): Promise<boolean> {
     try {
-      const useSupabase = await this.useSupabase();
+      const useSupabase = await this.shouldUseSupabase();
       console.log('🔍 Authentication check - useSupabase:', useSupabase);
       
       if (useSupabase) {
@@ -53,7 +57,7 @@ export class AuthManager {
   // Enhanced current user retrieval
   static async getCurrentUser(): Promise<User | null> {
     try {
-      const useSupabase = await this.useSupabase();
+      const useSupabase = await this.shouldUseSupabase();
       console.log('🔍 Getting current user - useSupabase:', useSupabase);
       
       if (useSupabase) {
@@ -91,7 +95,7 @@ export class AuthManager {
   static async login(username: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
     console.log('🔐 Starting login process...');
     
-    if (await this.useSupabase()) {
+    if (await this.shouldUseSupabase()) {
       try {
         console.log('🔐 Attempting Supabase login...');
         const result = await SupabaseAuthManager.signIn(username, password);
@@ -131,7 +135,7 @@ export class AuthManager {
   static async logout(): Promise<void> {
     console.log('🚪 Starting logout process...');
     
-    if (await this.useSupabase()) {
+    if (await this.shouldUseSupabase()) {
       try {
         await SupabaseAuthManager.signOut();
         console.log('✅ Supabase logout successful');
@@ -252,7 +256,7 @@ export class AuthManager {
         if (role.parent_role_id) collectRoleAndParents(role.parent_role_id);
       }
     }
-    userRoles.forEach((ur: any) => {
+    userRoles.forEach((ur: { role: string }) => {
       // Find the role in allRoles by name
       const roleObj = allRoles.find((r: Role) => r.name === ur.role);
       if (roleObj) collectRoleAndParents(roleObj.id);
@@ -275,7 +279,7 @@ export class AuthManager {
       .in('role_id', roleIds);
     if (error || !pageAccess) return new Set();
     const accessiblePages = new Set<string>();
-    pageAccess.forEach((pa: any) => {
+    pageAccess.forEach((pa: { can_access: boolean; page_name: string }) => {
       if (pa.can_access) accessiblePages.add(pa.page_name);
     });
     return accessiblePages;
@@ -313,8 +317,8 @@ export class AuthManager {
       if (error) throw error;
       if (userId) await this.logAudit({ user_id: userId, action: 'create', entity_type: 'role', entity_id: data.id });
       return { success: true, data };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -328,8 +332,8 @@ export class AuthManager {
       if (error) throw error;
       if (userId) await this.logAudit({ user_id: userId, action: 'update', entity_type: 'role', entity_id: roleId });
       return { success: true, data };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -343,8 +347,8 @@ export class AuthManager {
       if (error) throw error;
       if (userId) await this.logAudit({ user_id: userId, action: 'delete', entity_type: 'role', entity_id: roleId });
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -381,8 +385,8 @@ export class AuthManager {
       
       if (userId) await this.logAudit({ user_id: userId, action: 'update_permissions', entity_type: 'role', entity_id: roleId });
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -400,15 +404,15 @@ export class AuthManager {
       if (error) throw error;
       if (adminId) await this.logAudit({ user_id: adminId, action: 'assign_role', entity_type: 'user_role', entity_id: userId });
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
   /**
    * List all users from the database
    */
-  static async listUsers(): Promise<any[]> {
+  static async listUsers(): Promise<User[]> {
     if (!supabase) return [];
     const { data, error } = await supabase.from('users').select('*').order('created_at');
     if (error) {
@@ -421,7 +425,7 @@ export class AuthManager {
   /**
    * Log audit events
    */
-  static async logAudit({ user_id, action, entity_type, entity_id, details }: { user_id: string; action: string; entity_type: string; entity_id: string; details?: any }) {
+  static async logAudit({ user_id, action, entity_type, entity_id, details }: { user_id: string; action: string; entity_type: string; entity_id: string; details?: unknown }) {
     if (!supabase) return;
     try {
       await supabase.from('audit_logs').insert({

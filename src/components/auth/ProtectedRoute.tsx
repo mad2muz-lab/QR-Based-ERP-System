@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthManager } from '../../utils/authUtils';
-import UnauthorizedAccess from '../common/UnauthorizedAccess';
 import { LoadingSpinner } from '../common/LazyComponents';
 
 interface ProtectedRouteProps {

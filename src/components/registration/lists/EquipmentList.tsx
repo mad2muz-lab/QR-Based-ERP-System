@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Wrench, Edit, Trash2, Printer } from 'lucide-react';
 import { Equipment } from '../../../types';
-import { generateQRCode } from '../../../utils/qrCodeUtils';
-import { generateIDCardPDF } from '../../../utils/pdfUtils';
 import QRCodeDisplay from '../QRCodeDisplay';
 
 interface EquipmentListProps {
@@ -102,6 +100,7 @@ const EquipmentList: React.FC<EquipmentListProps> = ({ equipment, sites, onEdit,
               >
                 <Trash2 className="w-4 h-4" />
               </button>
+
             </div>
           </div>
         ))}

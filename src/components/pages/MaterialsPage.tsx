@@ -66,7 +66,7 @@ const MaterialsPage: React.FC = () => {
   };
 
   const filterAndSortMaterials = () => {
-    let filtered = materials.filter(material => {
+    const filtered = materials.filter(material => {
       const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            material.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (material.oldId && material.oldId.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -321,6 +321,7 @@ const MaterialsPage: React.FC = () => {
                 >
                   Status {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -364,6 +365,9 @@ const MaterialsPage: React.FC = () => {
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(material.status)}`}>
                       {material.status}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{material.cost !== undefined && material.cost !== null ? material.cost : '-'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
@@ -485,6 +489,10 @@ const MaterialsPage: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Usage</label>
                   <p className="mt-1 text-sm text-gray-900">{selectedMaterial.use || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Cost</label>
+                  <p className="mt-1 text-sm text-gray-900">{selectedMaterial.cost !== undefined && selectedMaterial.cost !== null ? selectedMaterial.cost : 'Not specified'}</p>
                 </div>
               </div>
               
