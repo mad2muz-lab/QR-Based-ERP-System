@@ -199,18 +199,40 @@ const QRScanner: React.FC = () => {
   };
 
   const handleScanResult = async (qrData: string) => {
+    console.log('🔍 QR Scanner: Processing scan result:', qrData);
+    console.log('🔍 QR Scanner: Raw data length:', qrData.length);
+    console.log('🔍 QR Scanner: Raw data characters:', Array.from(qrData).map(c => `"${c}"(${c.charCodeAt(0)})`).join(' '));
+    
+    // Check for potential Honeywell device issues
+    if (qrData.includes('\r') || qrData.includes('\n')) {
+      console.warn('⚠️ QR Scanner: QR data contains line breaks, cleaning...');
+      qrData = qrData.replace(/[\r\n]/g, '');
+      console.log('🔍 QR Scanner: Cleaned data:', qrData);
+    }
+    
+    // Check for extra spaces or characters
+    const trimmedData = qrData.trim();
+    if (trimmedData !== qrData) {
+      console.warn('⚠️ QR Scanner: QR data had leading/trailing spaces, trimming...');
+      qrData = trimmedData;
+      console.log('🔍 QR Scanner: Trimmed data:', qrData);
+    }
+    
     // Improved debounce: Allow re-scanning after actions complete, but prevent rapid duplicate scans
     const now = Date.now();
-if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5 seconds to prevent immediate re-scan
-  return;
-}
+    if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5 seconds to prevent immediate re-scan
+      console.log('🚫 Duplicate scan detected, ignoring');
+      return;
+    }
     
     setLastScannedCode(qrData);
     setLastScanTime(now);
     
     const parsed = await parseQRCode(qrData);
+    console.log('🔍 QR Scanner: Parsed result:', parsed);
     
     if (!parsed.type || parsed.type === null) {
+      console.error('❌ QR Scanner: Invalid QR code format:', qrData);
       setError('Invalid QR code format');
       return;
     }
@@ -219,6 +241,8 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     let employees, equipment, materials, sites, allLogs;
     try {
       setError('Loading data...');
+      console.log('🔍 QR Scanner: Loading data from all sources...');
+      
       [employees, equipment, materials, sites, allLogs] = await Promise.all([
         fetchData('employees'),
         fetchData('equipment'),
@@ -227,9 +251,16 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
         getAllLogs()
       ]);
       
+      console.log('🔍 QR Scanner: Data loaded successfully:', {
+        employees: employees?.length || 0,
+        equipment: equipment?.length || 0,
+        materials: materials?.length || 0,
+        sites: sites?.length || 0
+      });
+      
       setError(''); // Clear loading message
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('❌ QR Scanner: Failed to load data:', error);
       setError('Failed to load data. Please try again.');
       return;
     }
@@ -247,24 +278,30 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
 
     // Handle unknown QR codes by detecting entity type
     if (parsed.type === 'unknown') {
+      console.log('🔍 QR Scanner: Processing unknown QR code, searching all entity types...');
+      
       // Check equipment first (most likely for custom IDs)
       entity = (equipment as any[]).find((eq: any) => 
         eq.custom_equipment_id === parsed.id || eq.id === parsed.id
       );
       if (entity) {
+        console.log('✅ QR Scanner: Found matching equipment:', entity.name);
         entityType = 'equipment';
       } else {
         // Check other entity types
         entity = (employees as any[]).find((emp: any) => emp.id === parsed.id);
         if (entity) {
+          console.log('✅ QR Scanner: Found matching employee:', entity.name);
           entityType = 'employee';
         } else {
           entity = (materials as any[]).find((mat: any) => mat.id === parsed.id);
           if (entity) {
+            console.log('✅ QR Scanner: Found matching material:', entity.name);
             entityType = 'material';
           } else {
             entity = (sites as any[]).find((site: any) => site.id === parsed.id);
             if (entity) {
+              console.log('✅ QR Scanner: Found matching site:', entity.name);
               entityType = 'site';
             }
           }
@@ -272,6 +309,13 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
       }
       
       if (!entity) {
+        console.error('❌ QR Scanner: No entity found with ID:', parsed.id);
+        console.log('🔍 Available entities:', {
+          employees: (employees as any[])?.map(e => e.id) || [],
+          equipment: (equipment as any[])?.map(e => ({ id: e.id, custom_id: e.custom_equipment_id })) || [],
+          materials: (materials as any[])?.map(m => m.id) || [],
+          sites: (sites as any[])?.map(s => s.id) || []
+        });
         setError(`No entity found with ID: ${parsed.id}`);
         return;
       }
@@ -280,10 +324,13 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
     // Find the entity based on type and ID
     switch (entityType) {
       case 'employee':
+        console.log('🔍 QR Scanner: Processing employee scan for ID:', parsed.id);
+        console.log('🔍 QR Scanner: Available employees:', (employees as any[])?.map(e => e.id) || []);
         if (!entity) {
           entity = (employees as any[]).find((emp: any) => emp.id === parsed.id);
         }
         if (entity) {
+          console.log('✅ QR Scanner: Found employee:', entity.name);
           // Check current status from recent employee logs
           const employeeLogs = allLogs.employeeLogs || allLogs || [];
           const recentLog = employeeLogs
@@ -334,19 +381,34 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
             });
           }
         } else {
-          // Employee not found in registration system
-          setError(`Employee with ID ${parsed.id} not found in the system.`);
-          setScanResult({
-            type: 'unregistered_employee',
-            entityId: parsed.id,
-            actions: [{
-              id: 'register-employee',
-              label: 'Register Employee',
-              description: 'This employee ID is not registered in the system',
-              icon: UserPlus,
-              color: 'blue'
-            }]
-          });
+          console.error('❌ QR Scanner: Employee not found with ID:', parsed.id);
+          console.log('🔍 QR Scanner: Trying fallback lookup for employee...');
+          
+          // Try fallback lookup in case the ID format is different
+          const fallbackEmployee = (employees as any[]).find((emp: any) => 
+            emp.id.includes(parsed.id) || parsed.id.includes(emp.id) ||
+            emp.id.replace(/[^A-Z0-9]/g, '') === parsed.id.replace(/[^A-Z0-9]/g, '')
+          );
+          
+          if (fallbackEmployee) {
+            console.log('✅ QR Scanner: Found employee via fallback:', fallbackEmployee.name);
+            entity = fallbackEmployee;
+            // Continue with the employee processing...
+          } else {
+            // Employee not found in registration system
+            setError(`Employee with ID ${parsed.id} not found in the system.`);
+            setScanResult({
+              type: 'unregistered_employee',
+              entityId: parsed.id,
+              actions: [{
+                id: 'register-employee',
+                label: 'Register Employee',
+                description: 'This employee ID is not registered in the system',
+                icon: UserPlus,
+                color: 'blue'
+              }]
+            });
+          }
         }
         break;
 
@@ -435,8 +497,11 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
         break;
 
       case 'material':
+        console.log('🔍 QR Scanner: Processing material scan for ID:', parsed.id);
+        console.log('🔍 QR Scanner: Available materials:', (materials as any[])?.map(m => m.id) || []);
         entity = (materials as any[]).find((mat: any) => mat.id === parsed.id);
         if (entity) {
+          console.log('✅ QR Scanner: Found material:', entity.name);
           currentStatus = entity.status;
           actions = [
             {
@@ -462,8 +527,46 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
             actions
           });
         } else {
-          setError(`Material with ID ${parsed.id} not found in system. Please register this material first.`);
-          return;
+          console.error('❌ QR Scanner: Material not found with ID:', parsed.id);
+          console.log('🔍 QR Scanner: Trying fallback lookup for material...');
+          
+          // Try fallback lookup in case the ID format is different
+          const fallbackMaterial = (materials as any[]).find((mat: any) => 
+            mat.id.includes(parsed.id) || parsed.id.includes(mat.id) ||
+            mat.id.replace(/[^A-Z0-9]/g, '') === parsed.id.replace(/[^A-Z0-9]/g, '')
+          );
+          
+          if (fallbackMaterial) {
+            console.log('✅ QR Scanner: Found material via fallback:', fallbackMaterial.name);
+            entity = fallbackMaterial;
+            currentStatus = entity.status;
+            actions = [
+              {
+                id: 'material-in',
+                label: 'Material In',
+                description: 'Add to inventory',
+                icon: Upload,
+                color: 'green'
+              },
+              {
+                id: 'material-out',
+                label: 'Material Out',
+                description: 'Issue from inventory',
+                icon: Upload,
+                color: 'orange'
+              }
+            ];
+            
+            setScanResult({
+              type: entityType,
+              entity,
+              currentStatus,
+              actions
+            });
+          } else {
+            setError(`Material with ID ${parsed.id} not found in system. Please register this material first.`);
+            return;
+          }
         }
         break;
 

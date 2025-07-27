@@ -36,6 +36,11 @@ export const useHardwareScanner = ({
         return;
       }
       
+      // Debug logging for Honeywell device
+      if (e.key !== 'Enter' && e.key.length === 1) {
+        console.log('🔍 Hardware Scanner: Key pressed:', e.key, 'Buffer length:', scanBuffer.length);
+      }
+      
       const currentTime = new Date().getTime();
       
       // If there's a significant delay between keystrokes, reset the buffer
@@ -48,9 +53,34 @@ export const useHardwareScanner = ({
       // Handle Enter key as the end of scan
       if (e.key === 'Enter') {
         if (scanBuffer.length > 0) {
+          console.log('🔍 Hardware Scanner: Complete scan detected:', scanBuffer);
+          console.log('🔍 Hardware Scanner: Scan buffer length:', scanBuffer.length);
+          console.log('🔍 Hardware Scanner: Scan buffer characters:', Array.from(scanBuffer).map(c => `"${c}"(${c.charCodeAt(0)})`).join(' '));
+          
+          // Clean the scan buffer for potential Honeywell device issues
+          let cleanedBuffer = scanBuffer;
+          
+          // Remove any line breaks or carriage returns
+          if (cleanedBuffer.includes('\r') || cleanedBuffer.includes('\n')) {
+            console.warn('⚠️ Hardware Scanner: Scan contains line breaks, cleaning...');
+            cleanedBuffer = cleanedBuffer.replace(/[\r\n]/g, '');
+          }
+          
+          // Trim whitespace
+          const trimmedBuffer = cleanedBuffer.trim();
+          if (trimmedBuffer !== cleanedBuffer) {
+            console.warn('⚠️ Hardware Scanner: Scan had whitespace, trimming...');
+            cleanedBuffer = trimmedBuffer;
+          }
+          
+          console.log('🔍 Hardware Scanner: Cleaned scan buffer:', cleanedBuffer);
+          
           // If the scan has our expected prefix, process it
-          if (!prefix || scanBuffer.startsWith(prefix)) {
-            onScan(scanBuffer);
+          if (!prefix || cleanedBuffer.startsWith(prefix)) {
+            console.log('✅ Hardware Scanner: Processing scan:', cleanedBuffer);
+            onScan(cleanedBuffer);
+          } else {
+            console.log('❌ Hardware Scanner: Scan does not match prefix:', cleanedBuffer, 'Expected prefix:', prefix);
           }
           scanBuffer = '';
         }
@@ -68,9 +98,21 @@ export const useHardwareScanner = ({
       // Set a timeout to process the scan if no more keys are pressed
       timeoutId = setTimeout(() => {
         if (scanBuffer.length > 3) { // Minimum length to be considered a scan
+          console.log('🔍 Hardware Scanner: Timeout-based scan completion:', scanBuffer);
+          
+          // Clean the scan buffer
+          let cleanedBuffer = scanBuffer;
+          if (cleanedBuffer.includes('\r') || cleanedBuffer.includes('\n')) {
+            cleanedBuffer = cleanedBuffer.replace(/[\r\n]/g, '');
+          }
+          cleanedBuffer = cleanedBuffer.trim();
+          
           // If the scan has our expected prefix, process it
-          if (!prefix || scanBuffer.startsWith(prefix)) {
-            onScan(scanBuffer);
+          if (!prefix || cleanedBuffer.startsWith(prefix)) {
+            console.log('✅ Hardware Scanner: Processing timeout scan:', cleanedBuffer);
+            onScan(cleanedBuffer);
+          } else {
+            console.log('❌ Hardware Scanner: Timeout scan does not match prefix:', cleanedBuffer, 'Expected prefix:', prefix);
           }
           scanBuffer = '';
         }
