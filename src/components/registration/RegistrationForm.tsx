@@ -915,8 +915,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
       switch (type) {
         case 'employees':
           importedData = await excelUtils.importEmployeesFromExcel(file);
-          
-          // Process imported employees and generate QR codes
           break;
         case 'equipment':
           importedData = await excelUtils.importEquipmentFromExcel(file);
@@ -934,13 +932,31 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
 
         switch (type) {
           case 'employees':
-            const processedEmployees = importedData.map(item => ({
-              ...item,
-              id: item.id || crypto.randomUUID(), // Use UUID instead of custom ID
-              qrCode: `EMP-${item.id || crypto.randomUUID()}`,
-              createdAt: new Date().toISOString(),
-              lastUpdated: new Date().toISOString()
-            }));
+            const processedEmployees = importedData.map(item => {
+              // For Supabase, don't generate UUIDs - let the database auto-generate them
+              const employeeId = useSupabase ? undefined : crypto.randomUUID();
+              return {
+                ...(useSupabase ? {} : { id: employeeId }), // Only include id for local storage
+                name: item.name,
+                type: item.type || '',
+                department: item.department,
+                position: item.position,
+                bloodGroup: item.blood_group || item.bloodGroup || '',
+                site: item.site,
+                ...(useSupabase ? {} : { qrCode: employeeId }), // Only include qrCode for local storage
+                status: item.status || 'active',
+                createdAt: item.created_at || item.createdAt || new Date().toISOString(),
+                lastUpdated: item.last_updated || item.lastUpdated || new Date().toISOString(),
+                photo: item.photo || '',
+                email: item.email || '',
+                phone: item.phone || '',
+                oldId: item.old_id || item.oldId || '',
+                companyId: item.companyId || '',
+                costCenterCode: item.cost_center_code || item.costCenterCode || '',
+                profitCenterCode: item.profit_center_code || item.profitCenterCode || '',
+                hourlyRate: item.hourly_rate || item.hourlyRate || 0
+              } as Employee;
+            });
             
             // Use Supabase bulk create if available, otherwise fallback to local storage
             if (useSupabase) {
@@ -956,13 +972,29 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             break;
           case 'equipment':
             const processedEquipment = importedData.map((item, index) => {
+              // For Supabase, don't generate UUIDs - let the database auto-generate them
+              const equipmentId = useSupabase ? undefined : crypto.randomUUID();
               const equipment = {
-                ...item,
-                id: item.id || crypto.randomUUID(), // Use UUID instead of custom ID
-                qrCode: `EQP-${item.id || crypto.randomUUID()}`,
-                createdAt: new Date().toISOString(),
-                lastUpdated: new Date().toISOString()
-              };
+                ...(useSupabase ? {} : { id: equipmentId }), // Only include id for local storage
+                name: item.name,
+                type: item.type,
+                model: item.model,
+                site: item.site,
+                ...(useSupabase ? {} : { qrCode: equipmentId }), // Only include qrCode for local storage
+                status: item.status || 'available',
+                createdAt: item.created_at || item.createdAt || new Date().toISOString(),
+                lastUpdated: item.last_updated || item.lastUpdated || new Date().toISOString(),
+                serialNumber: item.serial_number || item.serialNumber || '',
+                custom_equipment_id: item.custom_equipment_id || '',
+                oldId: item.old_id || item.oldId || '',
+                operational_status: item.operational_status || 'working',
+                costCenterCode: item.cost_center_code || item.costCenterCode || '',
+                profitCenterCode: item.profit_center_code || item.profitCenterCode || '',
+                hourly_rate: item.hourly_rate || 0,
+                usageDuration: item.usage_duration || item.usageDuration || 0,
+                standbyDuration: item.standby_duration || item.standbyDuration || 0,
+                maintenanceDuration: item.maintenance_duration || item.maintenanceDuration || 0
+              } as Equipment;
               // Show QR code for the last item if import is successful
               if (index === importedData.length - 1) {
                 setTimeout(() => {
@@ -987,13 +1019,27 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             break;
           case 'materials':
             const processedMaterials = importedData.map((item, index) => {
+              // For Supabase, don't generate UUIDs - let the database auto-generate them
+              const materialId = useSupabase ? undefined : crypto.randomUUID();
               const material = {
-                ...item,
-                id: item.id || `MAT-${Date.now().toString().slice(-5)}${Math.random().toString(36).substring(2, 5).toUpperCase()}`,
-                qrCode: item.id || `MAT-${Date.now().toString().slice(-5)}${Math.random().toString(36).substring(2, 5).toUpperCase()}`,
-                createdAt: new Date().toISOString(),
-                lastUpdated: new Date().toISOString()
-              };
+                ...(useSupabase ? {} : { id: materialId }), // Only include id for local storage
+                name: item.name,
+                type: item.type,
+                unit: item.unit,
+                site: item.site,
+                ...(useSupabase ? {} : { qrCode: materialId }), // Only include qrCode for local storage
+                quantity: item.quantity || 0,
+                status: item.status || 'available',
+                createdAt: item.created_at || item.createdAt || new Date().toISOString(),
+                lastUpdated: item.last_updated || item.lastUpdated || new Date().toISOString(),
+                use: item.use || '',
+                accessLevel: item.access_level || item.accessLevel || 'basic',
+                oldId: item.old_id || item.oldId || '',
+                companyId: item.companyId || '',
+                costCenterCode: item.cost_center_code || item.costCenterCode || '',
+                profitCenterCode: item.profit_center_code || item.profitCenterCode || '',
+                cost: item.cost || 0
+              } as Material;
               // Show QR code for the last item if import is successful
               if (index === importedData.length - 1) {
                 setTimeout(() => {
@@ -1003,43 +1049,101 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
               }
               return material;
             });
-            result = DataStorage.bulkAddMaterials(processedMaterials);
+            
+            // Use individual create methods for materials since bulk method doesn't exist
+            if (useSupabase) {
+              const results = await Promise.allSettled(
+                processedMaterials.map(material => 
+                  SupabaseRegistrationService.createMaterial(material)
+                )
+              );
+              
+              const successful = results.filter(r => r.status === 'fulfilled').length;
+              const failed = results.filter(r => r.status === 'rejected').length;
+              
+              result = {
+                success: successful > 0,
+                message: `Successfully imported ${successful} materials${failed > 0 ? `, ${failed} failed` : ''}`,
+                errors: results
+                  .map((r, i) => r.status === 'rejected' ? `Row ${i + 1}: ${(r as PromiseRejectedResult).reason}` : null)
+                  .filter(Boolean) as string[]
+              };
+            } else {
+              result = DataStorage.bulkAddMaterials(processedMaterials);
+            }
             break;
           case 'sites':
-            const processedSites = importedData.map(item => ({
-              ...item,
-              id: item.id || `SITE-${Date.now().toString().slice(-5)}${Math.random().toString(36).substring(2, 5).toUpperCase()}`,
-              lastUpdated: new Date().toISOString()
-            }));
-            result = DataStorage.bulkAddSites(processedSites);
+            const processedSites = importedData.map((item, index) => {
+              // For Supabase, don't generate UUIDs - let the database auto-generate them
+              const siteId = useSupabase ? undefined : crypto.randomUUID();
+              const site = {
+                ...(useSupabase ? {} : { id: siteId }), // Only include id for local storage
+                name: item.name,
+                province: item.province,
+                coordinates: item.coordinates || [0, 0],
+                address: item.address,
+                manager: item.manager,
+                lastUpdated: item.last_updated || item.lastUpdated || new Date().toISOString(),
+                type: item.type || '',
+                ...(useSupabase ? {} : { qrCode: siteId }), // Only include qrCode for local storage
+                costCenterCode: item.cost_center_code || item.costCenterCode || '',
+                profitCenterCode: item.profit_center_code || item.profitCenterCode || ''
+              } as Site;
+              // Show QR code for the last item if import is successful
+              if (index === importedData.length - 1) {
+                setTimeout(() => {
+                  setNewEntity({type: 'site', data: site});
+                  setShowQRCode(true);
+                }, 1000);
+              }
+              return site;
+            });
+            
+            // Use individual create methods for sites since bulk method doesn't exist
+            if (useSupabase) {
+              const results = await Promise.allSettled(
+                processedSites.map(site => 
+                  SupabaseRegistrationService.createSite(site)
+                )
+              );
+              
+              const successful = results.filter(r => r.status === 'fulfilled').length;
+              const failed = results.filter(r => r.status === 'rejected').length;
+              
+              result = {
+                success: successful > 0,
+                message: `Successfully imported ${successful} sites${failed > 0 ? `, ${failed} failed` : ''}`,
+                errors: results
+                  .map((r, i) => r.status === 'rejected' ? `Row ${i + 1}: ${(r as PromiseRejectedResult).reason}` : null)
+                  .filter(Boolean) as string[]
+              };
+            } else {
+              result = DataStorage.bulkAddSites(processedSites);
+            }
             break;
           default:
             result = { success: false, message: 'Unknown import type' };
         }
 
         if (result.success) {
-          loadData(); // Refresh the display
           showMessage('success', result.message);
+          // Refresh data after successful import
+          await loadData();
+          // Clear the file input
+          event.target.value = '';
         } else {
-          let errorMessage = result.message;
+          showMessage('error', result.message);
           if (result.errors && result.errors.length > 0) {
-            errorMessage += '\n\nErrors:\n' + result.errors.slice(0, 5).join('\n');
-            if (result.errors.length > 5) {
-              errorMessage += `\n... and ${result.errors.length - 5} more errors`;
-            }
+            console.error('Import errors:', result.errors);
           }
-          showMessage('error', errorMessage);
         }
       } else {
-        showMessage('error', 'No valid data found in the imported file');
+        showMessage('error', 'No data found in the imported file');
       }
     } catch (error) {
       console.error('Import error:', error);
-      showMessage('error', `Failed to import ${type}. Please check the file format and try again.`);
+      showMessage('error', `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-
-    // Reset file input
-    event.target.value = '';
   };
 
   const tabs = [

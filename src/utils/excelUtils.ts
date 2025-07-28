@@ -1,21 +1,18 @@
 import * as XLSX from 'xlsx';
 import { Employee, Equipment, Material, Site } from '../types';
-
 import { v4 as uuidv4 } from 'uuid';
 
-// Excel template generators
+// Excel template generators with correct column names matching database schema
 export const generateEmployeeTemplate = () => {
   const employeeId = uuidv4();
   const template = [
     {
-      id: employeeId,
       name: 'John Doe',
       type: 'full-time',
       department: 'Construction',
       position: 'Site Engineer',
       blood_group: 'O+',
       site: 'site-001',
-      qr_code: employeeId, // Use UUID for QR code (like equipment)
       status: 'active',
       created_at: '2024-01-01T08:00:00Z',
       last_updated: '2024-01-01T08:00:00Z',
@@ -23,7 +20,10 @@ export const generateEmployeeTemplate = () => {
       email: 'john.doe@example.com',
       phone: '+966501234567',
       old_id: 'LEGACY-123',
-      companyId: 'company-001'
+      companyId: 'company-001',
+      cost_center_code: 'CC001',
+      profit_center_code: 'PC001',
+      hourly_rate: 25
     }
   ];
   return template;
@@ -32,41 +32,45 @@ export const generateEmployeeTemplate = () => {
 export const generateEquipmentTemplate = () => {
   const template = [
     {
-      id: 'EQP-001',
       name: 'Asphalt Paver',
       type: 'Heavy Machinery',
       model: 'CAT AP655F',
       site: 'site-001',
-      qr_code: 'EQP-001',
       status: 'available',
       created_at: '2024-01-01T08:00:00Z',
       last_updated: '2024-01-01T08:00:00Z',
       serial_number: 'AP655F-2024-001',
       custom_equipment_id: 'CUST-001',
-      old_id: 'LEGACY-456'
+      old_id: 'LEGACY-456',
+      operational_status: 'working',
+      cost_center_code: 'CC002',
+      profit_center_code: 'PC002',
+      hourly_rate: 150.00,
+      usage_duration: 0,
+      standby_duration: 0,
+      maintenance_duration: 0
     }
   ];
   return template;
 };
 
 export const generateMaterialTemplate = () => {
-  const materialId = uuidv4();
   const template = [
     {
-      id: materialId,
       name: 'Bitumen (60/70)',
       type: 'Bituminous Materials',
       unit: 'Tons',
       site: 'site-001',
-      qr_code: materialId, // Use UUID for QR code (like equipment)
       quantity: 150,
       status: 'available',
       created_at: '2024-01-01T08:00:00Z',
       last_updated: '2024-01-01T08:00:00Z',
       use: 'Main binder in asphalt mix',
       access_level: 'basic',
-      createdAt: '2024-01-01T08:00:00Z',
-      old_id: 'LEGACY-789'
+      old_id: 'LEGACY-789',
+      cost_center_code: 'CC003',
+      profit_center_code: 'PC003',
+      cost: 2500.00
     }
   ];
   return template;
@@ -75,31 +79,42 @@ export const generateMaterialTemplate = () => {
 export const generateSiteTemplate = () => {
   const template = [
     {
-      id: 'SITE-001',
       name: 'Al Khobar Construction Site',
       province: 'Eastern Province',
-      coordinates: '(50.2089,26.2172)',
-      address: 'Al Khobar, Eastern Province',
-      manager: 'Ahmed Al-Rashid',
+      coordinates: '26.2170,50.1971',
+      address: 'King Fahd Road, Al Khobar',
+      manager: 'Ahmed Al-Sayed',
       last_updated: '2024-01-01T08:00:00Z',
-      type: 'Construction Site',
-      qr_code: 'SITE-001'
+      type: 'Construction',
+      cost_center_code: 'CC004',
+      profit_center_code: 'PC004'
     }
   ];
   return template;
 };
 
-// Export functions
+// Export functions with proper column mapping
 export const exportEmployeesToExcel = (employees: Employee[], filename: string = 'employees.xlsx') => {
   const data = employees.map(emp => ({
-    'Employee ID': emp.id,
-    'Employee Name': emp.name,
+    'ID': emp.id,
+    'Name': emp.name,
+    'Type': emp.type || '',
     'Department': emp.department,
     'Position': emp.position,
-    'Site ID': emp.site,
+    'Blood Group': emp.bloodGroup || '',
+    'Site': emp.site,
+    'QR Code': emp.qrCode,
     'Status': emp.status,
-    'Created Date': new Date(emp.createdAt).toLocaleDateString(),
-    'QR Code': emp.qrCode
+    'Created At': emp.createdAt,
+    'Last Updated': emp.lastUpdated,
+    'Photo': emp.photo || '',
+    'Email': emp.email || '',
+    'Phone': emp.phone || '',
+    'Old ID': emp.oldId || '',
+    'Company ID': emp.companyId || '',
+    'Cost Center Code': emp.costCenterCode || '',
+    'Profit Center Code': emp.profitCenterCode || '',
+    'Hourly Rate': emp.hourlyRate || 0
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(data);
@@ -110,15 +125,25 @@ export const exportEmployeesToExcel = (employees: Employee[], filename: string =
 
 export const exportEquipmentToExcel = (equipment: Equipment[], filename: string = 'equipment.xlsx') => {
   const data = equipment.map(eq => ({
-    'Equipment ID': eq.id,
-    'Equipment Name': eq.name,
+    'ID': eq.id,
+    'Name': eq.name,
     'Type': eq.type,
     'Model': eq.model,
-    'Serial Number': eq.serialNumber || '',
-    'Site ID': eq.site,
+    'Site': eq.site,
+    'QR Code': eq.qrCode,
     'Status': eq.status,
-    'Created Date': new Date(eq.createdAt).toLocaleDateString(),
-    'QR Code': eq.qrCode
+    'Created At': eq.createdAt,
+    'Last Updated': eq.lastUpdated,
+    'Serial Number': eq.serialNumber || '',
+    'Custom Equipment ID': eq.custom_equipment_id || '',
+    'Old ID': eq.oldId || '',
+    'Operational Status': eq.operational_status || 'working',
+    'Cost Center Code': eq.costCenterCode || '',
+    'Profit Center Code': eq.profitCenterCode || '',
+    'Hourly Rate': eq.hourly_rate || 0,
+    'Usage Duration': eq.usageDuration || 0,
+    'Standby Duration': eq.standbyDuration || 0,
+    'Maintenance Duration': eq.maintenanceDuration || 0
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(data);
@@ -129,16 +154,23 @@ export const exportEquipmentToExcel = (equipment: Equipment[], filename: string 
 
 export const exportMaterialsToExcel = (materials: Material[], filename: string = 'materials.xlsx') => {
   const data = materials.map(mat => ({
-    'Material ID': mat.id,
-    'Material Name': mat.name,
+    'ID': mat.id,
+    'Name': mat.name,
     'Type': mat.type,
     'Unit': mat.unit,
-    'Current Quantity': mat.quantity,
-    'Site ID': mat.site,
+    'Site': mat.site,
+    'QR Code': mat.qrCode,
+    'Quantity': mat.quantity,
     'Status': mat.status,
-    'Usage Description': mat.use || '',
-    'Created Date': new Date(mat.createdAt).toLocaleDateString(),
-    'QR Code': mat.qrCode
+    'Created At': mat.createdAt,
+    'Last Updated': mat.lastUpdated,
+    'Use': mat.use || '',
+    'Access Level': mat.accessLevel || 'basic',
+    'Old ID': mat.oldId || '',
+    'Company ID': mat.companyId || '',
+    'Cost Center Code': mat.costCenterCode || '',
+    'Profit Center Code': mat.profitCenterCode || '',
+    'Cost': mat.cost || 0
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(data);
@@ -149,14 +181,17 @@ export const exportMaterialsToExcel = (materials: Material[], filename: string =
 
 export const exportSitesToExcel = (sites: Site[], filename: string = 'sites.xlsx') => {
   const data = sites.map(site => ({
-    'Site ID': site.id,
-    'Site Name': site.name,
-    'Site Type': site.type || '',
+    'ID': site.id,
+    'Name': site.name,
     'Province': site.province,
+    'Coordinates': `(${site.coordinates[0]},${site.coordinates[1]})`,
     'Address': site.address,
-    'Site Manager': site.manager,
-    'Latitude': site.coordinates[1],
-    'Longitude': site.coordinates[0]
+    'Manager': site.manager,
+    'Last Updated': site.lastUpdated,
+    'Type': site.type || '',
+    'QR Code': site.qrCode,
+    'Cost Center Code': site.costCenterCode || '',
+    'Profit Center Code': site.profitCenterCode || ''
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(data);
@@ -165,7 +200,7 @@ export const exportSitesToExcel = (sites: Site[], filename: string = 'sites.xlsx
   XLSX.writeFile(workbook, filename);
 };
 
-// Template download functions
+// Template download functions with comprehensive instructions
 export const downloadEmployeeTemplate = () => {
   const template = generateEmployeeTemplate();
   const worksheet = XLSX.utils.json_to_sheet(template);
@@ -174,14 +209,14 @@ export const downloadEmployeeTemplate = () => {
 
   // Add instructions sheet
   const instructions = [
-    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'EMP-001' },
+    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'uuid-string' },
     { Field: 'name', Description: 'Full name of the employee', Required: 'Yes', Example: 'John Doe' },
     { Field: 'type', Description: 'Employment type', Required: 'No', Example: 'full-time, part-time, contract' },
     { Field: 'department', Description: 'Employee department', Required: 'Yes', Example: 'Construction, Operations, Maintenance' },
     { Field: 'position', Description: 'Job position/title', Required: 'Yes', Example: 'Site Engineer, Operator' },
     { Field: 'blood_group', Description: 'Blood group', Required: 'No', Example: 'O+, A+, B+' },
     { Field: 'site', Description: 'ID of the site where employee works', Required: 'Yes', Example: 'site-001' },
-    { Field: 'qr_code', Description: 'Employee QR code (auto-generated if blank)', Required: 'No', Example: 'EMP-001' },
+    { Field: 'qr_code', Description: 'Employee QR code (auto-generated if blank)', Required: 'No', Example: 'uuid-string' },
     { Field: 'status', Description: 'Employee status', Required: 'Yes', Example: 'active, inactive' },
     { Field: 'created_at', Description: 'Creation date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
     { Field: 'last_updated', Description: 'Last update date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
@@ -189,7 +224,10 @@ export const downloadEmployeeTemplate = () => {
     { Field: 'email', Description: 'Email address', Required: 'No', Example: 'john.doe@example.com' },
     { Field: 'phone', Description: 'Phone number', Required: 'No', Example: '+966501234567' },
     { Field: 'old_id', Description: 'Legacy/old system ID (if any)', Required: 'No', Example: 'LEGACY-123' },
-    { Field: 'companyId', Description: 'Company UUID (if multi-company setup)', Required: 'No', Example: 'company-001' }
+    { Field: 'companyId', Description: 'Company UUID (if multi-company setup)', Required: 'No', Example: 'company-001' },
+    { Field: 'cost_center_code', Description: 'Cost center code for financial analysis', Required: 'No', Example: 'CC001' },
+    { Field: 'profit_center_code', Description: 'Profit center code for financial analysis', Required: 'No', Example: 'PC001' },
+    { Field: 'hourly_rate', Description: 'Hourly rate in SAR', Required: 'No', Example: '25' }
   ];
   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
   XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
@@ -203,18 +241,25 @@ export const downloadEquipmentTemplate = () => {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Equipment Template');
 
   const instructions = [
-    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'EQP-001' },
+    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'uuid-string' },
     { Field: 'name', Description: 'Name of the equipment', Required: 'Yes', Example: 'Asphalt Paver' },
     { Field: 'type', Description: 'Equipment category', Required: 'Yes', Example: 'Heavy Machinery, Lifting Equipment' },
     { Field: 'model', Description: 'Equipment model', Required: 'Yes', Example: 'CAT AP655F' },
     { Field: 'site', Description: 'ID of the site where equipment is located', Required: 'Yes', Example: 'site-001' },
-    { Field: 'qr_code', Description: 'Equipment QR code (auto-generated if blank)', Required: 'No', Example: 'EQP-001' },
+    { Field: 'qr_code', Description: 'Equipment QR code (auto-generated if blank)', Required: 'No', Example: 'uuid-string' },
     { Field: 'status', Description: 'Equipment status', Required: 'Yes', Example: 'available, in-use, maintenance, down' },
     { Field: 'created_at', Description: 'Creation date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
     { Field: 'last_updated', Description: 'Last update date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
     { Field: 'serial_number', Description: 'Equipment serial number', Required: 'No', Example: 'AP655F-2024-001' },
     { Field: 'custom_equipment_id', Description: 'User-defined unique identifier', Required: 'No', Example: 'CUST-001' },
-    { Field: 'old_id', Description: 'Legacy/old system ID (if any)', Required: 'No', Example: 'LEGACY-456' }
+    { Field: 'old_id', Description: 'Legacy/old system ID (if any)', Required: 'No', Example: 'LEGACY-456' },
+    { Field: 'operational_status', Description: 'Operational status', Required: 'No', Example: 'working, not_working, in_use, standby, under_repair, under_service' },
+    { Field: 'cost_center_code', Description: 'Cost center code for financial analysis', Required: 'No', Example: 'CC002' },
+    { Field: 'profit_center_code', Description: 'Profit center code for financial analysis', Required: 'No', Example: 'PC002' },
+    { Field: 'hourly_rate', Description: 'Hourly rate for usage revenue calculation', Required: 'No', Example: '150.00' },
+    { Field: 'usage_duration', Description: 'Cumulative usage duration in hours', Required: 'No', Example: '0' },
+    { Field: 'standby_duration', Description: 'Cumulative standby duration in hours', Required: 'No', Example: '0' },
+    { Field: 'maintenance_duration', Description: 'Cumulative maintenance duration in hours', Required: 'No', Example: '0' }
   ];
   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
   XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
@@ -228,20 +273,23 @@ export const downloadMaterialTemplate = () => {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Material Template');
 
   const instructions = [
-    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'MAT-001' },
+    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'uuid-string' },
     { Field: 'name', Description: 'Name of the material', Required: 'Yes', Example: 'Bitumen (60/70)' },
     { Field: 'type', Description: 'Material category', Required: 'Yes', Example: 'Bituminous Materials, Aggregates' },
     { Field: 'unit', Description: 'Unit of measurement', Required: 'Yes', Example: 'Tons, Pieces, Liters' },
     { Field: 'site', Description: 'ID of the site where material is stored', Required: 'Yes', Example: 'site-001' },
-    { Field: 'qr_code', Description: 'Material QR code (auto-generated if blank)', Required: 'No', Example: 'MAT-001' },
+    { Field: 'qr_code', Description: 'Material QR code (auto-generated if blank)', Required: 'No', Example: 'uuid-string' },
     { Field: 'quantity', Description: 'Current quantity', Required: 'Yes', Example: '150' },
     { Field: 'status', Description: 'Material status', Required: 'Yes', Example: 'available, low-stock, out-of-stock' },
     { Field: 'created_at', Description: 'Creation date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
     { Field: 'last_updated', Description: 'Last update date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
     { Field: 'use', Description: 'How the material is used', Required: 'No', Example: 'Main binder in asphalt mix' },
     { Field: 'access_level', Description: 'Access level for material', Required: 'No', Example: 'basic, restricted, admin' },
-    { Field: 'createdAt', Description: 'Legacy/old system createdAt (if any)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
-    { Field: 'old_id', Description: 'Legacy/old system ID (if any)', Required: 'No', Example: 'LEGACY-789' }
+    { Field: 'createdAt', Description: 'Legacy createdAt field', Required: 'No', Example: '2024-01-01T08:00:00Z' },
+    { Field: 'old_id', Description: 'Legacy/old system ID (if any)', Required: 'No', Example: 'LEGACY-789' },
+    { Field: 'cost_center_code', Description: 'Cost center code for financial analysis', Required: 'No', Example: 'CC003' },
+    { Field: 'profit_center_code', Description: 'Profit center code for financial analysis', Required: 'No', Example: 'PC003' },
+    { Field: 'cost', Description: 'Cost per material unit', Required: 'No', Example: '2500.00' }
   ];
   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
   XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
@@ -255,7 +303,7 @@ export const downloadSiteTemplate = () => {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Site Template');
 
   const instructions = [
-    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'SITE-001' },
+    { Field: 'id', Description: 'System-generated unique ID (leave blank for new records)', Required: 'No', Example: 'uuid-string' },
     { Field: 'name', Description: 'Name of the site', Required: 'Yes', Example: 'Al Khobar Construction Site' },
     { Field: 'province', Description: 'KSA Province', Required: 'Yes', Example: 'Riyadh, Eastern Province, Makkah' },
     { Field: 'coordinates', Description: 'GPS coordinates as (longitude,latitude)', Required: 'No', Example: '(50.2089,26.2172)' },
@@ -263,14 +311,16 @@ export const downloadSiteTemplate = () => {
     { Field: 'manager', Description: 'Name of site manager', Required: 'Yes', Example: 'Ahmed Al-Rashid' },
     { Field: 'last_updated', Description: 'Last update date (ISO string)', Required: 'No', Example: '2024-01-01T08:00:00Z' },
     { Field: 'type', Description: 'Type of site', Required: 'No', Example: 'Construction Site, Infrastructure Project' },
-    { Field: 'qr_code', Description: 'Site QR code (auto-generated if blank)', Required: 'No', Example: 'SITE-001' }
+    { Field: 'qr_code', Description: 'Site QR code (auto-generated if blank)', Required: 'No', Example: 'uuid-string' },
+    { Field: 'cost_center_code', Description: 'Cost center code for financial analysis', Required: 'No', Example: 'CC004' },
+    { Field: 'profit_center_code', Description: 'Profit center code for financial analysis', Required: 'No', Example: 'PC004' }
   ];
   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
   XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
   XLSX.writeFile(workbook, 'site_template.xlsx');
 };
 
-// Import functions
+// Import functions with proper validation and error handling
 export const importEmployeesFromExcel = (file: File): Promise<Partial<Employee>[]> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -282,34 +332,35 @@ export const importEmployeesFromExcel = (file: File): Promise<Partial<Employee>[
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
         const employees = jsonData.map((row: any, index: number) => {
-          // Use exact DB column names
-          const id = row['id'] || '';
-          const name = row['name'] || '';
-          const department = row['department'] || '';
-          const position = row['position'] || '';
-          const site = row['site'] || '';
-          const status = row['status'] || 'active';
-          // Required fields check
+          // Validate required fields
+          const name = row['name'] || row['Name'] || '';
+          const department = row['department'] || row['Department'] || '';
+          const position = row['position'] || row['Position'] || '';
+          const site = row['site'] || row['Site'] || '';
+          
           if (!name || !department || !position || !site) {
             throw new Error(`Row ${index + 2}: Missing required fields (name, department, position, site)`);
           }
+
+          // Return object WITHOUT id field - let database auto-generate
           return {
-            id: id,
             name: name,
-            type: row['type'] || '',
+            type: row['type'] || row['Type'] || '',
             department: department,
             position: position,
-            blood_group: row['blood_group'] || '',
+            bloodGroup: row['blood_group'] || row['Blood Group'] || '',
             site: site,
-            qr_code: row['qr_code'] || '',
-            status: status,
-            created_at: row['created_at'] || '',
-            last_updated: row['last_updated'] || '',
-            photo: row['photo'] || '',
-            email: row['email'] || '',
-            phone: row['phone'] || '',
-            old_id: row['old_id'] || '',
-            companyId: row['companyId'] || ''
+            status: (row['status'] || row['Status'] || 'active') as 'active' | 'inactive',
+            createdAt: row['created_at'] || row['Created At'] || new Date().toISOString(),
+            lastUpdated: row['last_updated'] || row['Last Updated'] || new Date().toISOString(),
+            photo: row['photo'] || row['Photo'] || '',
+            email: row['email'] || row['Email'] || '',
+            phone: row['phone'] || row['Phone'] || '',
+            oldId: row['old_id'] || row['Old ID'] || '',
+            companyId: row['companyId'] || row['Company ID'] || '',
+            costCenterCode: row['cost_center_code'] || row['Cost Center Code'] || '',
+            profitCenterCode: row['profit_center_code'] || row['Profit Center Code'] || '',
+            hourlyRate: parseFloat(row['hourly_rate'] || row['Hourly Rate'] || '0') || 0
           };
         });
         resolve(employees);
@@ -332,29 +383,35 @@ export const importEquipmentFromExcel = (file: File): Promise<Partial<Equipment>
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
         const equipment = jsonData.map((row: any, index: number) => {
-          const id = row['id'] || '';
-          const name = row['name'] || '';
-          const type = row['type'] || '';
-          const model = row['model'] || '';
-          const site = row['site'] || '';
-          const status = row['status'] || 'available';
-          // Required fields check
+          // Validate required fields
+          const name = row['name'] || row['Name'] || '';
+          const type = row['type'] || row['Type'] || '';
+          const model = row['model'] || row['Model'] || '';
+          const site = row['site'] || row['Site'] || '';
+          
           if (!name || !type || !model || !site) {
             throw new Error(`Row ${index + 2}: Missing required fields (name, type, model, site)`);
           }
+
+          // Return object WITHOUT id field - let database auto-generate
           return {
-            id: id,
             name: name,
             type: type,
             model: model,
             site: site,
-            qr_code: row['qr_code'] || '',
-            status: status,
-            created_at: row['created_at'] || '',
-            last_updated: row['last_updated'] || '',
-            serial_number: row['serial_number'] || '',
-            custom_equipment_id: row['custom_equipment_id'] || '',
-            old_id: row['old_id'] || ''
+            status: (row['status'] || row['Status'] || 'available') as 'available' | 'in-use' | 'maintenance' | 'down',
+            createdAt: row['created_at'] || row['Created At'] || new Date().toISOString(),
+            lastUpdated: row['last_updated'] || row['Last Updated'] || new Date().toISOString(),
+            serialNumber: row['serial_number'] || row['Serial Number'] || '',
+            custom_equipment_id: row['custom_equipment_id'] || row['Custom Equipment ID'] || '',
+            oldId: row['old_id'] || row['Old ID'] || '',
+            operational_status: (row['operational_status'] || row['Operational Status'] || 'working') as 'working' | 'not_working' | 'in_use' | 'standby' | 'under_repair' | 'under_service',
+            costCenterCode: row['cost_center_code'] || row['Cost Center Code'] || '',
+            profitCenterCode: row['profit_center_code'] || row['Profit Center Code'] || '',
+            hourly_rate: parseFloat(row['hourly_rate'] || row['Hourly Rate'] || '0') || 0,
+            usageDuration: parseFloat(row['usage_duration'] || row['Usage Duration'] || '0') || 0,
+            standbyDuration: parseFloat(row['standby_duration'] || row['Standby Duration'] || '0') || 0,
+            maintenanceDuration: parseFloat(row['maintenance_duration'] || row['Maintenance Duration'] || '0') || 0
           };
         });
         resolve(equipment);
@@ -377,31 +434,32 @@ export const importMaterialsFromExcel = (file: File): Promise<Partial<Material>[
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
         const materials = jsonData.map((row: any, index: number) => {
-          const id = row['id'] || '';
-          const name = row['name'] || '';
-          const type = row['type'] || '';
-          const unit = row['unit'] || '';
-          const site = row['site'] || '';
-          const status = row['status'] || 'available';
-          // Required fields check
+          // Validate required fields
+          const name = row['name'] || row['Name'] || '';
+          const type = row['type'] || row['Type'] || '';
+          const unit = row['unit'] || row['Unit'] || '';
+          const site = row['site'] || row['Site'] || '';
+          
           if (!name || !type || !unit || !site) {
             throw new Error(`Row ${index + 2}: Missing required fields (name, type, unit, site)`);
           }
+
+          // Return object WITHOUT id field - let database auto-generate
           return {
-            id: id,
             name: name,
             type: type,
             unit: unit,
             site: site,
-            qr_code: row['qr_code'] || '',
-            quantity: row['quantity'] || 0,
-            status: status,
-            created_at: row['created_at'] || '',
-            last_updated: row['last_updated'] || '',
-            use: row['use'] || '',
-            access_level: row['access_level'] || '',
-            createdAt: row['createdAt'] || '',
-            old_id: row['old_id'] || ''
+            quantity: parseInt(row['quantity'] || row['Quantity'] || '0') || 0,
+            status: (row['status'] || row['Status'] || 'available') as 'available' | 'low-stock' | 'out-of-stock',
+            createdAt: row['created_at'] || row['Created At'] || new Date().toISOString(),
+            lastUpdated: row['last_updated'] || row['Last Updated'] || new Date().toISOString(),
+            use: row['use'] || row['Use'] || '',
+            accessLevel: (row['access_level'] || row['Access Level'] || 'basic') as 'basic' | 'restricted' | 'admin',
+            oldId: row['old_id'] || row['Old ID'] || '',
+            costCenterCode: row['cost_center_code'] || row['Cost Center Code'] || '',
+            profitCenterCode: row['profit_center_code'] || row['Profit Center Code'] || '',
+            cost: parseFloat(row['cost'] || row['Cost'] || '0') || 0
           };
         });
         resolve(materials);
@@ -424,25 +482,37 @@ export const importSitesFromExcel = (file: File): Promise<Partial<Site>[]> => {
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
         const sites = jsonData.map((row: any, index: number) => {
-          const id = row['id'] || '';
-          const name = row['name'] || '';
-          const province = row['province'] || '';
-          const address = row['address'] || '';
-          const manager = row['manager'] || '';
-          // Required fields check
+          // Validate required fields
+          const name = row['name'] || row['Name'] || '';
+          const province = row['province'] || row['Province'] || '';
+          const address = row['address'] || row['Address'] || '';
+          const manager = row['manager'] || row['Manager'] || '';
+          
           if (!name || !province || !address || !manager) {
             throw new Error(`Row ${index + 2}: Missing required fields (name, province, address, manager)`);
           }
+
+          // Parse coordinates if provided
+          let coordinates: [number, number] = [0, 0];
+          if (row['coordinates'] || row['Coordinates']) {
+            const coordStr = row['coordinates'] || row['Coordinates'];
+            const coordMatch = coordStr.match(/(-?\d+\.?\d*),?\s*(-?\d+\.?\d*)/);
+            if (coordMatch) {
+              coordinates = [parseFloat(coordMatch[1]), parseFloat(coordMatch[2])];
+            }
+          }
+
+          // Return object WITHOUT id field - let database auto-generate
           return {
-            id: id,
             name: name,
             province: province,
-            coordinates: row['coordinates'] || '',
+            coordinates: coordinates,
             address: address,
             manager: manager,
-            last_updated: row['last_updated'] || '',
-            type: row['type'] || '',
-            qr_code: row['qr_code'] || ''
+            lastUpdated: row['last_updated'] || row['Last Updated'] || new Date().toISOString(),
+            type: row['type'] || row['Type'] || '',
+            costCenterCode: row['cost_center_code'] || row['Cost Center Code'] || '',
+            profitCenterCode: row['profit_center_code'] || row['Profit Center Code'] || ''
           };
         });
         resolve(sites);
