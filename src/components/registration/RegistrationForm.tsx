@@ -211,6 +211,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
         };
         
         if (useSupabase) {
+          console.log('🔍 RegistrationForm - Updating employee:', updatedEmployee);
+          console.log('🔍 RegistrationForm - hourlyRate:', updatedEmployee.hourlyRate, typeof updatedEmployee.hourlyRate);
+          
           // Update in Supabase
           const result = await SupabaseRegistrationService.updateEmployee(updatedEmployee);
           if (result.success && result.data) {
@@ -259,6 +262,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             createdAt: new Date().toISOString(),
             lastUpdated: new Date().toISOString()
           };
+          
+          console.log('🔍 RegistrationForm - Creating employee:', newEmployee);
+          console.log('🔍 RegistrationForm - hourlyRate:', newEmployee.hourlyRate, typeof newEmployee.hourlyRate);
           
           // Create in Supabase
           const result = await SupabaseRegistrationService.createEmployee(newEmployee);

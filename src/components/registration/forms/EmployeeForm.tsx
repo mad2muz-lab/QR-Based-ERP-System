@@ -55,6 +55,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
 
   useEffect(() => {
     if (initialData) {
+      console.log('🔍 EmployeeForm - initialData received:', initialData);
+      console.log('🔍 EmployeeForm - initialData.hourlyRate:', initialData.hourlyRate, typeof initialData.hourlyRate);
+      
       setFormData({
         id: initialData.id || '',
         name: initialData.name || '',
@@ -215,6 +218,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
       };
       
       const { customType: _, ...finalData } = employeeData;
+      
+      console.log('🔍 Form submission - finalData:', finalData);
+      console.log('🔍 Form submission - hourlyRate:', finalData.hourlyRate, typeof finalData.hourlyRate);
       
       onSubmit(finalData, isEditMode);
       setMessage({ type: 'success', text: isEditMode ? 'Employee updated successfully!' : 'Employee added successfully!' });

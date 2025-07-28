@@ -170,10 +170,12 @@ export class OfflineDataManager {
   }
 
   static async updateMaterial(material: Material): Promise<string> {
+    console.log('🔧 OfflineDataManager: Starting updateMaterial for:', material.name, 'ID:', material.id, 'New quantity:', material.quantity);
     try {
       const materials = DataStorage.loadMaterials();
       const index = materials.findIndex(mat => mat.id === material.id);
       if (index !== -1) {
+        console.log('✅ OfflineDataManager: Found material locally, updating...');
         materials[index] = { ...material, lastUpdated: new Date().toISOString() };
         DataStorage.saveMaterials(materials);
         // Dispatch custom event to notify other components
@@ -194,6 +196,7 @@ export class OfflineDataManager {
         console.warn(`Material not found locally for update: ${material.id}. Will still sync to Supabase.`);
       }
       // Always queue the update operation for Supabase
+      console.log('🔄 OfflineDataManager: Queuing material update for Supabase sync...');
       const operationId = offlineSyncManager.queueOperation({
         type: 'update',
         entityType: 'material',
@@ -201,6 +204,7 @@ export class OfflineDataManager {
         data: material,
         priority: 'medium'
       });
+      console.log('✅ OfflineDataManager: Material update queued with operation ID:', operationId);
       return operationId;
     } catch (error) {
       console.error('Failed to update material:', error);

@@ -631,6 +631,7 @@ const QRScanner: React.FC = () => {
     // const materials = await fetchData('materials');
 
     let notes = '';
+    let operationId: string | undefined;
     
     // Calculate overtime for employee clock-out
     if (actionId === 'clock-out' && scanResult.currentShift) {
@@ -972,14 +973,36 @@ const QRScanner: React.FC = () => {
             if (!quantity || quantity <= 0) {
               throw new Error('Valid quantity is required for material operations');
             }
-            // operationId = await logManager.createMaterialLog(
-            //   scanResult.entity,
-            //   actionId as 'material-in' | 'material-out',
-            //   quantity,
-            //   scanResult.entity.site || 'Unknown',
-            //   scanResult.entity.status || 'available',
-            //   notes
-            // );
+            
+            console.log('📦 Creating material log for:', scanResult.entity.name, 'Action:', actionId, 'Quantity:', quantity);
+            
+            try {
+              operationId = await logManager.createMaterialLog(
+                scanResult.entity,
+                actionId as 'material-in' | 'material-out',
+                quantity,
+                scanResult.entity.site || 'Unknown',
+                scanResult.entity.status || 'available',
+                notes
+              );
+              
+              console.log('✅ Material log created successfully with operation ID:', operationId);
+              
+              // Force immediate sync to ensure material quantity is updated
+              try {
+                const { offlineSyncManager } = await import('../../utils/offlineSync');
+                console.log('🔄 Forcing immediate sync for material update...');
+                await offlineSyncManager.processSyncQueue();
+                console.log('✅ Material sync completed');
+              } catch (syncError) {
+                console.error('⚠️ Material sync failed:', syncError);
+                // Don't throw error as the log was created successfully
+              }
+              
+            } catch (materialError) {
+              console.error('❌ Failed to create material log:', materialError);
+              throw materialError;
+            }
             
             // Material quantity update is now handled within logManager.createMaterialLog
           } else {

@@ -111,13 +111,17 @@ export class OfflineSyncManager {
       retryCount: 0
     };
 
+    console.log('🔄 OfflineSync: Queuing operation:', operation.type, operation.entityType, operation.entityId);
     this.syncQueue.push(syncOperation);
     this.savePendingOperations();
     this.notifyStatusChange();
 
     // Try immediate sync if online
     if (this.isOnline && !this.isSyncing) {
+      console.log('🔄 OfflineSync: Auto-syncing queued operation...');
       this.processSyncQueue();
+    } else {
+      console.log('⚠️ OfflineSync: Operation queued but not auto-syncing (online:', this.isOnline, 'syncing:', this.isSyncing, ')');
     }
 
     return syncOperation.id;
@@ -146,7 +150,9 @@ export class OfflineSyncManager {
 
   // Synchronization Process
   async processSyncQueue(): Promise<void> {
+    console.log('🔄 OfflineSync: Starting processSyncQueue (online:', this.isOnline, 'syncing:', this.isSyncing, 'queue length:', this.syncQueue.length, ')');
     if (!this.isOnline || this.isSyncing || this.syncQueue.length === 0) {
+      console.log('⚠️ OfflineSync: Skipping sync (online:', this.isOnline, 'syncing:', this.isSyncing, 'queue empty:', this.syncQueue.length === 0, ')');
       return;
     }
   

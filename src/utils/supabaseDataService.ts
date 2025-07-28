@@ -24,8 +24,13 @@ export class SupabaseDataService {
         bloodGroup: employee.blood_group,
         createdAt: employee.created_at,
         qrCode: employee.qr_code,
-        oldId: employee.old_id // Map old_id to oldId
+        oldId: employee.old_id, // Map old_id to oldId
+        hourlyRate: employee.hourly_rate // Map hourly_rate to hourlyRate
       }));
+      
+      console.log('🔍 SupabaseDataService - Raw employee data from DB:', data);
+      console.log('🔍 SupabaseDataService - Transformed employee data:', transformedData);
+      console.log('🔍 SupabaseDataService - Sample employee hourlyRate:', transformedData[0]?.hourlyRate, typeof transformedData[0]?.hourlyRate);
       
       return transformedData;
     } catch (error) {
@@ -53,7 +58,8 @@ export class SupabaseDataService {
       const transformedData: Equipment[] = (data || []).map(equipment => ({
         ...equipment,
         lastUpdated: equipment.last_updated,
-        oldId: equipment.old_id // Map old_id to oldId
+        oldId: equipment.old_id, // Map old_id to oldId
+        hourly_rate: equipment.hourly_rate // Ensure hourly_rate is preserved
       }));
       
       return transformedData;

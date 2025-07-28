@@ -10,6 +10,9 @@ export class SupabaseRegistrationService {
     }
 
     try {
+      console.log('🔍 Creating employee with data:', employee);
+      console.log('🔍 Employee hourlyRate:', employee.hourlyRate, typeof employee.hourlyRate);
+      
       // Transform camelCase to snake_case for Supabase
       const supabaseEmployee = {
         ...employee,
@@ -22,6 +25,9 @@ export class SupabaseRegistrationService {
         profit_center_code: employee.profitCenterCode, // Handle profit center code
         hourly_rate: employee.hourlyRate // Add hourly_rate mapping
       };
+      
+      console.log('🔍 Supabase employee data:', supabaseEmployee);
+      console.log('🔍 Supabase hourly_rate:', supabaseEmployee.hourly_rate, typeof supabaseEmployee.hourly_rate);
       delete (supabaseEmployee as Record<string, unknown>).lastUpdated;
       delete (supabaseEmployee as Record<string, unknown>).bloodGroup;
       delete (supabaseEmployee as Record<string, unknown>).createdAt;
@@ -38,9 +44,12 @@ export class SupabaseRegistrationService {
         .single();
 
       if (error) {
-        console.error('Error creating employee in Supabase:', error);
+        console.error('❌ Error creating employee in Supabase:', error);
         return { success: false, error: error.message };
       }
+      
+      console.log('✅ Employee created successfully in Supabase:', data);
+      console.log('✅ Created employee hourly_rate:', data.hourly_rate, typeof data.hourly_rate);
 
       // Transform snake_case back to camelCase
       const transformedData: Employee = {
@@ -49,12 +58,17 @@ export class SupabaseRegistrationService {
         qrCode: data.id, // QR code uses the full ID
         oldId: data.old_id, // Handle oldId field
         costCenterCode: data.cost_center_code, // Handle cost center code
-        profitCenterCode: data.profit_center_code // Handle profit center code
+        profitCenterCode: data.profit_center_code, // Handle profit center code
+        hourlyRate: data.hourly_rate // Map hourly_rate back to camelCase
       };
+      
+      console.log('🔄 Transformed employee data:', transformedData);
+      console.log('🔄 Transformed hourlyRate:', transformedData.hourlyRate, typeof transformedData.hourlyRate);
       delete (transformedData as unknown as Record<string, unknown>).last_updated;
       delete (transformedData as unknown as Record<string, unknown>).old_id;
       delete (transformedData as unknown as Record<string, unknown>).cost_center_code;
       delete (transformedData as unknown as Record<string, unknown>).profit_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).hourly_rate;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -69,6 +83,9 @@ export class SupabaseRegistrationService {
     }
 
     try {
+      console.log('🔍 Updating employee with data:', employee);
+      console.log('🔍 Employee hourlyRate:', employee.hourlyRate, typeof employee.hourlyRate);
+      
       // Transform camelCase to snake_case for Supabase
       const supabaseEmployee = {
         ...employee,
@@ -78,8 +95,12 @@ export class SupabaseRegistrationService {
         qr_code: employee.qrCode,
         old_id: employee.oldId, // Handle oldId field
         cost_center_code: employee.costCenterCode, // Handle cost center code
-        profit_center_code: employee.profitCenterCode // Handle profit center code
+        profit_center_code: employee.profitCenterCode, // Handle profit center code
+        hourly_rate: employee.hourlyRate // Add hourly_rate mapping
       };
+      
+      console.log('🔍 Supabase update employee data:', supabaseEmployee);
+      console.log('🔍 Supabase update hourly_rate:', supabaseEmployee.hourly_rate, typeof supabaseEmployee.hourly_rate);
       delete (supabaseEmployee as any).lastUpdated;
       delete (supabaseEmployee as any).bloodGroup;
       delete (supabaseEmployee as any).createdAt;
@@ -87,6 +108,7 @@ export class SupabaseRegistrationService {
       delete (supabaseEmployee as any).oldId;
       delete (supabaseEmployee as any).costCenterCode;
       delete (supabaseEmployee as any).profitCenterCode;
+      delete (supabaseEmployee as any).hourlyRate;
 
       const { data, error } = await supabase
         .from('employees')
@@ -96,9 +118,12 @@ export class SupabaseRegistrationService {
         .single();
 
       if (error) {
-        console.error('Error updating employee in Supabase:', error);
+        console.error('❌ Error updating employee in Supabase:', error);
         return { success: false, error: error.message };
       }
+      
+      console.log('✅ Employee updated successfully in Supabase:', data);
+      console.log('✅ Updated employee hourly_rate:', data.hourly_rate, typeof data.hourly_rate);
 
       // Transform snake_case back to camelCase
       const transformedData: Employee = {
@@ -106,12 +131,14 @@ export class SupabaseRegistrationService {
         lastUpdated: data.last_updated,
         oldId: data.old_id, // Handle oldId field
         costCenterCode: data.cost_center_code, // Handle cost center code
-        profitCenterCode: data.profit_center_code // Handle profit center code
+        profitCenterCode: data.profit_center_code, // Handle profit center code
+        hourlyRate: data.hourly_rate // Map hourly_rate back to camelCase
       };
       delete (transformedData as unknown as Record<string, unknown>).last_updated;
       delete (transformedData as unknown as Record<string, unknown>).old_id;
       delete (transformedData as unknown as Record<string, unknown>).cost_center_code;
       delete (transformedData as unknown as Record<string, unknown>).profit_center_code;
+      delete (transformedData as unknown as Record<string, unknown>).hourly_rate;
 
       return { success: true, data: transformedData };
     } catch (error) {
@@ -160,7 +187,8 @@ export class SupabaseRegistrationService {
         qr_code: equipment.qrCode || equipment.custom_equipment_id, // Use qrCode if available, otherwise use custom_equipment_id
         old_id: equipment.oldId, // Handle oldId field
         cost_center_code: equipment.costCenterCode, // Handle cost center code
-        profit_center_code: equipment.profitCenterCode // Handle profit center code
+        profit_center_code: equipment.profitCenterCode, // Handle profit center code
+        hourly_rate: equipment.hourly_rate // Handle hourly_rate mapping
       };
       // Remove camelCase properties
       delete (supabaseEquipment as unknown as Record<string, unknown>).createdAt;
@@ -196,7 +224,8 @@ export class SupabaseRegistrationService {
         qrCode: data.custom_equipment_id, // QR code uses the custom_equipment_id
         oldId: data.old_id, // Handle oldId field
         costCenterCode: data.cost_center_code, // Handle cost center code
-        profitCenterCode: data.profit_center_code // Handle profit center code
+        profitCenterCode: data.profit_center_code, // Handle profit center code
+        hourly_rate: data.hourly_rate // Ensure hourly_rate is preserved
       };
       delete (transformedData as unknown as Record<string, unknown>).created_at;
       delete (transformedData as unknown as Record<string, unknown>).last_updated;
@@ -228,7 +257,8 @@ export class SupabaseRegistrationService {
         qr_code: equipment.qrCode || equipment.custom_equipment_id,
         old_id: equipment.oldId, // Handle oldId field
         cost_center_code: equipment.costCenterCode, // Handle cost center code
-        profit_center_code: equipment.profitCenterCode // Handle profit center code
+        profit_center_code: equipment.profitCenterCode, // Handle profit center code
+        hourly_rate: equipment.hourly_rate // Handle hourly_rate mapping
       };
       delete (supabaseEquipment as unknown as Record<string, unknown>).createdAt;
       delete (supabaseEquipment as unknown as Record<string, unknown>).lastUpdated;
@@ -260,7 +290,8 @@ export class SupabaseRegistrationService {
         qrCode: data.custom_equipment_id,
         oldId: data.old_id, // Handle oldId field
         costCenterCode: data.cost_center_code, // Handle cost center code
-        profitCenterCode: data.profit_center_code // Handle profit center code
+        profitCenterCode: data.profit_center_code, // Handle profit center code
+        hourly_rate: data.hourly_rate // Ensure hourly_rate is preserved
       };
       delete (transformedData as unknown as Record<string, unknown>).created_at;
       delete (transformedData as unknown as Record<string, unknown>).last_updated;
@@ -324,7 +355,8 @@ export class SupabaseRegistrationService {
         use: material.use || material.type,
         old_id: material.oldId, // Handle oldId field
         cost_center_code: material.costCenterCode, // Handle cost center code
-        profit_center_code: material.profitCenterCode // Handle profit center code
+        profit_center_code: material.profitCenterCode, // Handle profit center code
+        cost: material.cost // Handle cost field
       };
 
       console.log('📤 Sending create data to Supabase:', supabaseMaterial);
@@ -358,7 +390,8 @@ export class SupabaseRegistrationService {
         use: data.use,
         oldId: data.old_id, // Handle oldId field
         costCenterCode: data.cost_center_code, // Handle cost center code
-        profitCenterCode: data.profit_center_code // Handle profit center code
+        profitCenterCode: data.profit_center_code, // Handle profit center code
+        cost: data.cost // Ensure cost is preserved
       };
 
       return { success: true, data: transformedData };
@@ -408,7 +441,8 @@ export class SupabaseRegistrationService {
         use: material.use || material.type,
         old_id: material.oldId, // Handle oldId field
         cost_center_code: material.costCenterCode, // Handle cost center code
-        profit_center_code: material.profitCenterCode // Handle profit center code
+        profit_center_code: material.profitCenterCode, // Handle profit center code
+        cost: material.cost // Handle cost field
       };
 
       console.log('📤 Sending update data to Supabase:', supabaseMaterial);
@@ -445,7 +479,8 @@ export class SupabaseRegistrationService {
         use: data.use,
         oldId: data.old_id, // Handle oldId field
         costCenterCode: data.cost_center_code, // Handle cost center code
-        profitCenterCode: data.profit_center_code // Handle profit center code
+        profitCenterCode: data.profit_center_code, // Handle profit center code
+        cost: data.cost // Ensure cost is preserved
       };
 
       return { success: true, data: transformedData };
@@ -691,7 +726,8 @@ export class SupabaseRegistrationService {
         last_updated: eq.lastUpdated,
         qr_code: `EQP-${eq.id}`, // Use the actual UUID for QR code
         cost_center_code: eq.costCenterCode, // Handle cost center code
-        profit_center_code: eq.profitCenterCode // Handle profit center code
+        profit_center_code: eq.profitCenterCode, // Handle profit center code
+        hourly_rate: eq.hourly_rate // Handle hourly_rate mapping
       }));
 
       // Clean up camelCase properties
@@ -700,6 +736,7 @@ export class SupabaseRegistrationService {
         delete (eq as any).qrCode;
         delete (eq as any).costCenterCode;
         delete (eq as any).profitCenterCode;
+        delete (eq as any).hourly_rate; // Clean up hourly_rate as it's already mapped
       });
 
       const { data, error } = await supabase
@@ -718,7 +755,8 @@ export class SupabaseRegistrationService {
         lastUpdated: eq.last_updated,
         qrCode: `EQP-${eq.id}`,
         costCenterCode: eq.cost_center_code, // Handle cost center code
-        profitCenterCode: eq.profit_center_code // Handle profit center code
+        profitCenterCode: eq.profit_center_code, // Handle profit center code
+        hourly_rate: eq.hourly_rate // Ensure hourly_rate is preserved
       }));
 
       return { success: true, data: transformedData };
