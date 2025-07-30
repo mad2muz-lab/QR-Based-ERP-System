@@ -20,6 +20,7 @@ export default function NotificationButton({ currentUser, onNotificationClick }:
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
+      .eq('user_id', currentUser.id)
       .order('created_at', { ascending: false });
     if (!error && data) setNotifications(data);
     setLoading(false);
@@ -39,10 +40,7 @@ export default function NotificationButton({ currentUser, onNotificationClick }:
         (payload) => {
           const n = payload.new || payload.old;
           if (n && typeof n === 'object') {
-            if (
-              ('user_id' in n && n.user_id === currentUser.id) ||
-              ('role' in n && n.role === currentUser.role)
-            ) {
+            if ('user_id' in n && n.user_id === currentUser.id) {
               fetchNotifications();
             }
           }
@@ -54,32 +52,35 @@ export default function NotificationButton({ currentUser, onNotificationClick }:
     };
   }, [currentUser.id, currentUser.role]);
 
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase.from('equipment').select('*');
-      console.log('EQUIPMENT TEST:', data, error);
-    })();
-  }, []);
+
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const markAsRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-    setNotifications(notifications => notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (!error) {
+      setNotifications(notifications => notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } else {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
   const dismiss = async (id: string) => {
-    await supabase.from('notifications').delete().eq('id', id);
-    setNotifications(notifications => notifications.filter(n => n.id !== id));
+    const { error } = await supabase.from('notifications').delete().eq('id', id);
+    if (!error) {
+      setNotifications(notifications => notifications.filter(n => n.id !== id));
+    } else {
+      console.error('Error dismissing notification:', error);
+    }
   };
 
   const clearAllNotifications = async () => {
     try {
-      // Delete all notifications for the current user or role
+      // Delete all notifications for the current user
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .or(`user_id.eq.${currentUser.id},role.eq.${currentUser.role}`);
+        .eq('user_id', currentUser.id);
       
       if (error) {
         console.error('Error clearing notifications:', error);

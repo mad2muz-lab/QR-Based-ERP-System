@@ -18,7 +18,7 @@ export interface Employee {
   photo?: string;
   email?: string;
   phone?: string;
-  oldId?: string; // Legacy ID from previous system
+  oldId: string; // Legacy ID from previous system - MANDATORY FIELD
   companyId?: string;
   costCenterCode?: string; // Cost center code for financial analysis
   profitCenterCode?: string; // Profit center code for financial analysis
@@ -38,7 +38,7 @@ export interface Equipment {
   createdAt: string;
   lastUpdated: string;
   serialNumber?: string;
-  oldId?: string; // Legacy ID from previous system
+  oldId: string; // Legacy ID from previous system - MANDATORY FIELD
   companyId?: string;
   costCenterCode?: string; // Cost center code for financial analysis
   profitCenterCode?: string; // Profit center code for financial analysis
@@ -61,7 +61,7 @@ export interface Material {
   lastUpdated: string;
   use?: string;
   accessLevel?: 'basic' | 'restricted' | 'admin';
-  oldId?: string; // Legacy ID from previous system
+  oldId: string; // Legacy ID from previous system - MANDATORY FIELD
   companyId?: string;
   costCenterCode?: string; // Cost center code for financial analysis
   profitCenterCode?: string; // Profit center code for financial analysis

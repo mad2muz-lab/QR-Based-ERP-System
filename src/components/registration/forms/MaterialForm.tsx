@@ -195,6 +195,12 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
       setMessage({ type: 'error', text: 'Material name must be unique.' });
       return;
     }
+
+    // Validate old_id field is required
+    if (!formData.oldId.trim()) {
+      setMessage({ type: 'error', text: 'Old Material ID is required. Please enter the legacy material ID from your previous system.' });
+      return;
+    }
     
     const materialData = {
       ...formData,
@@ -279,16 +285,17 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Old Material ID (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Old Material ID *</label>
             <input
               type="text"
               value={formData.oldId}
               onChange={(e) => setFormData({ ...formData, oldId: e.target.value })}
               className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter legacy material ID from previous system"
+              required
             />
             <div className="text-xs text-gray-500 mt-1">
-              Enter the material ID from your previous system for backward compatibility and audit purposes.
+              Enter the material ID from your previous system for backward compatibility and audit purposes. This field is now mandatory.
             </div>
           </div>
 

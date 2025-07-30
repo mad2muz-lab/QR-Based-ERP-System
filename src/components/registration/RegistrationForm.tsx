@@ -935,6 +935,13 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             const processedEmployees = importedData.map(item => {
               // For Supabase, don't generate UUIDs - let the database auto-generate them
               const employeeId = useSupabase ? undefined : crypto.randomUUID();
+              
+              // Validate that old_id is provided
+              const oldId = item.old_id || item.oldId || '';
+              if (!oldId.trim()) {
+                throw new Error(`Employee "${item.name}" is missing Old Employee ID. This field is now mandatory.`);
+              }
+              
               return {
                 ...(useSupabase ? {} : { id: employeeId }), // Only include id for local storage
                 name: item.name,
@@ -950,7 +957,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                 photo: item.photo || '',
                 email: item.email || '',
                 phone: item.phone || '',
-                oldId: item.old_id || item.oldId || '',
+                oldId: oldId,
                 companyId: item.companyId || '',
                 costCenterCode: item.cost_center_code || item.costCenterCode || '',
                 profitCenterCode: item.profit_center_code || item.profitCenterCode || '',
@@ -974,6 +981,13 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             const processedEquipment = importedData.map((item, index) => {
               // For Supabase, don't generate UUIDs - let the database auto-generate them
               const equipmentId = useSupabase ? undefined : crypto.randomUUID();
+              
+              // Validate that old_id is provided
+              const oldId = item.old_id || item.oldId || '';
+              if (!oldId.trim()) {
+                throw new Error(`Equipment "${item.name}" is missing Old Equipment ID. This field is now mandatory.`);
+              }
+              
               const equipment = {
                 ...(useSupabase ? {} : { id: equipmentId }), // Only include id for local storage
                 name: item.name,
@@ -986,7 +1000,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                 lastUpdated: item.last_updated || item.lastUpdated || new Date().toISOString(),
                 serialNumber: item.serial_number || item.serialNumber || '',
                 custom_equipment_id: item.custom_equipment_id || '',
-                oldId: item.old_id || item.oldId || '',
+                oldId: oldId,
                 operational_status: item.operational_status || 'working',
                 costCenterCode: item.cost_center_code || item.costCenterCode || '',
                 profitCenterCode: item.profit_center_code || item.profitCenterCode || '',
@@ -1021,6 +1035,13 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
             const processedMaterials = importedData.map((item, index) => {
               // For Supabase, don't generate UUIDs - let the database auto-generate them
               const materialId = useSupabase ? undefined : crypto.randomUUID();
+              
+              // Validate that old_id is provided
+              const oldId = item.old_id || item.oldId || '';
+              if (!oldId.trim()) {
+                throw new Error(`Material "${item.name}" is missing Old Material ID. This field is now mandatory.`);
+              }
+              
               const material = {
                 ...(useSupabase ? {} : { id: materialId }), // Only include id for local storage
                 name: item.name,
@@ -1034,7 +1055,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                 lastUpdated: item.last_updated || item.lastUpdated || new Date().toISOString(),
                 use: item.use || '',
                 accessLevel: item.access_level || item.accessLevel || 'basic',
-                oldId: item.old_id || item.oldId || '',
+                oldId: oldId,
                 companyId: item.companyId || '',
                 costCenterCode: item.cost_center_code || item.costCenterCode || '',
                 profitCenterCode: item.profit_center_code || item.profitCenterCode || '',
