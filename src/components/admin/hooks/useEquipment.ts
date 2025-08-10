@@ -181,43 +181,43 @@ export const useEquipment = () => {
         alert('Equipment updated successfully!');
       } else {
         // Create new equipment
-        const newEquipment: Equipment = {
-          id: uuidv4(),
-          custom_equipment_id: equipmentFormData.custom_equipment_id,
-          name: equipmentFormData.name,
-          type: equipmentFormData.type,
-          model: equipmentFormData.model || undefined,
-          serialNumber: equipmentFormData.serialNumber || undefined,
-          site: equipmentFormData.site || '',
-          status: equipmentFormData.status as Equipment['status'],
-          operational_status: equipmentFormData.operational_status as Equipment['operational_status'],
-          qrCode: `QR-${equipmentFormData.custom_equipment_id}`,
-          createdAt: new Date().toISOString(),
-          lastUpdated: new Date().toISOString(),
-          hourly_rate: equipmentFormData.hourly_rate
-        };
-        
         if (isSupabaseEnabled) {
+          // For Supabase, generate UUID since the table doesn't have a default
           const { error } = await supabase!
             .from('equipment')
             .insert([{
-              id: newEquipment.id,
-              custom_equipment_id: newEquipment.custom_equipment_id,
-              name: newEquipment.name,
-              type: newEquipment.type,
-              model: newEquipment.model,
-              serialNumber: newEquipment.serialNumber,
-              site: newEquipment.site,
-              status: newEquipment.status,
-              operational_status: newEquipment.operational_status,
-              qrCode: newEquipment.qrCode,
-              created_at: newEquipment.createdAt,
-              updated_at: newEquipment.lastUpdated,
-              hourly_rate: newEquipment.hourly_rate ?? null
+              id: crypto.randomUUID(), // Generate UUID since the table doesn't have a default
+              custom_equipment_id: equipmentFormData.custom_equipment_id,
+              name: equipmentFormData.name,
+              type: equipmentFormData.type,
+              model: equipmentFormData.model || undefined,
+              serial_number: equipmentFormData.serialNumber || undefined,
+              site: equipmentFormData.site || '',
+              status: equipmentFormData.status as Equipment['status'],
+              operational_status: equipmentFormData.operational_status as Equipment['operational_status'],
+              qr_code: equipmentFormData.custom_equipment_id,
+              hourly_rate: equipmentFormData.hourly_rate ?? null
             }]);
           
           if (error) throw error;
         } else {
+          // For offline mode, generate UUID locally
+          const newEquipment: Equipment = {
+            id: uuidv4(),
+            custom_equipment_id: equipmentFormData.custom_equipment_id,
+            name: equipmentFormData.name,
+            type: equipmentFormData.type,
+            model: equipmentFormData.model || undefined,
+            serialNumber: equipmentFormData.serialNumber || undefined,
+            site: equipmentFormData.site || '',
+            status: equipmentFormData.status as Equipment['status'],
+            operational_status: equipmentFormData.operational_status as Equipment['operational_status'],
+            qrCode: `QR-${equipmentFormData.custom_equipment_id}`,
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString(),
+            hourly_rate: equipmentFormData.hourly_rate
+          };
+          
           // Save as array
           const allEquipment = DataStorage.loadEquipment();
           allEquipment.push(newEquipment);

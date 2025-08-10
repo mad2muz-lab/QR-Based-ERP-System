@@ -169,13 +169,78 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
     return RefreshCw;
   };
 
-  // Calculate real-time statistics
-  const activeEmployees = employees.filter(e => e.status === 'active').length;
+  // Calculate real-time statistics based on actual log data
+  const today = new Date().toDateString();
+  
+  console.log('🔍 Dashboard Debug - Today:', today);
+  console.log('🔍 Dashboard Debug - Employees:', employees.length);
+  console.log('🔍 Dashboard Debug - Employee Logs:', employeeLogs.length);
+  console.log('🔍 Dashboard Debug - Equipment:', equipment.length);
+  console.log('🔍 Dashboard Debug - Equipment Logs:', equipmentLogs.length);
+  
+  // Debug log structure
+  if (employeeLogs.length > 0) {
+    console.log('🔍 Dashboard Debug - Sample Employee Log:', employeeLogs[0]);
+  }
+  if (equipmentLogs.length > 0) {
+    console.log('🔍 Dashboard Debug - Sample Equipment Log:', equipmentLogs[0]);
+  }
+  
+  // Calculate currently clocked-in employees (based on recent clock-in logs)
+  const currentlyClockedInEmployees = employees.filter(emp => {
+    const recentLog = employeeLogs
+      .filter(log => (log.employeeId || log.employee_id) === emp.id)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    
+    console.log(`🔍 Dashboard Debug - Employee ${emp.name} (${emp.id}):`, {
+      hasLogs: employeeLogs.filter(log => (log.employeeId || log.employee_id) === emp.id).length > 0,
+      recentLog: recentLog,
+      isClockIn: recentLog?.action === 'clock-in',
+      isToday: recentLog ? new Date(recentLog.timestamp).toDateString() === today : false
+    });
+    
+    return recentLog?.action === 'clock-in' && new Date(recentLog.timestamp).toDateString() === today;
+  }).length;
+  
   const totalEmployees = employees.length;
   
-  const activeEquipment = equipment.filter(e => e.status === 'in-use').length;
+  // Calculate currently in-use equipment (based on recent start-use logs)
+  const currentlyInUseEquipment = equipment.filter(eq => {
+    const recentLog = equipmentLogs
+      .filter(log => (log.equipmentId || log.equipment_id) === eq.id)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    
+    console.log(`🔍 Dashboard Debug - Equipment ${eq.name} (${eq.id}):`, {
+      hasLogs: equipmentLogs.filter(log => (log.equipmentId || log.equipment_id) === eq.id).length > 0,
+      recentLog: recentLog,
+      isStartUse: recentLog?.action === 'start-use',
+      isStandbyStart: recentLog?.action === 'standby-start'
+    });
+    
+    return recentLog?.action === 'start-use';
+  }).length;
+  
+  // Calculate currently in standby equipment (based on recent standby-start logs)
+  const currentlyInStandbyEquipment = equipment.filter(eq => {
+    const recentLog = equipmentLogs
+      .filter(log => (log.equipmentId || log.equipment_id) === eq.id)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    return recentLog?.action === 'standby-start';
+  }).length;
+  
+  // Total equipment in use or standby
+  const activeEquipment = currentlyInUseEquipment + currentlyInStandbyEquipment;
   const totalEquipment = equipment.length;
   const maintenanceEquipment = equipment.filter(e => e.status === 'maintenance').length;
+  
+  console.log('🔍 Dashboard Debug - Final Results:', {
+    currentlyClockedInEmployees,
+    totalEmployees,
+    currentlyInUseEquipment,
+    currentlyInStandbyEquipment,
+    activeEquipment,
+    totalEquipment
+  });
   
   const lowStockMaterials = materials.filter(m => m.status === 'low-stock').length;
   const outOfStockMaterials = materials.filter(m => m.status === 'out-of-stock').length;
@@ -183,14 +248,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
   
   const totalSites = sites.length;
   
-  // Calculate today's activities using new separate log tables
-  const today = new Date().toDateString();
-  
   // Combine all logs from separate tables with normalized entityId
   const allLogs = [
-    ...employeeLogs.map(log => ({ ...log, entityType: 'employee', entityId: log.employeeId })),
-    ...equipmentLogs.map(log => ({ ...log, entityType: 'equipment', entityId: log.equipmentId })),
-    ...materialLogs.map(log => ({ ...log, entityType: 'material', entityId: log.materialId }))
+    ...employeeLogs.map(log => ({ ...log, entityType: 'employee', entityId: log.employeeId || log.employee_id })),
+    ...equipmentLogs.map(log => ({ ...log, entityType: 'equipment', entityId: log.equipmentId || log.equipment_id })),
+    ...materialLogs.map(log => ({ ...log, entityType: 'material', entityId: log.materialId || log.material_id }))
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   
   const todayLogs = allLogs.filter(log => 
@@ -209,18 +271,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
     // Get active employees (those who clocked in today)
     const activeSiteEmployees = siteEmployees.filter(emp => {
       const recentLog = employeeLogs
-        .filter(log => log.employeeId === emp.id)
+        .filter(log => (log.employeeId || log.employee_id) === emp.id)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
       return recentLog?.action === 'clock-in' && new Date(recentLog.timestamp).toDateString() === today;
     });
 
     // Get equipment in use
-    const activeSiteEquipment = siteEquipment.filter(eq => {
+    const inUseSiteEquipment = siteEquipment.filter(eq => {
       const recentLog = equipmentLogs
-        .filter(log => log.equipmentId === eq.id)
+        .filter(log => (log.equipmentId || log.equipment_id) === eq.id)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
       return recentLog?.action === 'start-use';
     });
+
+    // Get equipment in standby
+    const standbySiteEquipment = siteEquipment.filter(eq => {
+      const recentLog = equipmentLogs
+        .filter(log => (log.equipmentId || log.equipment_id) === eq.id)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+      return recentLog?.action === 'standby-start';
+    });
+
+    const activeSiteEquipment = inUseSiteEquipment.length + standbySiteEquipment.length;
 
     return {
       ...site,
@@ -228,6 +300,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
       activeEmployeeCount: activeSiteEmployees.length,
       equipmentCount: siteEquipment.length,
       activeEquipmentCount: activeSiteEquipment.length,
+      inUseEquipmentCount: inUseSiteEquipment.length,
+      standbyEquipmentCount: standbySiteEquipment.length,
       materialCount: siteMaterials.length,
       availableMaterialCount: siteMaterials.filter(mat => mat.status === 'available').length
     };
@@ -288,19 +362,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
           {/* Main Statistics Cards - Responsive grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <StatsCard
-              title="Active Employees"
-              value={`${activeEmployees}/${totalEmployees}`}
+              title="Employee Status"
+              value={`${currentlyClockedInEmployees}/${totalEmployees}`}
               icon={Users}
-              change={activeEmployees > 0 ? `${activeEmployees} currently active` : 'No active employees'}
-              changeType={activeEmployees > 0 ? "increase" : "neutral"}
+              change={currentlyClockedInEmployees > 0 ? `${currentlyClockedInEmployees} currently clocked in` : 'No employees clocked in'}
+              changeType={currentlyClockedInEmployees > 0 ? "increase" : "neutral"}
               color="blue"
             />
             <StatsCard
               title="Equipment Status"
               value={`${activeEquipment}/${totalEquipment}`}
               icon={Wrench}
-              change={maintenanceEquipment > 0 ? `${maintenanceEquipment} in maintenance` : 'All equipment operational'}
-              changeType={maintenanceEquipment > 0 ? "decrease" : "increase"}
+              change={`${currentlyInUseEquipment} in use, ${currentlyInStandbyEquipment} in standby`}
+              changeType={activeEquipment > 0 ? "increase" : "neutral"}
               color="green"
             />
             <StatsCard
@@ -322,7 +396,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
           </div>
 
           {/* Secondary Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base md:text-lg font-semibold text-gray-900">Today's Activity</h3>
@@ -331,6 +405,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
               <div className="text-center">
                 <div className="text-2xl md:text-3xl font-bold text-blue-600 mb-2">{todayLogs}</div>
                 <p className="text-xs md:text-sm text-gray-600">Total activities logged today</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">Employee Status</h3>
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs md:text-sm">
+                  <span className="text-gray-600">Clocked In:</span>
+                  <span className="font-medium text-green-600">{currentlyClockedInEmployees}</span>
+                </div>
+                <div className="flex justify-between text-xs md:text-sm">
+                  <span className="text-gray-600">Not Clocked In:</span>
+                  <span className="font-medium text-gray-600">{totalEmployees - currentlyClockedInEmployees}</span>
+                </div>
+                <div className="flex justify-between text-xs md:text-sm">
+                  <span className="text-gray-600">Total:</span>
+                  <span className="font-medium text-blue-600">{totalEmployees}</span>
+                </div>
               </div>
             </div>
 
@@ -362,12 +457,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-xs md:text-sm">
-                  <span className="text-gray-600">Available:</span>
-                  <span className="font-medium text-green-600">{equipment.filter(e => e.status === 'available').length}</span>
+                  <span className="text-gray-600">In Use:</span>
+                  <span className="font-medium text-blue-600">{currentlyInUseEquipment}</span>
                 </div>
                 <div className="flex justify-between text-xs md:text-sm">
-                  <span className="text-gray-600">In Use:</span>
-                  <span className="font-medium text-blue-600">{activeEquipment}</span>
+                  <span className="text-gray-600">In Standby:</span>
+                  <span className="font-medium text-orange-600">{currentlyInStandbyEquipment}</span>
+                </div>
+                <div className="flex justify-between text-xs md:text-sm">
+                  <span className="text-gray-600">Available:</span>
+                  <span className="font-medium text-green-600">{equipment.filter(e => e.status === 'available').length}</span>
                 </div>
                 <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-gray-600">Maintenance:</span>
@@ -501,21 +600,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentView }) => {
                             <Users className="w-3 h-3 text-blue-600" />
                             <span className="font-medium">{site.activeEmployeeCount}/{site.employeeCount}</span>
                           </div>
-                          <span className="text-gray-500">Employees</span>
+                          <span className="text-gray-500">Clocked In</span>
                         </div>
                         <div className="text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <Wrench className="w-3 h-3 text-green-600" />
                             <span className="font-medium">{site.activeEquipmentCount}/{site.equipmentCount}</span>
                           </div>
-                          <span className="text-gray-500">Equipment</span>
+                          <span className="text-gray-500">In Use/Standby</span>
                         </div>
                         <div className="text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <Package className="w-3 h-3 text-orange-600" />
                             <span className="font-medium">{site.availableMaterialCount}/{site.materialCount}</span>
                           </div>
-                          <span className="text-gray-500">Materials</span>
+                          <span className="text-gray-500">Available</span>
                         </div>
                       </div>
                     </div>

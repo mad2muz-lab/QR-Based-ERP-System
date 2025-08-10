@@ -172,38 +172,69 @@ export class SupabaseRegistrationService {
   }
 
   // Equipment Operations
-  static async createEquipment(equipment: Equipment): Promise<{ success: boolean; data?: Equipment; error?: string }> {
+  static async createEquipment(equipment: Equipment | Omit<Equipment, 'id'>): Promise<{ success: boolean; data?: Equipment; error?: string }> {
     if (!supabase || !(await AuthManager.shouldUseSupabase())) {
       return { success: false, error: 'Supabase not configured or not in Supabase mode' };
     }
 
     try {
-      // Transform camelCase to snake_case for Supabase
+      console.log('🔍 SupabaseRegistrationService - Original equipment data:', equipment);
+      
+      // Validate required fields
+      if (!equipment.name || !equipment.type || !equipment.model || !equipment.site || !equipment.custom_equipment_id) {
+        console.error('❌ Missing required fields:', {
+          name: equipment.name,
+          type: equipment.type,
+          model: equipment.model,
+          site: equipment.site,
+          custom_equipment_id: equipment.custom_equipment_id
+        });
+        return { success: false, error: 'Missing required fields: name, type, model, site, or custom_equipment_id' };
+      }
+      
+      console.log('🔍 SupabaseRegistrationService - Original equipment data:', equipment);
+      
+      // Create a completely new object without any reference to the original equipment
+      // This ensures no id field can be accidentally included
+      // NOTE: The equipment table requires an explicit id, so we generate one
       const supabaseEquipment = {
-        ...equipment,
-        created_at: equipment.createdAt,
-        last_updated: equipment.lastUpdated,
-        serial_number: equipment.serialNumber,
-        custom_equipment_id: equipment.custom_equipment_id,
+        id: crypto.randomUUID(), // Generate UUID since the table doesn't have a default
+        name: equipment.name,
+        type: equipment.type,
+        model: equipment.model,
+        site: equipment.site,
         qr_code: equipment.qrCode || equipment.custom_equipment_id, // Use qrCode if available, otherwise use custom_equipment_id
-        old_id: equipment.oldId, // Handle oldId field
-        cost_center_code: equipment.costCenterCode, // Handle cost center code
-        profit_center_code: equipment.profitCenterCode, // Handle profit center code
-        hourly_rate: equipment.hourly_rate // Handle hourly_rate mapping
+        status: equipment.status,
+        operational_status: equipment.operational_status,
+        custom_equipment_id: equipment.custom_equipment_id
       };
-      // Remove camelCase properties
-      delete (supabaseEquipment as unknown as Record<string, unknown>).createdAt;
-      delete (supabaseEquipment as unknown as Record<string, unknown>).lastUpdated;
-      delete (supabaseEquipment as unknown as Record<string, unknown>).serialNumber;
-      delete (supabaseEquipment as unknown as Record<string, unknown>).qrCode;
-      delete (supabaseEquipment as unknown as Record<string, unknown>).oldId;
-      delete (supabaseEquipment as unknown as Record<string, unknown>).costCenterCode;
-      delete (supabaseEquipment as unknown as Record<string, unknown>).profitCenterCode;
-      // Remove id if it's empty (let Supabase generate UUID)
-      if (!supabaseEquipment.id) {
-        delete (supabaseEquipment as unknown as Record<string, unknown>).id;
+      
+      // Only add optional fields if they have values
+      if (equipment.serialNumber) {
+        supabaseEquipment.serial_number = equipment.serialNumber;
+      }
+      if (equipment.oldId) {
+        supabaseEquipment.old_id = equipment.oldId;
+      }
+      if (equipment.costCenterCode) {
+        supabaseEquipment.cost_center_code = equipment.costCenterCode;
+      }
+      if (equipment.profitCenterCode) {
+        supabaseEquipment.profit_center_code = equipment.profitCenterCode;
+      }
+      if (equipment.hourly_rate !== undefined && equipment.hourly_rate !== null) {
+        supabaseEquipment.hourly_rate = equipment.hourly_rate;
       }
 
+      // Note: id field is now explicitly included since the table doesn't have a default
+
+      console.log('🔍 SupabaseRegistrationService - Equipment data being sent to Supabase:', supabaseEquipment);
+      console.log('🔍 SupabaseRegistrationService - Equipment data keys:', Object.keys(supabaseEquipment));
+      console.log('🔍 SupabaseRegistrationService - Equipment data has id field:', 'id' in supabaseEquipment);
+      
+      console.log('🔍 SupabaseRegistrationService - About to send to Supabase:', JSON.stringify(supabaseEquipment, null, 2));
+      
+      // Try a different approach - use raw insert without any potential id field
       const { data, error } = await supabase
         .from('equipment')
         .insert([supabaseEquipment])
@@ -211,7 +242,8 @@ export class SupabaseRegistrationService {
         .single();
 
       if (error) {
-        console.error('Error creating equipment in Supabase:', error);
+        console.error('❌ Error creating equipment in Supabase:', error);
+        console.error('❌ Equipment data that failed:', supabaseEquipment);
         return { success: false, error: error.message };
       }
 
@@ -737,12 +769,13 @@ export class SupabaseRegistrationService {
 
     try {
       const supabaseEquipment = equipment.map(eq => ({
+        id: crypto.randomUUID(), // Generate UUID since the table doesn't have a default
         custom_equipment_id: eq.custom_equipment_id,
         name: eq.name,
         type: eq.type,
         model: eq.model,
         site: eq.site,
-        qr_code: eq.qrCode || `EQP-${generateUUID()}`, // Generate QR code if not provided
+        qr_code: eq.qrCode || `EQP-${crypto.randomUUID()}`, // Generate QR code if not provided
         status: eq.status,
         operational_status: eq.operational_status,
         serial_number: eq.serialNumber,
@@ -769,9 +802,9 @@ export class SupabaseRegistrationService {
         return { success: false, error: error.message };
       }
 
-      // Transform snake_case back to camelCase and add auto-generated fields
+      // Transform snake_case back to camelCase and add generated fields
       const transformedData: Equipment[] = (data || []).map(eq => ({
-        id: eq.id, // Auto-generated by Supabase
+        id: eq.id, // Generated by application since table doesn't have default
         custom_equipment_id: eq.custom_equipment_id,
         name: eq.name,
         type: eq.type,
