@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapPin, Users, Wrench, Package, Building, Eye, ArrowLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Users, Wrench, Package, Building, Eye, ArrowLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
 import { AuthManager } from '../../utils/authUtils';
 import { fetchData, getAllLogs } from '../../utils/dataProxy';
@@ -16,13 +16,19 @@ const MapView: React.FC = () => {
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [hoveredProvince, setHoveredProvince] = useState<string>('');
   const [hoveredSite, setHoveredSite] = useState<string>('');
-  const [ksaGeoData, setKsaGeoData] = useState<unknown>(null);
+  const [ksaGeoData, setKsaGeoData] = useState<any>(null);
   const [drillDownLevel, setDrillDownLevel] = useState<'country' | 'province' | 'site'>('country');
-  const [drillDownHistory, setDrillDownHistory] = useState<Array<{level: string, data: unknown}>>([{ level: 'country', data: null }]);
+  const [drillDownHistory, setDrillDownHistory] = useState<Array<{level: string, data: any}>>([{ level: 'country', data: null }]);
   const [activeCallout, setActiveCallout] = useState<{type: 'province' | 'site', id: string, position: {x: number, y: number}} | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [dataTimestamp, setDataTimestamp] = useState<number>(Date.now());
   const [showDetailView, setShowDetailView] = useState(false);
+
+  // Zoom and pan state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // State for data
   const [showNavigation, setShowNavigation] = useState(false);
@@ -490,6 +496,72 @@ const MapView: React.FC = () => {
     }
   ];
 
+  // Zoom and pan handlers
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev * 1.5, 5)); // Max zoom 5x
+  };
+
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev / 1.5, 0.5)); // Min zoom 0.5x
+  };
+
+  const handleResetZoom = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handleMouseWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.max(0.5, Math.min(5, zoom * delta));
+    
+    // Calculate zoom center point
+    const rect = mapContainerRef.current?.getBoundingClientRect();
+    if (rect) {
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      // Adjust pan to zoom towards mouse position
+      const zoomRatio = newZoom / zoom;
+      setPan(prev => ({
+        x: mouseX - (mouseX - prev.x) * zoomRatio,
+        y: mouseY - (mouseY - prev.y) * zoomRatio
+      }));
+    }
+    
+    setZoom(newZoom);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0) { // Left mouse button
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Calculate transformed viewBox
+  const getTransformedViewBox = () => {
+    const baseWidth = 800;
+    const baseHeight = 600;
+    const scaledWidth = baseWidth / zoom;
+    const scaledHeight = baseHeight / zoom;
+    
+    return `${pan.x / zoom} ${pan.y / zoom} ${scaledWidth} ${scaledHeight}`;
+  };
+
   if (!ksaGeoData) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -589,12 +661,54 @@ const MapView: React.FC = () => {
         </div>
 
         <div className="relative rounded-xl p-2">
+          {/* Zoom Controls */}
+          <div className="absolute top-4 right-4 z-40 flex flex-col space-y-2">
+            <button
+              onClick={handleZoomIn}
+              className="w-10 h-10 bg-white rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-5 h-5 text-gray-700" />
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="w-10 h-10 bg-white rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-5 h-5 text-gray-700" />
+            </button>
+            <button
+              onClick={handleResetZoom}
+              className="w-10 h-10 bg-white rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+              title="Reset Zoom"
+            >
+              <RotateCcw className="w-5 h-5 text-gray-700" />
+            </button>
+          </div>
+
+          {/* Zoom Level Indicator */}
+          <div className="absolute top-4 left-4 z-40 bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2">
+            <span className="text-sm font-medium text-gray-700">
+              {Math.round(zoom * 100)}%
+            </span>
+          </div>
+
           <div 
             ref={mapContainerRef}
             className="relative bg-white rounded-lg p-2 overflow-hidden"
             onClick={handleMapClick}
+            onWheel={handleMouseWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
           >
-            <svg viewBox="0 0 800 600" className="w-full h-auto max-h-[500px]">
+            <svg 
+              viewBox={getTransformedViewBox()} 
+              className="w-full h-auto max-h-[500px] transition-transform duration-200"
+              style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+            >
               {/* Render KSA provinces */}
               {ksaGeoData.features.map((feature: any, index: number) => {
                 const provinceName = feature.properties.name_en;
@@ -856,6 +970,7 @@ const MapView: React.FC = () => {
           <p>Map Debug: {mapDebug}</p>
           <p>Total Sites: {sites.length}, Filtered Sites: {filteredSites.length}, Sites With Data: {sitesWithData.length}</p>
           <p>First Site Coordinates (if any): {sites.length > 0 ? JSON.stringify(sites[0].coordinates) : 'No sites'}</p>
+          <p>Zoom Level: {Math.round(zoom * 100)}%, Pan: ({Math.round(pan.x)}, {Math.round(pan.y)})</p>
         </div>
 
         {/* Site Details Panel - ONLY SHOWN WHEN DRILLED DOWN TO SITE LEVEL */}
