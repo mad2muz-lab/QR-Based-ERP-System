@@ -13,15 +13,54 @@ export class SupabaseAuthManager {
         throw new Error('Supabase not configured');
       }
 
-      // First try to sign in with email/password (assuming username is email)
+      // First try to sign in with Supabase auth using email/password
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: username,
+        email: username, // Try username as email first
         password: password,
       });
 
       if (error) {
-        console.error('Supabase auth error:', error);
-        throw error;
+        // If that fails, try with username@system.local format
+        const { data: data2, error: error2 } = await supabase.auth.signInWithPassword({
+          email: `${username}@system.local`,
+          password: password,
+        });
+
+        if (error2) {
+          console.error('Supabase auth error:', error2);
+          throw error2;
+        }
+
+        if (!data2.user || !data2.session) {
+          throw new Error('Authentication failed');
+        }
+
+        // Get user profile from users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data2.user.id)
+          .single();
+
+        if (userError || !userData) {
+          throw new Error('User profile not found');
+        }
+
+        // Convert to application User format
+        const user: User = {
+          id: userData.id,
+          username: userData.username,
+          password: '', // We don't store or return passwords
+          role: userData.role,
+          name: userData.name,
+          email: userData.email || '',
+          site: userData.site,
+          isFirstLogin: false,
+          createdAt: userData.created_at,
+          lastLogin: userData.last_login || undefined,
+        };
+
+        return { success: true, user };
       }
 
       if (!data.user || !data.session) {
@@ -35,12 +74,7 @@ export class SupabaseAuthManager {
         .eq('id', data.user.id)
         .single();
 
-      if (userError) {
-        console.error('Error fetching user data:', userError);
-        throw userError;
-      }
-
-      if (!userData) {
+      if (userError || !userData) {
         throw new Error('User profile not found');
       }
 
@@ -53,7 +87,7 @@ export class SupabaseAuthManager {
         name: userData.name,
         email: userData.email || '',
         site: userData.site,
-        isFirstLogin: false, // This would be handled differently with Supabase
+        isFirstLogin: false,
         createdAt: userData.created_at,
         lastLogin: userData.last_login || undefined,
       };

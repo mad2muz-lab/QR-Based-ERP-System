@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Wrench, AlertCircle, X } from 'lucide-react';
 import { Equipment } from '../../../types';
 import { equipmentCategories } from '../../../data/materialTypes';
+import { DataStorage } from '../../../utils/dataStorage';
 import { EquipmentMigration } from '../../../utils/equipmentMigration';
 import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
 
@@ -15,8 +16,8 @@ interface EquipmentFormProps {
 const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialData, onClose }) => {
   const [formData, setFormData] = useState({
     custom_equipment_id: '',
-    name: '',
-    type: '',
+    equipment_name: '',
+    equipment_type: '',
     customType: '',
     model: '',
     serialNumber: '',
@@ -25,7 +26,12 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     oldId: '',
     costCenterCode: '',
     profitCenterCode: '',
-    hourly_rate: ''
+    is_pm: false,
+    pm_class: '',
+    pm_frequency_days: '', // always string
+    pm_frequency_hours: '', // always string
+    pm_checklist_items: '', // comma-separated string for UI, will split to array
+    pm_spare_parts: '' // comma-separated string for UI, will split to array
   });
   const [showCustomType, setShowCustomType] = useState(false);
   const [customIdError, setCustomIdError] = useState('');
@@ -40,8 +46,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     if (initialData) {
       setFormData({
         custom_equipment_id: initialData.custom_equipment_id || '',
-        name: initialData.name || '',
-        type: initialData.type || '',
+        equipment_name: initialData.equipment_name || '',
+        equipment_type: initialData.equipment_type || '',
         customType: '',
         model: initialData.model || '',
         serialNumber: initialData.serialNumber || '',
@@ -50,7 +56,12 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
         oldId: initialData.oldId || '',
         costCenterCode: initialData.costCenterCode || '',
         profitCenterCode: initialData.profitCenterCode || '',
-        hourly_rate: initialData.hourly_rate !== undefined && initialData.hourly_rate !== null ? String(initialData.hourly_rate) : ''
+        is_pm: initialData.is_pm || false,
+        pm_class: initialData.pm_class || '',
+        pm_frequency_days: initialData.pm_frequency_days !== undefined ? String(initialData.pm_frequency_days) : '',
+        pm_frequency_hours: initialData.pm_frequency_hours !== undefined ? String(initialData.pm_frequency_hours) : '',
+        pm_checklist_items: initialData.pm_checklist_items ? initialData.pm_checklist_items.join(', ') : '',
+        pm_spare_parts: initialData.pm_spare_parts ? initialData.pm_spare_parts.join(', ') : ''
       });
       
       const allTypes = getAllEquipmentTypes();
@@ -72,7 +83,12 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
         oldId: '',
         costCenterCode: '',
         profitCenterCode: '',
-        hourly_rate: ''
+        is_pm: false,
+        pm_class: '',
+        pm_frequency_days: '',
+        pm_frequency_hours: '',
+        pm_checklist_items: '',
+        pm_spare_parts: ''
       });
       setShowCustomType(false);
       setCustomIdError('');
@@ -142,6 +158,19 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     return () => clearTimeout(timeoutId);
   }, [formData.custom_equipment_id, isEditMode, initialData?.id]);
 
+  useEffect(() => {
+    if (initialData && initialData.pm_configs && Array.isArray(initialData.pm_configs)) {
+      setPmConfigs(initialData.pm_configs.map(cfg => ({
+        pm_class: cfg.pm_class,
+        pm_frequency_days: cfg.pm_frequency_days !== undefined ? String(cfg.pm_frequency_days) : '',
+        pm_frequency_hours: cfg.pm_frequency_hours !== undefined ? String(cfg.pm_frequency_hours) : '',
+        pm_checklist_items: cfg.pm_checklist_items ? cfg.pm_checklist_items.join(', ') : '',
+        pm_spare_parts: cfg.pm_spare_parts ? cfg.pm_spare_parts.join(', ') : ''
+      })));
+    } else {
+      setPmConfigs([]);
+    }
+  }, [initialData]);
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -156,29 +185,37 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     if (customIdError) {
       return;
     }
-
-    // Validate old_id field is required
-    if (!formData.oldId.trim()) {
-      setMessage({ type: 'error', text: 'Old Equipment ID is required. Please enter the legacy equipment ID from your previous system.' });
-      return;
-    }
     
     const equipmentData = {
       ...formData,
       type: showCustomType ? formData.customType : formData.type,
       operational_status: 'working' as 'working' | 'not_working' | 'in_use' | 'standby' | 'under_repair' | 'under_service',
       lastUpdated: new Date().toISOString(),
-      hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate as any) : undefined
+      is_pm: formData.is_pm,
+      // Deprecated single-class fields for backward compatibility
+      pm_class: '',
+      pm_frequency_days: '',
+      pm_frequency_hours: '',
+      pm_checklist_items: [],
+      pm_spare_parts: [],
+      // New multi-class PM configs
+      pm_configs: formData.is_pm ? pmConfigs.map(cfg => ({
+        pm_class: cfg.pm_class,
+        pm_frequency_days: cfg.pm_frequency_days ? Number(cfg.pm_frequency_days) : undefined,
+        pm_frequency_hours: cfg.pm_frequency_hours ? Number(cfg.pm_frequency_hours) : undefined,
+        pm_checklist_items: cfg.pm_checklist_items ? cfg.pm_checklist_items.split(',').map(s => s.trim()).filter(Boolean) : [],
+        pm_spare_parts: cfg.pm_spare_parts ? cfg.pm_spare_parts.split(',').map(s => s.trim()).filter(Boolean) : []
+      })) : []
     };
     
-    const { customType: _, ...finalData } = equipmentData;
+    const { customType, ...finalData } = equipmentData;
     
     try {
       onSubmit(finalData, isEditMode);
       setMessage({ type: 'success', text: isEditMode ? 'Equipment updated successfully!' : 'Equipment added successfully!' });
       // Only reset form if not editing
       if (!isEditMode) {
-        setFormData({ custom_equipment_id: '', name: '', type: '', customType: '', model: '', serialNumber: '', site: '', status: 'available', oldId: '', costCenterCode: '', profitCenterCode: '', hourly_rate: '' });
+        setFormData({ custom_equipment_id: '', name: '', type: '', customType: '', model: '', serialNumber: '', site: '', status: 'available', oldId: '', costCenterCode: '', profitCenterCode: '', is_pm: false, pm_class: '', pm_frequency_days: '', pm_frequency_hours: '', pm_checklist_items: '', pm_spare_parts: '' });
         setShowCustomType(false);
         setCustomIdError('');
       }
@@ -204,6 +241,43 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
     });
     return types;
   };
+
+  const PM_CLASS_OPTIONS = ['Routine', 'Class A', 'Class B', 'Class C'];
+  const [pmConfigs, setPmConfigs] = useState<{
+    pm_class: string;
+    pm_frequency_days: string;
+    pm_frequency_hours: string;
+    pm_checklist_items: string;
+    pm_spare_parts: string;
+  }[]>([]);
+
+  const PM_SUGGESTIONS: Record<string, Record<string, { checklist: string[]; parts: string[] }>> = {
+    'Excavator': {
+      'Routine': {
+        checklist: ['Check engine oil', 'Inspect hydraulic hoses', 'Clean air filter'],
+        parts: ['Oil Filter', 'Hydraulic Hose', 'Air Filter']
+      },
+      'Class A': {
+        checklist: ['Replace oil filter', 'Lubricate pivot points'],
+        parts: ['Oil Filter', 'Grease']
+      }
+      // Add more classes as needed
+    },
+    'Paver': {
+      'Routine': {
+        checklist: ['Check hydraulic fluid', 'Inspect belts'],
+        parts: ['Hydraulic Fluid', 'Drive Belt']
+      }
+      // Add more classes as needed
+    }
+    // Add more equipment types as needed
+  };
+
+  const [botModalIdx, setBotModalIdx] = useState<number | null>(null);
+  const [botChecklist, setBotChecklist] = useState<string[]>([]);
+  const [botParts, setBotParts] = useState<string[]>([]);
+  const [botCustomChecklist, setBotCustomChecklist] = useState('');
+  const [botCustomParts, setBotCustomParts] = useState('');
 
   return (
     <div className="relative space-y-6">
@@ -267,17 +341,16 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Old Equipment ID *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Old Equipment ID (Optional)</label>
             <input
               type="text"
               value={formData.oldId}
               onChange={(e) => setFormData({ ...formData, oldId: e.target.value })}
               className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter legacy equipment ID from previous system"
-              required
             />
             <div className="text-xs text-gray-500 mt-1">
-              Enter the equipment ID from your previous system for backward compatibility and audit purposes. This field is now mandatory.
+              Enter the equipment ID from your previous system for backward compatibility and audit purposes.
             </div>
           </div>
 
@@ -413,20 +486,116 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Rate (SAR)</label>
-            <input
-              type="number"
-              value={formData.hourly_rate}
-              onChange={e => setFormData({ ...formData, hourly_rate: e.target.value })}
-              className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              min={0}
-              step={0.01}
-              placeholder="Enter hourly rate"
-            />
-          </div>
         </div>
+
+        {/* PM FIELDS START */}
+        <div className="md:col-span-2 border-t pt-4 mt-4">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={formData.is_pm}
+              onChange={e => setFormData({ ...formData, is_pm: e.target.checked })}
+              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Include in Preventive Maintenance?</span>
+          </label>
+          {formData.is_pm && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select PM Classes</label>
+              <div className="flex flex-wrap gap-4 mb-4">
+                {PM_CLASS_OPTIONS.map(option => (
+                  <label key={option} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={pmConfigs.some(cfg => cfg.pm_class === option)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setPmConfigs([...pmConfigs, { pm_class: option, pm_frequency_days: '', pm_frequency_hours: '', pm_checklist_items: '', pm_spare_parts: '' }]);
+                        } else {
+                          setPmConfigs(pmConfigs.filter(cfg => cfg.pm_class !== option));
+                        }
+                      }}
+                    />
+                    <span>{option}</span>
+                  </label>
+                ))}
+              </div>
+              {pmConfigs.map((cfg, idx) => (
+                <div key={cfg.pm_class} className="border rounded-lg p-4 mb-4 bg-gray-50">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-blue-700">{cfg.pm_class}</span>
+                    <div className="flex gap-2">
+                      <button type="button" className="text-blue-600 text-xs underline" onClick={() => {
+                        // Load suggestions for this equipment type and class
+                        const eqType = showCustomType ? formData.customType : formData.type;
+                        const suggestions = PM_SUGGESTIONS[eqType]?.[cfg.pm_class] || { checklist: [], parts: [] };
+                        setBotChecklist(suggestions.checklist);
+                        setBotParts(suggestions.parts);
+                        setBotCustomChecklist('');
+                        setBotCustomParts('');
+                        setBotModalIdx(idx);
+                      }}>Bot Assistant</button>
+                      <button type="button" className="text-red-500 text-xs" onClick={() => setPmConfigs(pmConfigs.filter((_, i) => i !== idx))}>Remove</button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">PM Frequency (days)</label>
+                      <input
+                        type="number"
+                        value={cfg.pm_frequency_days}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setPmConfigs(pmConfigs.map((c, i) => i === idx ? { ...c, pm_frequency_days: val } : c));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">PM Frequency (hours)</label>
+                      <input
+                        type="number"
+                        value={cfg.pm_frequency_hours}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setPmConfigs(pmConfigs.map((c, i) => i === idx ? { ...c, pm_frequency_hours: val } : c));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">PM Checklist Items (comma separated)</label>
+                      <textarea
+                        value={cfg.pm_checklist_items}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setPmConfigs(pmConfigs.map((c, i) => i === idx ? { ...c, pm_checklist_items: val } : c));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={2}
+                        placeholder="e.g., Check oil, Inspect belts, Clean filter"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">PM Spare Parts (comma separated)</label>
+                      <textarea
+                        value={cfg.pm_spare_parts}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setPmConfigs(pmConfigs.map((c, i) => i === idx ? { ...c, pm_spare_parts: val } : c));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={2}
+                        placeholder="e.g., Oil Filter, Belt, Hydraulic Hose"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {/* PM FIELDS END */}
 
         <button
           type="submit"
@@ -435,6 +604,109 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ sites, onSubmit, initialD
           {isEditMode ? 'Update Equipment' : 'Register Equipment'}
         </button>
       </form>
+
+      {/* Bot Assistant Modal */}
+      {botModalIdx !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg relative">
+            <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => setBotModalIdx(null)}>&times;</button>
+            <h4 className="text-lg font-bold mb-2">PM Bot Assistant</h4>
+            <div className="mb-4">
+              <div className="font-semibold mb-1">Suggested Checklist Items:</div>
+              {botChecklist.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {botChecklist.map(item => (
+                    <label key={item} className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={pmConfigs[botModalIdx]?.pm_checklist_items.split(',').map(s => s.trim()).includes(item)}
+                        onChange={e => {
+                          const current = pmConfigs[botModalIdx]?.pm_checklist_items.split(',').map(s => s.trim()).filter(Boolean);
+                          let updated;
+                          if (e.target.checked) {
+                            updated = [...current, item];
+                          } else {
+                            updated = current.filter(i => i !== item);
+                          }
+                          setPmConfigs(pmConfigs.map((c, i) => i === botModalIdx ? { ...c, pm_checklist_items: updated.join(', ') } : c));
+                        }}
+                      />
+                      <span>{item}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : <div className="text-gray-500 text-sm">No suggestions for this equipment/class.</div>}
+              <textarea
+                value={botCustomChecklist}
+                onChange={e => setBotCustomChecklist(e.target.value)}
+                className="w-full px-2 py-1 border rounded mb-2"
+                rows={2}
+                placeholder="Add custom checklist items (comma separated)"
+              />
+              <button
+                type="button"
+                className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                onClick={() => {
+                  const current = pmConfigs[botModalIdx]?.pm_checklist_items.split(',').map(s => s.trim()).filter(Boolean);
+                  const custom = botCustomChecklist.split(',').map(s => s.trim()).filter(Boolean);
+                  const updated = Array.from(new Set([...current, ...custom]));
+                  setPmConfigs(pmConfigs.map((c, i) => i === botModalIdx ? { ...c, pm_checklist_items: updated.join(', ') } : c));
+                  setBotCustomChecklist('');
+                }}
+              >Add Custom Items</button>
+            </div>
+            <div className="mb-4">
+              <div className="font-semibold mb-1">Suggested Spare Parts:</div>
+              {botParts.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {botParts.map(item => (
+                    <label key={item} className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={pmConfigs[botModalIdx]?.pm_spare_parts.split(',').map(s => s.trim()).includes(item)}
+                        onChange={e => {
+                          const current = pmConfigs[botModalIdx]?.pm_spare_parts.split(',').map(s => s.trim()).filter(Boolean);
+                          let updated;
+                          if (e.target.checked) {
+                            updated = [...current, item];
+                          } else {
+                            updated = current.filter(i => i !== item);
+                          }
+                          setPmConfigs(pmConfigs.map((c, i) => i === botModalIdx ? { ...c, pm_spare_parts: updated.join(', ') } : c));
+                        }}
+                      />
+                      <span>{item}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : <div className="text-gray-500 text-sm">No suggestions for this equipment/class.</div>}
+              <textarea
+                value={botCustomParts}
+                onChange={e => setBotCustomParts(e.target.value)}
+                className="w-full px-2 py-1 border rounded mb-2"
+                rows={2}
+                placeholder="Add custom spare parts (comma separated)"
+              />
+              <button
+                type="button"
+                className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                onClick={() => {
+                  const current = pmConfigs[botModalIdx]?.pm_spare_parts.split(',').map(s => s.trim()).filter(Boolean);
+                  const custom = botCustomParts.split(',').map(s => s.trim()).filter(Boolean);
+                  const updated = Array.from(new Set([...current, ...custom]));
+                  setPmConfigs(pmConfigs.map((c, i) => i === botModalIdx ? { ...c, pm_spare_parts: updated.join(', ') } : c));
+                  setBotCustomParts('');
+                }}
+              >Add Custom Parts</button>
+            </div>
+            <button
+              type="button"
+              className="bg-green-600 text-white px-4 py-2 rounded"
+              onClick={() => setBotModalIdx(null)}
+            >Done</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,0 +1,119 @@
+/* Browser Compatibility Fixes - Aggressive Override */
+
+/* Force vendor prefixes for all filter properties */
+.filter-blur,
+.backdrop-blur-sm,
+.backdrop-blur,
+.backdrop-blur-md,
+.backdrop-blur-lg,
+.backdrop-blur-xl,
+.backdrop-blur-2xl,
+.backdrop-blur-3xl,
+[class*="filter"],
+[class*="blur"],
+* {
+  -webkit-filter: blur(var(--tw-backdrop-blur, 4px)) !important;
+  filter: blur(var(--tw-backdrop-blur, 4px)) !important;
+}
+
+/* Force text-size-adjust on all elements */
+html,
+body,
+* {
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+/* Force backdrop-filter prefixes */
+.backdrop-blur-sm,
+.backdrop-blur,
+.backdrop-blur-md,
+.backdrop-blur-lg,
+.backdrop-blur-xl,
+.backdrop-blur-2xl,
+.backdrop-blur-3xl,
+[class*="backdrop"],
+* {
+  -webkit-backdrop-filter: blur(var(--tw-backdrop-blur, 4px)) !important;
+  backdrop-filter: blur(var(--tw-backdrop-blur, 4px)) !important;
+}
+
+/* Force user-select prefixes */
+.select-none,
+[class*="select-none"],
+* {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+.select-text,
+[class*="select-text"] {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+
+.select-all,
+[class*="select-all"] {
+  -webkit-user-select: all !important;
+  -moz-user-select: all !important;
+  -ms-user-select: all !important;
+  user-select: all !important;
+}
+
+.select-auto,
+[class*="select-auto"] {
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+  user-select: auto !important;
+}
+
+/* Force forced-color-adjust */
+.forced-color-adjust-none,
+[class*="forced-color"],
+* {
+  forced-color-adjust: none !important;
+}
+
+/* Professional background for enterprise applications */
+body {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* Remove any dinosaur patterns */
+.background-image-set,
+[class*="image-set"] {
+  background-image: none !important;
+}
+
+/* Override any inline styles */
+[style*="filter"] {
+  -webkit-filter: inherit !important;
+  filter: inherit !important;
+}
+
+[style*="backdrop-filter"] {
+  -webkit-backdrop-filter: inherit !important;
+  backdrop-filter: inherit !important;
+}
+
+[style*="user-select"] {
+  -webkit-user-select: inherit !important;
+  -moz-user-select: inherit !important;
+  -ms-user-select: inherit !important;
+  user-select: inherit !important;
+}
+
+[style*="text-size-adjust"] {
+  -webkit-text-size-adjust: inherit !important;
+  -moz-text-size-adjust: inherit !important;
+  -ms-text-size-adjust: inherit !important;
+  text-size-adjust: inherit !important;
+}

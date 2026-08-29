@@ -1,7 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { useRoutes, useNavigate } from 'react-router-dom';
+import { useRoutes, useNavigate, useLocation } from 'react-router-dom';
 import Header from './components/layout/Header';
-import SyncStatusIndicator from './components/common/SyncStatusIndicator';
 import {
   LoginForm,
   ChangePasswordModal,
@@ -13,6 +12,10 @@ import { DataStorage } from './utils/dataStorage';
 import { User } from './types';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { AppRoutes } from './routes';
+import { AOPDataService } from './utils/aopDataService';
+import LogisticsDataService from './utils/logisticsDataService';
+
+import { LanguageProvider } from './i18n/LanguageContext';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -20,6 +23,7 @@ function App() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { syncStatus } = useOfflineSync();
   const routes = useRoutes(AppRoutes({ currentUser }));
@@ -34,20 +38,40 @@ function App() {
         localStorage.removeItem('qr_system_clear_data');
       }
       DataStorage.initializeDefaultAdmin();
-              const checkAuth = async () => {
-          const authenticated = await AuthManager.isAuthenticated();
-          const user = await AuthManager.getCurrentUser();
-          if (authenticated && user) {
-            setIsAuthenticated(true);
-            setCurrentUser(user);
-            if (user.isFirstLogin) {
-              setShowPasswordModal(true);
-            }
-            
+      
+      // Initialize AOP sample data
+      AOPDataService.initializeSampleData();
+      
+      // Initialize Logistics sample data
+      LogisticsDataService.getInstance();
+      
+      const checkAuth = async () => {
+        const authenticated = await AuthManager.isAuthenticated();
+        const user = await AuthManager.getCurrentUser();
+        if (authenticated && user) {
+          setIsAuthenticated(true);
+          setCurrentUser(user);
+          navigate(location.pathname, { replace: true });
+          if (user.isFirstLogin) {
+            setShowPasswordModal(true);
           }
-          setIsInitialized(true);
-        };
-        checkAuth();
+        } else {
+          // Auto-login as developer for development (bypass login screen)
+          const users = DataStorage.loadUsers();
+          const devUser = users.find(u => u.username === 'developer');
+          if (devUser) {
+            const token = btoa(`${devUser.id}:${Date.now()}`);
+            localStorage.setItem('qr_system_auth_token', token);
+            localStorage.setItem('qr_system_current_user', JSON.stringify(devUser));
+            setIsAuthenticated(true);
+            setCurrentUser(devUser);
+            navigate(location.pathname, { replace: true });
+            console.log('🔐 Auto-logged in as developer for development');
+          }
+        }
+        setIsInitialized(true);
+      };
+      checkAuth();
     }
   }, [isInitialized]);
 
@@ -57,7 +81,12 @@ function App() {
     if (user.isFirstLogin) {
       setShowPasswordModal(true);
     }
-    navigate('/');
+    // Redirect operators/workers to the action dashboard
+    if (user.role === 'operator') {
+      navigate('/worker');
+    } else {
+      navigate('/');
+    }
   };
 
   const handleLogout = () => {
@@ -73,12 +102,6 @@ function App() {
     if (updatedUser) {
       updatedUser.isFirstLogin = false;
       setCurrentUser(updatedUser);
-    }
-  };
-
-  const handleNotificationClick = (notification: any) => {
-    if ((notification.type === 'maintenance' || notification.type === 'inventory') && notification.action_url) {
-      navigate(notification.action_url);
     }
   };
 
@@ -104,27 +127,22 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <SyncStatusIndicator showDetails={true} position="top-right" />
-      <Header
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        onNotificationClick={handleNotificationClick}
-      />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <LanguageProvider>
+      <div className="h-screen flex flex-col bg-gray-50" dir={document.documentElement.dir || 'ltr'}>
+        <Header currentUser={currentUser} onLogout={handleLogout} />
+        <main className="flex-1 overflow-auto">
         {routes}
       </main>
       {showPasswordModal && currentUser && (
-        <Suspense fallback={<LoadingSpinner />}>
-          <ChangePasswordModal
-            isOpen={showPasswordModal}
-            onClose={handlePasswordChange}
-            userId={currentUser.id}
-            isFirstLogin={currentUser.isFirstLogin}
-          />
-        </Suspense>
+        <ChangePasswordModal
+          isOpen={showPasswordModal}
+          onClose={handlePasswordChange}
+          userId={currentUser.id}
+          isFirstLogin={currentUser.isFirstLogin}
+        />
       )}
     </div>
+    </LanguageProvider>
   );
 }
 

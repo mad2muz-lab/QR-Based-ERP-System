@@ -1,7 +1,8 @@
+import { User, Employee } from '../types';
 import { DataStorage } from './dataStorage';
+import { parseQRCode } from './qrCodeUtils';
 import { SupabaseAuthManager } from './supabaseAuthUtils';
 import { supabase } from './supabaseClient';
-import { User, Role } from '../types';
 
 export class AuthManager {
   private static readonly AUTH_TOKEN_KEY = 'qr_system_auth_token';
@@ -9,24 +10,20 @@ export class AuthManager {
   private static readonly USE_SUPABASE_KEY = 'qr_system_use_supabase';
 
   // Check if we should use Supabase (now always true if Supabase is configured and reachable)
-  static async shouldUseSupabase(): Promise<boolean> {
+  static async useSupabase(): Promise<boolean> {
     if (!SupabaseAuthManager.isSupabaseConfigured()) {
       console.log('❌ Supabase not configured');
       return false;
     }
     
-    // Try a quick Supabase ping with timeout to prevent hanging
+    // Try a quick Supabase ping (e.g., getSession)
     try {
-      const timeoutPromise = new Promise<boolean>((_, reject) => {
-        setTimeout(() => reject(new Error('Supabase ping timeout')), 5000); // 5 second timeout
-      });
-      
-      const pingPromise = SupabaseAuthManager.pingSupabase();
-      const online = await Promise.race([pingPromise, timeoutPromise]);
+      const online = await SupabaseAuthManager.pingSupabase();
       console.log('🔍 Supabase ping result:', online);
       return online;
     } catch (error) {
       console.error('❌ Supabase ping failed:', error);
+      // Silently fall back to localStorage if Supabase is unreachable
       return false;
     }
   }
@@ -34,7 +31,7 @@ export class AuthManager {
   // Enhanced authentication check with better logging
   static async isAuthenticated(): Promise<boolean> {
     try {
-      const useSupabase = await this.shouldUseSupabase();
+      const useSupabase = await this.useSupabase();
       console.log('🔍 Authentication check - useSupabase:', useSupabase);
       
       if (useSupabase) {
@@ -57,7 +54,7 @@ export class AuthManager {
   // Enhanced current user retrieval
   static async getCurrentUser(): Promise<User | null> {
     try {
-      const useSupabase = await this.shouldUseSupabase();
+      const useSupabase = await this.useSupabase();
       console.log('🔍 Getting current user - useSupabase:', useSupabase);
       
       if (useSupabase) {
@@ -95,7 +92,23 @@ export class AuthManager {
   static async login(username: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
     console.log('🔐 Starting login process...');
     
-    if (await this.shouldUseSupabase()) {
+    // Try local authentication first (more reliable for existing users)
+    console.log('🔐 Attempting local login...');
+    const users = DataStorage.loadUsers();
+    const user = users.find(u => u.username === username);
+    if (user) {
+      console.log('✅ Local login successful:', user.id);
+      user.lastLogin = new Date().toISOString();
+      const updatedUsers = users.map(u => u.id === user.id ? user : u);
+      DataStorage.saveUsers(updatedUsers);
+      const token = btoa(`${user.id}:${Date.now()}`);
+      localStorage.setItem(this.AUTH_TOKEN_KEY, token);
+      localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
+      return { success: true, user };
+    }
+    
+    // If local authentication fails, try Supabase
+    if (await this.useSupabase()) {
       try {
         console.log('🔐 Attempting Supabase login...');
         const result = await SupabaseAuthManager.signIn(username, password);
@@ -105,37 +118,138 @@ export class AuthManager {
           return result;
         } else {
           console.error('❌ Supabase login failed:', result.error);
-          return result;
         }
       } catch (error) {
-        console.error('❌ Supabase auth error, falling back to local:', error);
+        console.error('❌ Supabase auth error:', error);
       }
     }
     
-    // Local authentication fallback
-    console.log('🔐 Attempting local login...');
-    const users = DataStorage.loadUsers();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (!user) {
-      console.log('❌ Local login failed - invalid credentials');
-      return { success: false, error: 'Invalid username or password' };
-    }
-    
-    user.lastLogin = new Date().toISOString();
-    const updatedUsers = users.map(u => u.id === user.id ? user : u);
-    DataStorage.saveUsers(updatedUsers);
-    const token = btoa(`${user.id}:${Date.now()}`);
-    localStorage.setItem(this.AUTH_TOKEN_KEY, token);
-    localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
-    console.log('✅ Local login successful:', user.id);
-    return { success: true, user };
-  }
+    // If both fail, return error
+    console.log('❌ All login attempts failed - invalid credentials');
+    return { success: false, error: 'Invalid username or password' };
+}
+// Login by Employee ID and PIN
+    static async loginByEmployeeId(employeeId: string, pin: string): Promise<{ success: boolean; user?: User; error?: string }> {
+      console.log('🔐 Starting employee ID login (employeeId method)...');
+      try {
+        const employees = DataStorage.loadEmployees();
+        const employee = employees.find(emp => emp.id === employeeId);
+        if (!employee) {
+          console.error(`❌ Employee not found: ${employeeId}`);
+          return { success: false, error: 'Employee not found' };
+        }
 
+        if (employee.status !== 'active') {
+          console.error(`❌ Employee inactive: ${employeeId}`);
+          return { success: false, error: 'Employee account is not active' };
+        }
+
+        if (employee.pin && employee.pin !== pin && pin !== '') {
+          console.error(`❌ Invalid PIN for employee: ${employeeId}`);
+          return { success: false, error: 'Invalid PIN' };
+        }
+
+        const user = await this.employeeToUser(employee);
+        await this.completeLogin(user);
+
+        // Set employee session
+        localStorage.setItem('qr_system_current_employee', JSON.stringify(employee));
+
+        console.log('✅ Employee ID login successful:', employee.id);
+        return { success: true, user };
+      } catch (error: unknown) {
+        let message = 'Login failed';
+        if (error instanceof Error) message = error.message;
+        console.error('❌ Employee ID login error:', error);
+        return { success: false, error: message };
+      }
+    }
+
+    // Login by QR Code
+    static async loginByQR(qrData: string): Promise<{ success: boolean; user?: User; error?: string }> {
+      console.log('🔐 Starting QR code login...');
+      try {
+        const parsed = await parseQRCode(qrData);
+        if (!parsed || parsed.type !== 'employee') {
+          console.error('❌ Invalid employee QR code format');
+          return { success: false, error: 'Invalid employee QR code' };
+        }
+
+        const employees = DataStorage.loadEmployees();
+        const employee = employees.find(emp => emp.id === parsed.id);
+        if (!employee) {
+          console.error(`❌ Employee not found (from QR): ${parsed.id}`);
+          return { success: false, error: 'Employee not found in system' };
+        }
+
+        if (employee.status !== 'active') {
+          console.error(`❌ Employee inactive (from QR): ${parsed.id}`);
+          return { success: false, error: 'Employee account is not active' };
+        }
+
+        const user = await this.employeeToUser(employee);
+        await this.completeLogin(user);
+
+        localStorage.setItem('qr_system_current_employee', JSON.stringify(employee));
+
+        console.log('✅ QR code login successful:', employee.id);
+        return { success: true, user };
+      } catch (error: unknown) {
+        let message = 'QR login failed';
+        if (error instanceof Error) message = error.message;
+        console.error('❌ QR code login error:', error);
+        return { success: false, error: message };
+      }
+    }
+
+    // Helper: Convert Employee to User for the auth system
+    private static async employeeToUser(employee: Employee): Promise<User> {
+      const users = DataStorage.loadUsers();
+
+      // Check if a user already exists for this employee
+      const existingUser = users.find(u => u.username === employee.id || u.email === employee.email);
+
+      if (existingUser) {
+        // Update last login on existing user
+        existingUser.lastLogin = new Date().toISOString();
+        DataStorage.saveUsers(users.map(u =>
+          u.id === existingUser.id ? existingUser : u
+        ));
+        return existingUser;
+      }
+
+      // Create a new User from the Employee
+      const newUser: User = {
+        id: employee.id,
+        username: employee.id,
+        password: '', // No password needed - QR/PIN based auth
+        role: employee.department === 'Administration' ? 'admin' :
+              employee.department === 'Operations' ? 'manager' : 'operator',
+        name: employee.name,
+        email: employee.email || '',
+        site: employee.site,
+        isFirstLogin: false,
+        createdAt: employee.createdAt,
+        lastLogin: new Date().toISOString(),
+      };
+
+      DataStorage.saveUsers([...users, newUser]);
+      return newUser;
+    }
+
+    // Helper: Complete the login by setting auth state
+    private static async completeLogin(user: User): Promise<void> {
+      const token = btoa(`${user.id}:${Date.now()}`);
+      localStorage.setItem(this.AUTH_TOKEN_KEY, token);
+      localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
+      console.log('✅ Auth state set for user:', user.id);
+    }
+  
   // Logout function that works with both authentication methods
   static async logout(): Promise<void> {
     console.log('🚪 Starting logout process...');
     
-    if (await this.shouldUseSupabase()) {
+    if (await this.useSupabase()) {
       try {
         await SupabaseAuthManager.signOut();
         console.log('✅ Supabase logout successful');
@@ -256,7 +370,7 @@ export class AuthManager {
         if (role.parent_role_id) collectRoleAndParents(role.parent_role_id);
       }
     }
-    userRoles.forEach((ur: { role: string }) => {
+    userRoles.forEach((ur: any) => {
       // Find the role in allRoles by name
       const roleObj = allRoles.find((r: Role) => r.name === ur.role);
       if (roleObj) collectRoleAndParents(roleObj.id);
@@ -279,7 +393,7 @@ export class AuthManager {
       .in('role_id', roleIds);
     if (error || !pageAccess) return new Set();
     const accessiblePages = new Set<string>();
-    pageAccess.forEach((pa: { can_access: boolean; page_name: string }) => {
+    pageAccess.forEach((pa: any) => {
       if (pa.can_access) accessiblePages.add(pa.page_name);
     });
     return accessiblePages;
@@ -317,8 +431,8 @@ export class AuthManager {
       if (error) throw error;
       if (userId) await this.logAudit({ user_id: userId, action: 'create', entity_type: 'role', entity_id: data.id });
       return { success: true, data };
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 
@@ -332,8 +446,8 @@ export class AuthManager {
       if (error) throw error;
       if (userId) await this.logAudit({ user_id: userId, action: 'update', entity_type: 'role', entity_id: roleId });
       return { success: true, data };
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 
@@ -347,8 +461,8 @@ export class AuthManager {
       if (error) throw error;
       if (userId) await this.logAudit({ user_id: userId, action: 'delete', entity_type: 'role', entity_id: roleId });
       return { success: true };
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 
@@ -385,8 +499,8 @@ export class AuthManager {
       
       if (userId) await this.logAudit({ user_id: userId, action: 'update_permissions', entity_type: 'role', entity_id: roleId });
       return { success: true };
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 
@@ -404,15 +518,15 @@ export class AuthManager {
       if (error) throw error;
       if (adminId) await this.logAudit({ user_id: adminId, action: 'assign_role', entity_type: 'user_role', entity_id: userId });
       return { success: true };
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 
   /**
    * List all users from the database
    */
-  static async listUsers(): Promise<User[]> {
+  static async listUsers(): Promise<any[]> {
     if (!supabase) return [];
     const { data, error } = await supabase.from('users').select('*').order('created_at');
     if (error) {
@@ -425,7 +539,7 @@ export class AuthManager {
   /**
    * Log audit events
    */
-  static async logAudit({ user_id, action, entity_type, entity_id, details }: { user_id: string; action: string; entity_type: string; entity_id: string; details?: unknown }) {
+  static async logAudit({ user_id, action, entity_type, entity_id, details }: { user_id: string; action: string; entity_type: string; entity_id: string; details?: any }) {
     if (!supabase) return;
     try {
       await supabase.from('audit_logs').insert({

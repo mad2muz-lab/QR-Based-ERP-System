@@ -15,21 +15,107 @@ export interface Employee {
   status: 'active' | 'inactive';
   createdAt: string;
   lastUpdated: string;
+  lastLogin?: string;
   photo?: string;
   email?: string;
   phone?: string;
-  oldId: string; // Legacy ID from previous system - MANDATORY FIELD
+  pin?: string;
+  oldId?: string;
   companyId?: string;
   costCenterCode?: string; // Cost center code for financial analysis
   profitCenterCode?: string; // Profit center code for financial analysis
-  hourlyRate: number;
+  
+  // HR Extended Data
+  hrData?: {
+    // Personal Information
+    dateOfBirth?: string;
+    nationality?: string;
+    maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
+    gender?: 'male' | 'female' | 'other';
+    
+    // Employment Details
+    employmentType?: 'full-time' | 'part-time' | 'contract' | 'temporary';
+    startDate?: string;
+    supervisor?: string;
+    workLocation?: string;
+    
+    // Payroll Information
+    baseSalary?: number;
+    currency?: string;
+    bankAccount?: string;
+    bankName?: string;
+    taxStatus?: string;
+    deductions?: string[];
+    
+    // Leave Information
+    annualLeaveEntitlement?: number;
+    sickLeaveBalance?: number;
+    leaveAccrualRate?: number;
+    leaveHistory?: Array<{
+      type: string;
+      startDate: string;
+      endDate: string;
+      days: number;
+      status: 'pending' | 'approved' | 'rejected';
+    }>;
+    
+    // Emergency Contacts
+    emergencyContacts?: Array<{
+      name: string;
+      relationship: string;
+      phone: string;
+      email?: string;
+    }>;
+    
+    // Educational Background
+    education?: Array<{
+      level: string;
+      institution: string;
+      field: string;
+      yearCompleted: string;
+      certificate?: string;
+    }>;
+    
+    // Skills & Certifications
+    skills?: Array<{
+      skill: string;
+      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      certified: boolean;
+      certificationDate?: string;
+    }>;
+    
+    // Performance Data
+    performanceHistory?: Array<{
+      year: string;
+      rating: number;
+      reviewDate: string;
+      reviewer: string;
+      comments?: string;
+    }>;
+    
+    // Compliance & Medical
+    medicalInfo?: {
+      bloodType?: string;
+      allergies?: string[];
+      medicalConditions?: string[];
+      emergencyContact?: string;
+    };
+    
+    // Benefits
+    benefits?: {
+      healthInsurance?: boolean;
+      lifeInsurance?: boolean;
+      retirementPlan?: boolean;
+      otherBenefits?: string[];
+    };
+  };
 }
 
 export interface Equipment {
   id: string; // Auto-generated UUID (primary key)
   custom_equipment_id: string; // User-defined unique identifier
-  name: string;
-  type: string;
+  equipment_name: string; // Updated: was 'name'
+  equipment_type: string; // Updated: was 'type'
   model: string;
   site: string;
   qrCode: string;
@@ -38,14 +124,26 @@ export interface Equipment {
   createdAt: string;
   lastUpdated: string;
   serialNumber?: string;
-  oldId: string; // Legacy ID from previous system - MANDATORY FIELD
+  oldId?: string; // Legacy ID from previous system
   companyId?: string;
-  costCenterCode?: string; // Cost center code for financial analysis
-  profitCenterCode?: string; // Profit center code for financial analysis
-  hourly_rate?: number; // Hourly rate for usage revenue calculation
-  usageDuration?: number; // Cumulative usage duration in hours
-  standbyDuration?: number; // Cumulative standby duration in hours
-  maintenanceDuration?: number; // Cumulative maintenance duration in hours
+  maintenanceTriggerId?: string; // Reference to maintenance trigger
+  costCenterCode?: string;
+  profitCenterCode?: string;
+  // Deprecated single-class PM fields (for backward compatibility)
+  is_pm?: boolean;
+  pm_class?: string;
+  pm_frequency_days?: number | string;
+  pm_frequency_hours?: number | string;
+  pm_checklist_items?: string[];
+  pm_spare_parts?: string[];
+  // New multi-class PM config
+  pm_configs?: Array<{
+    pm_class: string;
+    pm_frequency_days?: number;
+    pm_frequency_hours?: number;
+    pm_checklist_items?: string[];
+    pm_spare_parts?: string[];
+  }>;
 }
 
 export interface Material {
@@ -61,11 +159,10 @@ export interface Material {
   lastUpdated: string;
   use?: string;
   accessLevel?: 'basic' | 'restricted' | 'admin';
-  oldId: string; // Legacy ID from previous system - MANDATORY FIELD
+  oldId?: string; // Legacy ID from previous system
   companyId?: string;
   costCenterCode?: string; // Cost center code for financial analysis
   profitCenterCode?: string; // Profit center code for financial analysis
-  cost?: number; // Cost per material unit
 }
 
 export interface Site {
@@ -108,9 +205,6 @@ export interface EmployeeLog {
   notes?: string;
   location?: [number, number];
   oldId?: string; // Legacy ID from previous system
-  regular_hours?: number;
-  overtime_hours?: number;
-  total_work_hours?: number;
 }
 
 export interface EquipmentLog {
@@ -127,16 +221,6 @@ export interface EquipmentLog {
   notes?: string;
   location?: [number, number];
   oldId?: string; // Legacy ID from previous system
-  usageDuration?: number; // Duration in hours, only for 'stop-use' logs
-  standbyDuration?: number; // Duration in hours, only for 'standby-end' logs
-  maintenanceDuration?: number; // Duration in hours, only for 'maintenance-end' logs
-  // Supabase column mappings (snake_case)
-  equipment_id?: string;
-  equipment_name?: string;
-  equipment_type?: string;
-  usage_duration?: number;
-  standby_duration?: number;
-  maintenance_duration?: number;
 }
 
 export interface MaterialLog {
@@ -187,7 +271,62 @@ export interface AuthState {
 }
 
 // Equipment Maintenance System Types
+export interface EquipmentMaintenanceLog {
+  id: string;
+  equipment_id: string; // This is TEXT in database, not UUID
+  maintenance_type: 'repair' | 'service';
+  repair_type?: 'on_site' | 'yard_repair';
+  service_type?: 'type_a' | 'type_b' | 'type_c';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  description?: string;
+  technician_notes?: string;
+  parts_used?: string;
+  start_date: string;
+  completed_date?: string; // Fixed: was completion_date, should be completed_date
+  completed_by?: string;
+  estimated_duration_hours?: number; // Can be decimal like 1.5
+  actual_duration_hours?: number; // Can be decimal like 1.5
+  cost?: number;
+  next_maintenance_date?: string;
+  created_at: string;
+  updated_at: string;
+  // New fields for reporting
+  equipment_name?: string;
+  old_equipment_id?: string;
+  equipment_type?: string;
+  model?: string;
+  serial_number?: string;
+  site_assignment?: string;
+  // Enhanced workflow fields
+  assigned_technician?: string;
+  workflow_step?: 'marked' | 'inspected' | 'in_progress' | 'completed';
+  inspection_date?: string;
+  work_start_date?: string;
+  work_completion_date?: string;
+  equipment_condition_before?: string;
+  equipment_condition_after?: string;
+  safety_checks_completed?: boolean;
+  quality_checks_completed?: boolean;
+  maintenance_class?: string; // Added for UI compatibility
+  triggered_by?: string; // Indicates if log was triggered by QR scan or other method
+}
 
+export interface EquipmentMaintenanceSchedule {
+  id: string;
+  equipment_id: string; // This is TEXT in database, not UUID
+  schedule_type: 'preventive' | 'corrective' | 'emergency';
+  maintenance_type: 'repair' | 'service';
+  maintenance_class?: 'A' | 'B' | 'C'; // Added for class-based filtering
+  frequency_days?: number;
+  last_maintenance_date?: string;
+  next_maintenance_date: string;
+  assigned_technician?: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 // Purchase Request System Types
 export interface PurchaseRequest {
@@ -256,7 +395,7 @@ export interface UserRole {
   id: string;
   user_id: string;
   role: 'technician' | 'manager' | 'admin' | 'viewer';
-  permissions: Record<string, unknown>;
+  permissions: Record<string, any>;
   assigned_by?: string;
   assigned_at: string;
   is_active: boolean;
@@ -274,7 +413,47 @@ export interface PageAccess {
 }
 
 // Enhanced maintenance workflow types
+export interface MaintenanceWorkflowHistory {
+  id: string;
+  maintenance_log_id: string;
+  workflow_step: string;
+  action_performed: string;
+  performed_by?: string;
+  performed_at: string;
+  notes?: string;
+  equipment_status_before?: string;
+  equipment_status_after?: string;
+}
 
+export interface MaintenanceDashboardView {
+  id: string;
+  equipment_id: string;
+  maintenance_type: 'repair' | 'service';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  description?: string;
+  start_date: string;
+  completed_date?: string; // Fixed: was completion_date, should be completed_date
+  equipment_name: string;
+  custom_equipment_id: string;
+  equipment_type: string;
+  equipment_site: string;
+  equipment_operational_status: string;
+  workflow_status_display: string;
+  workflow_step_display: string;
+  total_hours_elapsed: number;
+  work_hours_elapsed: number;
+}
+
+export interface MaintenanceStatistics {
+  total_maintenance_requests: number;
+  completed_maintenance: number;
+  in_progress_maintenance: number;
+  scheduled_maintenance: number;
+  average_completion_time_hours: number;
+  total_cost: number;
+  repair_count: number;
+  service_count: number;
+}
 
 export interface Role {
   id: string;
@@ -330,6 +509,54 @@ export interface ProfitCenter {
 export { MATERIAL_TYPES };
 export type { MaterialType };
 
+// Multi-Warehouse Inventory Types
+export interface MaterialStock {
+  id: string;
+  materialId: string;
+  siteId: string;
+  zoneId?: string;
+  quantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  reorderLevel: number;
+  unitCost: number;
+  locationDetail: string; // e.g., "Aisle 3, Rack B, Shelf 2"
+  lastCountedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WarehouseZone {
+  id: string;
+  siteId: string;
+  name: string; // e.g., "Receiving", "Storage A", "Cold Storage"
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StockMovement {
+  id: string;
+  materialId: string;
+  fromSiteId?: string;
+  toSiteId?: string;
+  fromZoneId?: string;
+  toZoneId?: string;
+  quantity: number;
+  action: 'receive' | 'issue' | 'transfer' | 'adjustment' | 'return';
+  referenceNumber?: string; // PO#, GRN#, etc.
+  performedBy: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface SiteWithStats extends Site {
+  totalMaterials: number;
+  totalValue: number;
+  zones: WarehouseZone[];
+}
+
 // Material Selection for Maintenance
 export interface MaterialSelection {
   materialId: string;
@@ -345,5 +572,66 @@ export interface MaterialSelection {
   prId?: string;
 }
 
-// Maintenance Material Request System
+// Batch/Lot Tracking
+export interface BatchLot {
+  id: string;
+  materialId: string;
+  batchNumber: string;
+  lotNumber?: string;
+  manufacturingDate?: string;
+  expirationDate?: string;
+  supplierBatchCode?: string;
+  quantity: number;
+  unit: string;
+  status: 'active' | 'expired' | 'quarantined';
+  createdAt: string;
+  updatedAt: string;
+}
 
+// Serial Number Tracking
+export interface SerialNumber {
+  id: string;
+  materialId: string;
+  serialNumber: string;
+  currentLocation: string;
+  status: 'in_stock' | 'in_use' | 'installed' | 'returned' | 'scrapped';
+  assignedTo?: string;
+  assignedAt?: string;
+  warrantyExpiry?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Enhanced Material with batch/serial support
+export interface ExtendedMaterial {
+  id: string;
+  sku: string;
+  name: string;
+  type: MaterialType;
+  unit: string;
+  site: string;
+  qrCode: string;
+  quantity: number;
+  status: 'available' | 'low-stock' | 'out-of-stock';
+  createdAt: string;
+  lastUpdated: string;
+  use?: string;
+  accessLevel?: 'basic' | 'restricted' | 'admin';
+  oldId?: string;
+  rooting?: string;
+  rootingDate?: string;
+  rootingLocation?: string;
+  rootingNotes?: string;
+  rootingDestination?: string;
+  rootingCondition?: string;
+  rootingDestinationDate?: string;
+  rootingDestinationNotes?: string;
+  rootingDestinationCondition?: string;
+  rootingDestinationLocation?: string;
+  rootingDestinationNotes?: string;
+  rootingDestinationCondition?: string;
+  rootingDestinationLocation?: string;
+  rootingDestinationNotes?: string;
+  rootingDestinationCondition?: string;
+  rootingDestinationLocation?: string;
+}

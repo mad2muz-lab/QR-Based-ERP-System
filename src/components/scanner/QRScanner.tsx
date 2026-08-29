@@ -1,27 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import QrScanner from 'qr-scanner';
-import { 
-  Camera, 
-  Upload,
-  Clock, 
-  AlertCircle, 
-  UserPlus, 
-  Package, 
-  Scan, 
-  User, 
-  Wrench, 
-  Building, 
-  Pause, 
-  CheckCircle 
-} from 'lucide-react';
+import { Camera, Upload, Clock, AlertCircle, CheckCircle, UserPlus, Package, Scan, User, Wrench, Building, Pause, AlertTriangle, Settings } from 'lucide-react';
+import TimeTrackingPanel from './TimeTrackingPanel';
+import MaterialScanner from './MaterialScanner';
+// Equipment scanner functionality now integrated directly into main QR scanner
 import { parseQRCode } from '../../utils/qrCodeUtils';
+import { DataStorage } from '../../utils/dataStorage';
 import { getShiftStatus } from '../../utils/timeUtils';
 import { useHardwareScanner } from '../../hooks/useHardwareScanner';
+import { OfflineDataManager } from '../../utils/offlineDataManager';
 import { logManager } from '../../utils/logManager';
-import { DataStorage } from '../../utils/dataStorage';
+import { AuthManager } from '../../utils/authUtils';
+import { SupabaseDataService } from '../../utils/supabaseDataService';
 import { fetchData, getAllLogs } from '../../utils/dataProxy';
+import { Employee, Equipment, Material, Site, TimeLog } from '../../types';
 import UnifiedScanResult from './UnifiedScanResult';
-import { supabase } from '../../utils/supabaseClient';
+import { maintenanceService } from '../../utils/maintenanceService';
+import EquipmentMaintenanceModal from './EquipmentMaintenanceModal';
 
 
 const QRScanner: React.FC = () => {
@@ -52,6 +47,10 @@ const QRScanner: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const isProcessingRef = useRef<boolean>(false);
   
+  // Maintenance modal state
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+  
   // Use hardware scanner hook
   useHardwareScanner({
     onScan: async (data) => {
@@ -79,7 +78,43 @@ const QRScanner: React.FC = () => {
         fetchData('materials'),
       ]);
       
-      setAllEntities({ employees, equipment, materials });
+      // If no equipment exists, create some test equipment
+      if (equipment.length === 0) {
+        console.log('No equipment found, creating test equipment...');
+        const testEquipment: Equipment[] = [
+          {
+            id: 'eqp-001',
+            custom_equipment_id: 'EQP-TEST-001',
+            name: 'Test Excavator',
+            type: 'Excavator',
+            model: 'CAT 320',
+            site: 'Riyadh Site',
+            qrCode: 'EQP-TEST-001',
+            status: 'available' as const,
+            operational_status: 'working' as const,
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          },
+          {
+            id: 'eqp-002',
+            custom_equipment_id: 'EQP-TEST-002',
+            name: 'Test Bulldozer',
+            type: 'Bulldozer',
+            model: 'CAT D6',
+            site: 'Jeddah Site',
+            qrCode: 'EQP-TEST-002',
+            status: 'available' as const,
+            operational_status: 'working' as const,
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          }
+        ];
+        
+        DataStorage.saveEquipment(testEquipment);
+        setAllEntities({ employees, equipment: testEquipment, materials });
+      } else {
+        setAllEntities({ employees, equipment, materials });
+      }
     })();
   }, []);
 
@@ -92,19 +127,19 @@ const QRScanner: React.FC = () => {
     }
     setIsSearching(true);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      const q = searchQuery.toLowerCase();
-      const emp = allEntities.employees.filter(e => e.name?.toLowerCase().includes(q) || e.id?.toLowerCase().includes(q) || e.department?.toLowerCase().includes(q));
-      const eq = allEntities.equipment.filter(e => e.name?.toLowerCase().includes(q) || e.id?.toLowerCase().includes(q) || e.custom_equipment_id?.toLowerCase().includes(q) || e.type?.toLowerCase().includes(q));
-      const mat = allEntities.materials.filter(m => m.name?.toLowerCase().includes(q) || m.id?.toLowerCase().includes(q) || m.type?.toLowerCase().includes(q));
-      setSearchResults([
-        ...emp.map(e => ({ ...e, _entityType: 'employee' })),
-        ...eq.map(e => ({ ...e, _entityType: 'equipment' })),
-        ...mat.map(m => ({ ...m, _entityType: 'material' })),
-      ]);
-      setIsSearching(false);
-    }, 200);
-     
+searchTimeout.current = setTimeout(() => {
+    const q = searchQuery.toLowerCase();
+    const emp = allEntities.employees.filter(e => e.name?.toLowerCase().includes(q) || e.id?.toLowerCase().includes(q) || e.department?.toLowerCase().includes(q));
+    const eq = allEntities.equipment.filter(e => e.name?.toLowerCase().includes(q) || e.id?.toLowerCase().includes(q) || e.custom_equipment_id?.toLowerCase().includes(q) || e.type?.toLowerCase().includes(q));
+    const mat = allEntities.materials.filter(m => m.name?.toLowerCase().includes(q) || m.id?.toLowerCase().includes(q) || m.type?.toLowerCase().includes(q));
+    setSearchResults([
+      ...emp.map(e => ({ ...e, _entityType: 'employee' })),
+      ...eq.map(e => ({ ...e, _entityType: 'equipment' })),
+      ...mat.map(m => ({ ...m, _entityType: 'material' })),
+    ]);
+    setIsSearching(false);
+  }, 200);
+    // eslint-disable-next-line
   }, [searchQuery, allEntities]);
 
   // Simulate QR scan on selection
@@ -199,40 +234,18 @@ const QRScanner: React.FC = () => {
   };
 
   const handleScanResult = async (qrData: string) => {
-    console.log('🔍 QR Scanner: Processing scan result:', qrData);
-    console.log('🔍 QR Scanner: Raw data length:', qrData.length);
-    console.log('🔍 QR Scanner: Raw data characters:', Array.from(qrData).map(c => `"${c}"(${c.charCodeAt(0)})`).join(' '));
-    
-    // Check for potential Honeywell device issues
-    if (qrData.includes('\r') || qrData.includes('\n')) {
-      console.warn('⚠️ QR Scanner: QR data contains line breaks, cleaning...');
-      qrData = qrData.replace(/[\r\n]/g, '');
-      console.log('🔍 QR Scanner: Cleaned data:', qrData);
-    }
-    
-    // Check for extra spaces or characters
-    const trimmedData = qrData.trim();
-    if (trimmedData !== qrData) {
-      console.warn('⚠️ QR Scanner: QR data had leading/trailing spaces, trimming...');
-      qrData = trimmedData;
-      console.log('🔍 QR Scanner: Trimmed data:', qrData);
-    }
-    
     // Improved debounce: Allow re-scanning after actions complete, but prevent rapid duplicate scans
     const now = Date.now();
-    if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5 seconds to prevent immediate re-scan
-      console.log('🚫 Duplicate scan detected, ignoring');
-      return;
-    }
+if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5 seconds to prevent immediate re-scan
+  return;
+}
     
     setLastScannedCode(qrData);
     setLastScanTime(now);
     
     const parsed = await parseQRCode(qrData);
-    console.log('🔍 QR Scanner: Parsed result:', parsed);
     
     if (!parsed.type || parsed.type === null) {
-      console.error('❌ QR Scanner: Invalid QR code format:', qrData);
       setError('Invalid QR code format');
       return;
     }
@@ -241,8 +254,6 @@ const QRScanner: React.FC = () => {
     let employees, equipment, materials, sites, allLogs;
     try {
       setError('Loading data...');
-      console.log('🔍 QR Scanner: Loading data from all sources...');
-      
       [employees, equipment, materials, sites, allLogs] = await Promise.all([
         fetchData('employees'),
         fetchData('equipment'),
@@ -251,16 +262,9 @@ const QRScanner: React.FC = () => {
         getAllLogs()
       ]);
       
-      console.log('🔍 QR Scanner: Data loaded successfully:', {
-        employees: employees?.length || 0,
-        equipment: equipment?.length || 0,
-        materials: materials?.length || 0,
-        sites: sites?.length || 0
-      });
-      
       setError(''); // Clear loading message
     } catch (error) {
-      console.error('❌ QR Scanner: Failed to load data:', error);
+      console.error('Failed to load data:', error);
       setError('Failed to load data. Please try again.');
       return;
     }
@@ -278,30 +282,24 @@ const QRScanner: React.FC = () => {
 
     // Handle unknown QR codes by detecting entity type
     if (parsed.type === 'unknown') {
-      console.log('🔍 QR Scanner: Processing unknown QR code, searching all entity types...');
-      
       // Check equipment first (most likely for custom IDs)
       entity = (equipment as any[]).find((eq: any) => 
         eq.custom_equipment_id === parsed.id || eq.id === parsed.id
       );
       if (entity) {
-        console.log('✅ QR Scanner: Found matching equipment:', entity.name);
         entityType = 'equipment';
       } else {
         // Check other entity types
         entity = (employees as any[]).find((emp: any) => emp.id === parsed.id);
         if (entity) {
-          console.log('✅ QR Scanner: Found matching employee:', entity.name);
           entityType = 'employee';
         } else {
           entity = (materials as any[]).find((mat: any) => mat.id === parsed.id);
           if (entity) {
-            console.log('✅ QR Scanner: Found matching material:', entity.name);
             entityType = 'material';
           } else {
             entity = (sites as any[]).find((site: any) => site.id === parsed.id);
             if (entity) {
-              console.log('✅ QR Scanner: Found matching site:', entity.name);
               entityType = 'site';
             }
           }
@@ -309,13 +307,6 @@ const QRScanner: React.FC = () => {
       }
       
       if (!entity) {
-        console.error('❌ QR Scanner: No entity found with ID:', parsed.id);
-        console.log('🔍 Available entities:', {
-          employees: (employees as any[])?.map(e => e.id) || [],
-          equipment: (equipment as any[])?.map(e => ({ id: e.id, custom_id: e.custom_equipment_id })) || [],
-          materials: (materials as any[])?.map(m => m.id) || [],
-          sites: (sites as any[])?.map(s => s.id) || []
-        });
         setError(`No entity found with ID: ${parsed.id}`);
         return;
       }
@@ -324,13 +315,10 @@ const QRScanner: React.FC = () => {
     // Find the entity based on type and ID
     switch (entityType) {
       case 'employee':
-        console.log('🔍 QR Scanner: Processing employee scan for ID:', parsed.id);
-        console.log('🔍 QR Scanner: Available employees:', (employees as any[])?.map(e => e.id) || []);
         if (!entity) {
           entity = (employees as any[]).find((emp: any) => emp.id === parsed.id);
         }
         if (entity) {
-          console.log('✅ QR Scanner: Found employee:', entity.name);
           // Check current status from recent employee logs
           const employeeLogs = allLogs.employeeLogs || allLogs || [];
           const recentLog = employeeLogs
@@ -381,34 +369,19 @@ const QRScanner: React.FC = () => {
             });
           }
         } else {
-          console.error('❌ QR Scanner: Employee not found with ID:', parsed.id);
-          console.log('🔍 QR Scanner: Trying fallback lookup for employee...');
-          
-          // Try fallback lookup in case the ID format is different
-          const fallbackEmployee = (employees as any[]).find((emp: any) => 
-            emp.id.includes(parsed.id) || parsed.id.includes(emp.id) ||
-            emp.id.replace(/[^A-Z0-9]/g, '') === parsed.id.replace(/[^A-Z0-9]/g, '')
-          );
-          
-          if (fallbackEmployee) {
-            console.log('✅ QR Scanner: Found employee via fallback:', fallbackEmployee.name);
-            entity = fallbackEmployee;
-            // Continue with the employee processing...
-          } else {
-            // Employee not found in registration system
-            setError(`Employee with ID ${parsed.id} not found in the system.`);
-            setScanResult({
-              type: 'unregistered_employee',
-              entityId: parsed.id,
-              actions: [{
-                id: 'register-employee',
-                label: 'Register Employee',
-                description: 'This employee ID is not registered in the system',
-                icon: UserPlus,
-                color: 'blue'
-              }]
-            });
-          }
+          // Employee not found in registration system
+          setError(`Employee with ID ${parsed.id} not found in the system.`);
+          setScanResult({
+            type: 'unregistered_employee',
+            entityId: parsed.id,
+            actions: [{
+              id: 'register-employee',
+              label: 'Register Employee',
+              description: 'This employee ID is not registered in the system',
+              icon: UserPlus,
+              color: 'blue'
+            }]
+          });
         }
         break;
 
@@ -417,34 +390,57 @@ const QRScanner: React.FC = () => {
         console.log('🔍 Searching for equipment with ID:', parsed.id);
         console.log('🔍 Available equipment:', equipment);
         
-        // Find equipment by ID
+        // Find equipment by custom_equipment_id first, then by id
         if (!entity) {
-          entity = (equipment as any[]).find((eq: any) => eq.id === parsed.id || eq.custom_equipment_id === parsed.id);
+          entity = (equipment as any[]).find((eq: any) => 
+            eq.custom_equipment_id === parsed.id || eq.id === parsed.id
+          );
         }
         
         console.log('🔍 Found equipment:', entity);
         
         if (entity) {
-          // Use both status and operational_status fields to determine available actions
-          const currentStatus = entity.status || 'available';
-          const operationalStatus = entity.operational_status || 'working';
-          console.log('🔍 Equipment status from Supabase:', currentStatus, 'operational_status:', operationalStatus);
+          // Check equipment logs to determine current status
+          const equipmentLogs = allLogs.equipmentLogs || [];
+          const equipmentUUID = entity.id;
           
-          let actions: Array<any> = [];
+          // Find the most recent equipment log for this equipment
+          const recentLog = equipmentLogs
+            .filter((log: any) => 
+              log.entity_id === equipmentUUID || log.entityId === equipmentUUID || 
+              log.equipmentId === equipmentUUID || log.equipment_id === equipmentUUID ||
+              // Also check for custom_equipment_id in logs for backward compatibility
+              log.entity_id === parsed.id || log.entityId === parsed.id
+            )
+            .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
           
-          // Check if equipment is in standby mode (operational_status = 'standby')
-          if (operationalStatus === 'standby') {
-            actions = [
-              {
-                id: 'standby_end',
-                label: 'End Standby',
-                description: 'End standby mode',
-                icon: Pause,
-                color: 'orange'
-              }
-            ];
-          } else if (currentStatus === 'available' && operationalStatus === 'working') {
-            // Equipment is available and working - show start actions
+          console.log('🔍 Recent equipment log:', recentLog);
+          
+          // Determine current status based on recent log
+          let currentStatus = 'available';
+          if (recentLog) {
+            console.log('🔍 Recent log action:', recentLog.action);
+            if (recentLog.action === 'start-use') {
+              currentStatus = 'in_use';
+            } else if (recentLog.action === 'standby-start') {
+              currentStatus = 'standby';
+            } else if (recentLog.action === 'maintenance-start') {
+              currentStatus = 'maintenance';
+            } else if (recentLog.action === 'stop-use' || recentLog.action === 'standby-end' || recentLog.action === 'maintenance-end') {
+              currentStatus = 'available';
+            }
+          } else {
+            console.log('🔍 No recent log found, using equipment status:', entity.status);
+            // Fallback to equipment's own status if no logs found
+            if (entity.status === 'in-use' || entity.status === 'maintenance' || entity.status === 'standby') {
+              currentStatus = entity.status;
+            }
+          }
+          
+          console.log('🔍 Equipment current status:', currentStatus);
+          
+          // Set up equipment-specific actions based on current status
+          if (currentStatus === 'available') {
             actions = [
               {
                 id: 'start_use',
@@ -468,20 +464,84 @@ const QRScanner: React.FC = () => {
                 color: 'orange'
               }
             ];
-          } else if (currentStatus === 'in-use') {
+          } else if (currentStatus === 'in_use') {
+            // Calculate usage time from the start log
+            let usageHours = 0;
+            if (recentLog) {
+              const startTime = new Date(recentLog.timestamp);
+              const now = new Date();
+              usageHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60); // Convert to hours
+            }
+            
             actions = [
               {
                 id: 'stop_use',
                 label: 'Stop Use',
-                description: 'End usage',
+                description: `End usage (${usageHours.toFixed(1)}h used)`,
                 icon: Clock,
                 color: 'red'
               }
             ];
+          } else if (currentStatus === 'standby') {
+            // Calculate standby time from the standby start log
+            let standbyHours = 0;
+            if (recentLog) {
+              const startTime = new Date(recentLog.timestamp);
+              const now = new Date();
+              standbyHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60); // Convert to hours
+            }
+            
+            actions = [
+              {
+                id: 'standby_end',
+                label: 'End Standby',
+                description: `End standby (${standbyHours.toFixed(1)}h in standby)`,
+                icon: Pause,
+                color: 'orange'
+              }
+            ];
           } else if (currentStatus === 'maintenance') {
-            // Equipment is in maintenance - no actions available on QR scanner
-            // Status changes should be done through the corrective maintenance form
-            actions = [];
+            // Equipment is under maintenance
+            // Check for active maintenance log
+            let hasActiveMaintenanceLog = false;
+            let hasScheduledMaintenanceLog = false;
+            try {
+              const logs = await maintenanceService.getMaintenanceLogs(entity.id);
+              hasActiveMaintenanceLog = logs && logs.length > 0 && logs.some(log => log.status === 'in_progress');
+              hasScheduledMaintenanceLog = logs && logs.length > 0 && logs.some(log => log.status === 'scheduled');
+            } catch {}
+            
+            if (hasActiveMaintenanceLog) {
+              actions = [
+                {
+                  id: 'complete_maintenance',
+                  label: 'Maintenance Completed',
+                  description: 'Mark maintenance as completed and equipment ready',
+                  icon: CheckCircle,
+                  color: 'green'
+                }
+              ];
+            } else if (hasScheduledMaintenanceLog) {
+              actions = [
+                {
+                  id: 'start_maintenance_work',
+                  label: 'Start Maintenance Work',
+                  description: 'Begin maintenance work on equipment',
+                  icon: Wrench,
+                  color: 'orange'
+                }
+              ];
+            } else {
+              actions = [
+                {
+                  id: 'mark_working',
+                  label: 'Mark as Working',
+                  description: 'Mark equipment as operational',
+                  icon: CheckCircle,
+                  color: 'green'
+                }
+              ];
+            }
           }
           
           setScanResult({
@@ -497,11 +557,8 @@ const QRScanner: React.FC = () => {
         break;
 
       case 'material':
-        console.log('🔍 QR Scanner: Processing material scan for ID:', parsed.id);
-        console.log('🔍 QR Scanner: Available materials:', (materials as any[])?.map(m => m.id) || []);
         entity = (materials as any[]).find((mat: any) => mat.id === parsed.id);
         if (entity) {
-          console.log('✅ QR Scanner: Found material:', entity.name);
           currentStatus = entity.status;
           actions = [
             {
@@ -527,46 +584,8 @@ const QRScanner: React.FC = () => {
             actions
           });
         } else {
-          console.error('❌ QR Scanner: Material not found with ID:', parsed.id);
-          console.log('🔍 QR Scanner: Trying fallback lookup for material...');
-          
-          // Try fallback lookup in case the ID format is different
-          const fallbackMaterial = (materials as any[]).find((mat: any) => 
-            mat.id.includes(parsed.id) || parsed.id.includes(mat.id) ||
-            mat.id.replace(/[^A-Z0-9]/g, '') === parsed.id.replace(/[^A-Z0-9]/g, '')
-          );
-          
-          if (fallbackMaterial) {
-            console.log('✅ QR Scanner: Found material via fallback:', fallbackMaterial.name);
-            entity = fallbackMaterial;
-            currentStatus = entity.status;
-            actions = [
-              {
-                id: 'material-in',
-                label: 'Material In',
-                description: 'Add to inventory',
-                icon: Upload,
-                color: 'green'
-              },
-              {
-                id: 'material-out',
-                label: 'Material Out',
-                description: 'Issue from inventory',
-                icon: Upload,
-                color: 'orange'
-              }
-            ];
-            
-            setScanResult({
-              type: entityType,
-              entity,
-              currentStatus,
-              actions
-            });
-          } else {
-            setError(`Material with ID ${parsed.id} not found in system. Please register this material first.`);
-            return;
-          }
+          setError(`Material with ID ${parsed.id} not found in system. Please register this material first.`);
+          return;
         }
         break;
 
@@ -628,10 +647,10 @@ const QRScanner: React.FC = () => {
     setIsProcessingAction(true);
 
     // Load current data from storage
-    // const materials = await fetchData('materials');
+    const materials = await fetchData('materials');
 
+    const timestamp = new Date().toISOString();
     let notes = '';
-    let operationId: string | undefined;
     
     // Calculate overtime for employee clock-out
     if (actionId === 'clock-out' && scanResult.currentShift) {
@@ -648,11 +667,13 @@ const QRScanner: React.FC = () => {
     }
 
     try {
+      let operationId: string;
+      
       // Use the new LogManager to create entity-specific logs
       switch (scanResult.type) {
         case 'employee':
           if (actionId === 'clock-in' || actionId === 'clock-out') {
-            await logManager.createEmployeeLog(
+            operationId = await logManager.createEmployeeLog(
               scanResult.entity,
               actionId as 'clock-in' | 'clock-out',
               scanResult.entity.site || 'Unknown',
@@ -665,304 +686,134 @@ const QRScanner: React.FC = () => {
           
         case 'equipment':
           if (actionId === 'start_use') {
-            // Handle starting equipment use
-            notes = 'Equipment usage started';
-            // 1. Create an equipment log entry for start-use
-            await logManager.createEquipmentLog(
+            // Convert start_use to start-use
+            operationId = await logManager.createEquipmentLog(
               scanResult.entity,
               'start-use',
               scanResult.entity.site || 'Unknown',
-              'in-use',
+              'in-use', // Use valid status
               notes
             );
-            // 2. Update equipment status in Supabase
-            await supabase.from('equipment').update({ 
-              status: 'in-use', 
-              operational_status: 'in_use',
-              last_updated: new Date().toISOString()
-            }).eq('id', scanResult.entity.id);
-            // 3. Re-fetch the updated equipment from Supabase
-            const { data: updatedEquipment, error: fetchError } = await supabase.from('equipment').select('*').eq('id', scanResult.entity.id).single();
-            if (fetchError) {
-              console.error('❌ Failed to fetch updated equipment:', fetchError);
-            } else {
-              console.log('🔄 Refetched equipment after update:', updatedEquipment);
-              setScanResult(null);
-              const allEquipment = DataStorage.loadEquipment();
-              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
-              if (idx !== -1) {
-                allEquipment[idx] = updatedEquipment;
-                DataStorage.saveEquipment(allEquipment);
-              }
-            }
-            isProcessingRef.current = false;
-            setIsProcessingAction(false);
-            return;
           } else if (actionId === 'stop_use') {
-            // Handle stopping equipment use
-            notes = 'Equipment usage stopped';
-            // 1. Create an equipment log entry for stop-use
-            await logManager.createEquipmentLog(
+            // Convert stop_use to stop-use
+            operationId = await logManager.createEquipmentLog(
               scanResult.entity,
               'stop-use',
+              scanResult.entity.site || 'Unknown',
+              'available', // Use valid status
+              notes
+            );
+          } else if (actionId === 'standby_start') {
+            // Handle standby start action
+            notes = 'Equipment set to standby mode';
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'standby-start',
+              scanResult.entity.site || 'Unknown',
+              'standby',
+              notes
+            );
+          } else if (actionId === 'standby_end') {
+            // Handle standby end action
+            notes = 'Equipment standby ended';
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'standby-end',
               scanResult.entity.site || 'Unknown',
               'available',
               notes
             );
-            // 2. Update equipment status in Supabase
-            await supabase.from('equipment').update({ 
-              status: 'available', 
-              operational_status: 'working',
-              last_updated: new Date().toISOString()
-            }).eq('id', scanResult.entity.id);
-            // 3. Re-fetch the updated equipment from Supabase
-            const { data: updatedEquipment, error: fetchError } = await supabase.from('equipment').select('*').eq('id', scanResult.entity.id).single();
-            if (fetchError) {
-              console.error('❌ Failed to fetch updated equipment:', fetchError);
-            } else {
-              console.log('🔄 Refetched equipment after update:', updatedEquipment);
-              setScanResult(null);
-              const allEquipment = DataStorage.loadEquipment();
-              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
-              if (idx !== -1) {
-                allEquipment[idx] = updatedEquipment;
-                DataStorage.saveEquipment(allEquipment);
-              }
-            }
-            isProcessingRef.current = false;
-            setIsProcessingAction(false);
-            return;
-          } else if (actionId === 'standby_start') {
-            // Handle starting standby mode
-            notes = 'Equipment set to standby mode';
-            console.log('🔄 Starting standby for equipment:', scanResult.entity.id);
-            
-            try {
-              // 1. Create an equipment log entry for standby-start
-              await logManager.createEquipmentLog(
-                scanResult.entity,
-                'standby-start',
-                scanResult.entity.site || 'Unknown',
-                'standby',
-                notes
-              );
-              console.log('✅ Equipment log created for standby-start');
-              
-              // 2. Update equipment status in Supabase (use 'available' for status, 'standby' for operational_status)
-              const { error: updateError } = await supabase
-                .from('equipment')
-                .update({ 
-                  status: 'available', // Use allowed status value
-                  operational_status: 'standby', // Use operational_status for detailed state
-                  last_updated: new Date().toISOString()
-                })
-                .eq('id', scanResult.entity.id);
-                
-              if (updateError) {
-                console.error('❌ Failed to update equipment status in Supabase:', updateError);
-                throw new Error(`Failed to update equipment status: ${updateError.message}`);
-              }
-              console.log('✅ Equipment status updated to standby in Supabase');
-              
-              // 3. Re-fetch the updated equipment from Supabase
-              const { data: updatedEquipment, error: fetchError } = await supabase
-                .from('equipment')
-                .select('*')
-                .eq('id', scanResult.entity.id)
-                .single();
-                
-              if (fetchError) {
-                console.error('❌ Failed to fetch updated equipment:', fetchError);
-                throw new Error(`Failed to fetch updated equipment: ${fetchError.message}`);
-              }
-              
-              console.log('🔄 Refetched equipment after update:', updatedEquipment);
-              
-              // 4. Update local equipment list
-              const allEquipment = DataStorage.loadEquipment();
-              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
-              if (idx !== -1) {
-                allEquipment[idx] = updatedEquipment;
-                DataStorage.saveEquipment(allEquipment);
-                console.log('✅ Updated equipment in local storage');
-              }
-              
-              // 5. Clear processing state (scan result cleared centrally)
-              isProcessingRef.current = false;
-              setIsProcessingAction(false);
-              
-              console.log('✅ Standby start completed successfully');
-              return;
-              
-            } catch (error) {
-              console.error('❌ Error during standby start:', error);
-              setError(`Failed to start standby: ${error instanceof Error ? error.message : 'Unknown error'}`);
-              isProcessingRef.current = false;
-              setIsProcessingAction(false);
-              return;
-            }
-          } else if (actionId === 'standby_end') {
-            // Handle ending standby mode
-            notes = 'Equipment standby ended';
-            console.log('🔄 Ending standby for equipment:', scanResult.entity.id);
-            
-            try {
-              // 1. Create an equipment log entry for standby-end
-              await logManager.createEquipmentLog(
-                scanResult.entity,
-                'standby-end',
-                scanResult.entity.site || 'Unknown',
-                'available',
-                notes
-              );
-              console.log('✅ Equipment log created for standby-end');
-              
-              // 2. Update equipment status in Supabase
-              const { error: updateError } = await supabase
-                .from('equipment')
-                .update({ 
-                  status: 'available', 
-                  operational_status: 'working',
-                  last_updated: new Date().toISOString()
-                })
-                .eq('id', scanResult.entity.id);
-                
-              if (updateError) {
-                console.error('❌ Failed to update equipment status in Supabase:', updateError);
-                throw new Error(`Failed to update equipment status: ${updateError.message}`);
-              }
-              console.log('✅ Equipment status updated to available in Supabase');
-              
-              // 3. Re-fetch the updated equipment from Supabase
-              const { data: updatedEquipment, error: fetchError } = await supabase
-                .from('equipment')
-                .select('*')
-                .eq('id', scanResult.entity.id)
-                .single();
-                
-              if (fetchError) {
-                console.error('❌ Failed to fetch updated equipment:', fetchError);
-                throw new Error(`Failed to fetch updated equipment: ${fetchError.message}`);
-              }
-              
-              console.log('🔄 Refetched equipment after update:', updatedEquipment);
-              
-              // 4. Update local equipment list
-              const allEquipment = DataStorage.loadEquipment();
-              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
-              if (idx !== -1) {
-                allEquipment[idx] = updatedEquipment;
-                DataStorage.saveEquipment(allEquipment);
-                console.log('✅ Updated equipment in local storage');
-              }
-              
-              // 5. Clear processing state (scan result cleared centrally)
-              isProcessingRef.current = false;
-              setIsProcessingAction(false);
-              
-              console.log('✅ Standby end completed successfully');
-              return;
-              
-            } catch (error) {
-              console.error('❌ Error during standby end:', error);
-              setError(`Failed to end standby: ${error instanceof Error ? error.message : 'Unknown error'}`);
-              isProcessingRef.current = false;
-              setIsProcessingAction(false);
-              return;
-            }
           } else if (actionId === 'mark_for_maintenance') {
-            // Handle marking equipment for maintenance
-            notes = 'Equipment marked for maintenance';
-            console.log('🔄 Marking equipment for maintenance:', scanResult.entity.id);
+            // Directly mark equipment for maintenance and start time tracker
+            setIsProcessingAction(true);
+            setError('');
             
             try {
-              // Create equipment log entry for maintenance-start
-              await logManager.createEquipmentLog(
+              const timestamp = new Date().toISOString();
+              const notes = 'Equipment marked for maintenance - time tracking started';
+              
+              // Create equipment log for maintenance start
+              const operationId = await logManager.createEquipmentLog(
                 scanResult.entity,
                 'maintenance-start',
                 scanResult.entity.site || 'Unknown',
                 'maintenance',
-                'Marked for maintenance via QR scanner'
+                notes
               );
-              console.log('✅ Equipment log entry created for maintenance-start');
               
-              // Update equipment status to 'maintenance' in Supabase
-              const { error: updateError } = await supabase
-                .from('equipment')
-                .update({ 
-                  status: 'maintenance', 
-                  operational_status: 'under_service',
-                  last_updated: new Date().toISOString()
-                })
-                .eq('id', scanResult.entity.id);
-                
-              if (updateError) {
-                console.error('❌ Failed to update equipment status in Supabase:', updateError);
-                throw new Error(`Failed to update equipment status: ${updateError.message}`);
-              }
-              console.log('✅ Equipment status updated to maintenance in Supabase');
+              // Create maintenance log with 'in_progress' status to start time tracking
+              const maintenanceLogId = await maintenanceService.createMaintenanceLog({
+                equipment_id: scanResult.entity.id,
+                maintenance_type: 'service', // Default to service type
+                status: 'in_progress',
+                description: 'Equipment marked for maintenance - time tracking active',
+                start_date: timestamp,
+                estimated_duration_hours: 1,
+                equipment: scanResult.entity
+              });
               
-              // Re-fetch the updated equipment from Supabase
-              const { data: updatedEquipment, error: fetchError } = await supabase
-                .from('equipment')
-                .select('*')
-                .eq('id', scanResult.entity.id)
-                .single();
-                
-              if (fetchError) {
-                console.error('❌ Failed to fetch updated equipment:', fetchError);
-                throw new Error(`Failed to fetch updated equipment: ${fetchError.message}`);
-              }
-              
-              console.log('🔄 Refetched equipment after update:', updatedEquipment);
-              
-              // Update local equipment list
-              const allEquipment = DataStorage.loadEquipment();
-              const idx = allEquipment.findIndex(eq => eq.id === updatedEquipment.id);
-              if (idx !== -1) {
-                allEquipment[idx] = updatedEquipment;
-                DataStorage.saveEquipment(allEquipment);
-                console.log('✅ Updated equipment in local storage');
-              }
-              
-              // Clear processing state (scan result cleared centrally)
-              isProcessingRef.current = false;
+              setSuccess('Equipment marked for maintenance and time tracking started!');
+              setTimeout(() => setSuccess(''), 3000);
+              resetScanner();
+            } catch (error: any) {
+              console.error('Error marking equipment for maintenance:', error);
+              setError(`Failed to mark equipment for maintenance. Please try again.`);
+            } finally {
               setIsProcessingAction(false);
-              
-              console.log('✅ Mark for maintenance completed successfully');
-              return;
-              
-            } catch (error) {
-              console.error('❌ Error during mark for maintenance:', error);
-              setError(`Failed to mark for maintenance: ${error instanceof Error ? error.message : 'Unknown error'}`);
-              isProcessingRef.current = false;
-              setIsProcessingAction(false);
-              return;
             }
+            return; // Don't proceed with the action, we've handled it
+          } else if (actionId === 'mark_working') {
+            // Handle marking equipment as working
+            notes = 'Equipment marked as operational';
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'maintenance-end',
+              scanResult.entity.site || 'Unknown',
+              'available',
+              notes
+            );
           } else if (actionId === 'start_maintenance_work') {
             // Handle starting maintenance work
             notes = 'Maintenance work started';
-            // operationId = await logManager.createEquipmentLog(
-            //   scanResult.entity,
-            //   'maintenance-start',
-            //   scanResult.entity.site || 'Unknown',
-            //   'maintenance',
-            //   notes
-            // );
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'maintenance-start',
+              scanResult.entity.site || 'Unknown',
+              'maintenance',
+              notes
+            );
             
-
+            // Update maintenance log status to in_progress
+            try {
+              const logs = await maintenanceService.getMaintenanceLogs(scanResult.entity.id);
+              const scheduledLog = logs.find(log => log.status === 'scheduled');
+              if (scheduledLog) {
+                await maintenanceService.updateMaintenanceStatus(scheduledLog.id, 'in_progress');
+              }
+            } catch (error) {
+              console.error('Failed to update maintenance log status:', error);
+            }
           } else if (actionId === 'complete_maintenance') {
             // Handle completing maintenance
             notes = 'Maintenance completed - equipment ready for use';
-            // operationId = await logManager.createEquipmentLog(
-            //   scanResult.entity,
-            //   'maintenance-end',
-            //   scanResult.entity.site || 'Unknown',
-            //   'available',
-            //   notes
-            // );
+            operationId = await logManager.createEquipmentLog(
+              scanResult.entity,
+              'maintenance-end',
+              scanResult.entity.site || 'Unknown',
+              'available',
+              notes
+            );
             
-
+            // Update maintenance log status to completed
+            try {
+              const logs = await maintenanceService.getMaintenanceLogs(scanResult.entity.id);
+              const inProgressLog = logs.find(log => log.status === 'in_progress');
+              if (inProgressLog) {
+                await maintenanceService.updateMaintenanceStatus(inProgressLog.id, 'completed');
+              }
+            } catch (error) {
+              console.error('Failed to update maintenance log status:', error);
+            }
           } else {
             throw new Error(`Invalid action for equipment: ${actionId}`);
           }
@@ -973,36 +824,14 @@ const QRScanner: React.FC = () => {
             if (!quantity || quantity <= 0) {
               throw new Error('Valid quantity is required for material operations');
             }
-            
-            console.log('📦 Creating material log for:', scanResult.entity.name, 'Action:', actionId, 'Quantity:', quantity);
-            
-            try {
-              operationId = await logManager.createMaterialLog(
-                scanResult.entity,
-                actionId as 'material-in' | 'material-out',
-                quantity,
-                scanResult.entity.site || 'Unknown',
-                scanResult.entity.status || 'available',
-                notes
-              );
-              
-              console.log('✅ Material log created successfully with operation ID:', operationId);
-              
-              // Force immediate sync to ensure material quantity is updated
-              try {
-                const { offlineSyncManager } = await import('../../utils/offlineSync');
-                console.log('🔄 Forcing immediate sync for material update...');
-                await offlineSyncManager.processSyncQueue();
-                console.log('✅ Material sync completed');
-              } catch (syncError) {
-                console.error('⚠️ Material sync failed:', syncError);
-                // Don't throw error as the log was created successfully
-              }
-              
-            } catch (materialError) {
-              console.error('❌ Failed to create material log:', materialError);
-              throw materialError;
-            }
+            operationId = await logManager.createMaterialLog(
+              scanResult.entity,
+              actionId as 'material-in' | 'material-out',
+              quantity,
+              scanResult.entity.site || 'Unknown',
+              scanResult.entity.status || 'available',
+              notes
+            );
             
             // Material quantity update is now handled within logManager.createMaterialLog
           } else {
@@ -1012,7 +841,7 @@ const QRScanner: React.FC = () => {
           
         case 'site':
           // For site check-ins, use the legacy method for now
-          await logManager.createTimeLog(
+          operationId = await logManager.createTimeLog(
             scanResult.entity.id,
             'employee', // Assuming site check-ins are employee-related
             actionId,
@@ -1031,14 +860,8 @@ const QRScanner: React.FC = () => {
       setError(`✅ ${actionId.replace('-', ' ').toUpperCase()} recorded successfully!`);
       
       // For equipment actions, add a small delay to ensure log is persisted before potential re-scan
-      if (scanResult.type === 'equipment' && (
-        actionId === 'start_use' || 
-        actionId === 'stop_use' || 
-        actionId === 'standby_start' || 
-        actionId === 'standby_end' ||
-        actionId === 'mark_for_maintenance'
-      )) {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Increased delay to prevent rapid scanning
+      if (scanResult.type === 'equipment' && (actionId === 'start-use' || actionId === 'stop-use')) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     } catch (error) {
       console.error('Failed to log action:', error);
@@ -1046,15 +869,25 @@ const QRScanner: React.FC = () => {
     } finally {
         console.log('🏁 Action completed:', actionId);
         
-        // Clear scan result and processing state after a delay to prevent rapid re-scanning
-        setTimeout(() => {
-          console.log('🔄 Clearing scan result and processing state for:', actionId);
-          setScanResult(null);
-          isProcessingRef.current = false;
-          setIsProcessingAction(false);
-          setLastScannedCode(''); // Reset to allow future scans after delay
+        // For equipment stop-use, clear debounce immediately to allow instant re-scanning
+        if (actionId === 'stop-use') {
+          setLastScannedCode('');
           setLastScanTime(0);
-        }, 1000); // Increased delay to prevent rapid scanning issues
+        }
+        
+        // Clear scan result after action to allow rescanning
+        // Keep processing state active until scan result is cleared to prevent duplicate actions
+        setTimeout(() => {
+  console.log('🔄 Clearing scan result and processing state for:', actionId);
+  setScanResult(null);
+  isProcessingRef.current = false;
+  setIsProcessingAction(false);
+  setLastScannedCode(''); // Reset to allow future scans after delay
+  if (actionId !== 'stop-use') {
+            setLastScannedCode('');
+            setLastScanTime(0);
+          }
+        }, actionId === 'stop-use' ? 500 : 800);
       }
     
     setTimeout(() => setError(''), 3000);
@@ -1100,11 +933,72 @@ const QRScanner: React.FC = () => {
   };
 
   // Maintenance modal handlers
+  const handleMaintenanceStart = async (maintenanceData: any) => {
+    try {
+      // Create equipment log for maintenance start
+      const notes = `Maintenance started: ${maintenanceData.description}`;
+      await logManager.createEquipmentLog(
+        selectedEquipment,
+        'maintenance-start',
+        selectedEquipment.site || 'Unknown',
+        'maintenance',
+        notes
+      );
+
+      // Create detailed maintenance log
+      await maintenanceService.startMaintenance(maintenanceData);
+
+      setSuccess('Maintenance started successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Failed to start maintenance:', error);
+      setError('Failed to start maintenance. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
 
 
 
+  const handleMaintenanceComplete = async (maintenanceData: any) => {
+    try {
+      // Create equipment log for maintenance end
+      const notes = `Maintenance completed: ${maintenanceData.description}`;
+      await logManager.createEquipmentLog(
+        selectedEquipment,
+        'maintenance-end',
+        selectedEquipment.site || 'Unknown',
+        'available',
+        notes
+      );
 
+      // Update maintenance log
+      await maintenanceService.completeMaintenance(maintenanceData.maintenanceId, {
+        actual_duration_hours: maintenanceData.actual_duration_hours,
+        cost: maintenanceData.cost,
+        completed_by: maintenanceData.completed_by,
+        technician_notes: maintenanceData.technician_notes,
+        parts_used: maintenanceData.parts_used
+      });
 
+      setSuccess('Maintenance completed successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Failed to complete maintenance:', error);
+      setError('Failed to complete maintenance. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const resetScanner = () => {
+    setScanResult(null);
+    setError('');
+    setSuccess('');
+    setIsProcessingAction(false);
+    setSelectedEquipment(null);
+    setIsMaintenanceModalOpen(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
 
 
   return (
@@ -1152,25 +1046,27 @@ const QRScanner: React.FC = () => {
                           const group = searchResults.filter(r => r._entityType === type);
                           if (group.length === 0) return null;
                           return (
-                            <div key={type}>
-                              <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase bg-gray-50 sticky top-0">{type.charAt(0).toUpperCase() + type.slice(1)}s</div>
-                              {group.map(entity => (
-                                <button
-                                  key={entity.id + (entity.custom_equipment_id || '')}
-                                  onClick={() => handleEntitySelect(entity)}
-                                  className="w-full text-left px-4 py-2 hover:bg-blue-50 flex items-center space-x-3"
-                                >
-                                  {type === 'employee' && <User className="w-4 h-4 text-blue-500" />}
-                                  {type === 'equipment' && <Wrench className="w-4 h-4 text-green-500" />}
-                                  {type === 'material' && <Package className="w-4 h-4 text-orange-500" />}
-                                  <span className="font-medium">{entity.name}</span>
-                                  <span className="ml-2 text-xs text-gray-500">{entity.id}</span>
-                                  {type === 'equipment' && entity.custom_equipment_id && (
-                                    <span className="ml-2 text-xs text-gray-400">({entity.custom_equipment_id})</span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
+<div key={type}>
+                               <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase bg-gray-50 sticky top-0 col-span-2">{type.charAt(0).toUpperCase() + type.slice(1)}s</div>
+                               <div className="grid grid-cols-2 gap-4">
+                                 {group.map(entity => (
+                                   <button
+                                     key={entity.id + (entity.custom_equipment_id || '')}
+                                     onClick={() => handleEntitySelect(entity)}
+                                     className="w-full text-left px-4 py-2 hover:bg-green-50 flex items-center space-x-3"
+                                   >
+                                     {type === 'employee' && <User className="w-4 h-4 text-blue-500" />}
+                                     {type === 'equipment' && <Wrench className="w-4 h-4 text-green-600" />}
+                                     {type === 'material' && <Package className="w-4 h-4 text-orange-500" />}
+                                     <span className="font-medium">{entity.name}</span>
+                                     <span className="ml-2 text-xs text-gray-500">{entity.id}</span>
+                                     {type === 'equipment' && entity.custom_equipment_id && (
+                                       <span className="ml-2 text-xs text-gray-400">({entity.custom_equipment_id})</span>
+                                     )}
+                                   </button>
+                                 ))}
+                               </div>
+                             </div>
                           );
                         })}
                       </>
@@ -1277,7 +1173,22 @@ const QRScanner: React.FC = () => {
         </div>
       </div>
 
+      {/* Maintenance Type Selection Modal */}
 
+
+      {/* Maintenance Modal */}
+      {selectedEquipment && (
+        <EquipmentMaintenanceModal
+          equipment={selectedEquipment}
+          isOpen={isMaintenanceModalOpen}
+          onClose={() => {
+            setIsMaintenanceModalOpen(false);
+            setSelectedEquipment(null);
+          }}
+          onMaintenanceStart={handleMaintenanceStart}
+          onMaintenanceComplete={handleMaintenanceComplete}
+        />
+      )}
     </div>
   );
 };

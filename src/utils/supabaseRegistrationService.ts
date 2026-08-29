@@ -994,7 +994,7 @@ export class SupabaseRegistrationService {
         technician_notes: maintenanceLog.technician_notes,
         parts_used: maintenanceLog.parts_used,
         start_date: maintenanceLog.start_date,
-        completion_date: maintenanceLog.completion_date,
+                  completed_date: maintenanceLog.completion_date, // Fixed: was completion_date, should be completed_date
         completed_by: maintenanceLog.completed_by,
         estimated_duration_hours: maintenanceLog.estimated_duration_hours,
         actual_duration_hours: maintenanceLog.actual_duration_hours,

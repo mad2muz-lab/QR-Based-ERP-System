@@ -4,6 +4,12 @@ import { DataStorage } from '../../utils/dataStorage';
 import { fetchData } from '../../utils/dataProxy';
 import { Equipment, Site } from '../../types';
 import { exportToCSV } from '../../utils/csvUtils';
+import UpcomingPreventiveMaintenanceSummary from '../maintenance/UpcomingPreventiveMaintenanceSummary';
+import DrilldownModal from '../maintenance/DrilldownModal';
+import { getPreventiveMaintenanceConfigsForEquipment } from '../../utils/supabaseDataService';
+
+type MaintenanceClass = 'A' | 'B' | 'C';
+type SummaryRow = { month: string; A: number; B: number; C: number };
 
 const EquipmentPage: React.FC = () => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -19,6 +25,12 @@ const EquipmentPage: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [maintenanceSchedules, setMaintenanceSchedules] = useState<any[]>([]);
+  const [maintenanceSummary, setMaintenanceSummary] = useState<SummaryRow[]>([]);
+  const [showDrilldown, setShowDrilldown] = useState(false);
+  const [drilldownClass, setDrilldownClass] = useState('');
+  const [drilldownMonth, setDrilldownMonth] = useState('');
+  const [drilldownSchedules, setDrilldownSchedules] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -27,6 +39,30 @@ const EquipmentPage: React.FC = () => {
   useEffect(() => {
     filterAndSortEquipment();
   }, [equipment, searchTerm, typeFilter, statusFilter, sortField, sortDirection]);
+
+  // Fetch maintenance schedules for selected equipment when modal opens
+  useEffect(() => {
+    if (showDetails && selectedEquipment) {
+      getPreventiveMaintenanceConfigsForEquipment(selectedEquipment.id).then((configs: any[]) => {
+        setMaintenanceSchedules(configs);
+        // Group by month and class
+        const getMonthKey = (dateStr: string) => {
+          const d = new Date(dateStr);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        };
+        const summaryMap: { [month: string]: { A: number; B: number; C: number } } = {};
+        configs.forEach(config => {
+          if (!config.next_maintenance_date || !config.maintenance_class) return;
+          const month = getMonthKey(config.next_maintenance_date);
+          const cls = config.maintenance_class as MaintenanceClass;
+          if (!summaryMap[month]) summaryMap[month] = { A: 0, B: 0, C: 0 };
+          summaryMap[month][cls] = (summaryMap[month][cls] || 0) + 1;
+        });
+        const summary: SummaryRow[] = Object.entries(summaryMap).map(([month, counts]) => ({ month, ...counts }));
+        setMaintenanceSummary(summary);
+      });
+    }
+  }, [showDetails, selectedEquipment]);
 
   const loadData = async () => {
     try {
@@ -392,6 +428,29 @@ const EquipmentPage: React.FC = () => {
                 ×
               </button>
             </div>
+            {/* Upcoming Preventive Maintenance Summary by Month and Class */}
+            <UpcomingPreventiveMaintenanceSummary
+              summary={maintenanceSummary}
+              onDrilldown={(classType, month) => {
+                setDrilldownClass(classType);
+                setDrilldownMonth(month);
+                setDrilldownSchedules(
+                  maintenanceSchedules.filter(
+                    s => s.maintenance_class === classType && s.next_maintenance_date && s.next_maintenance_date.startsWith(month)
+                  )
+                );
+                setShowDrilldown(true);
+              }}
+              getMonthLabel={date => date.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            />
+            <DrilldownModal
+              isOpen={showDrilldown}
+              onClose={() => setShowDrilldown(false)}
+              classType={drilldownClass}
+              month={drilldownMonth}
+              schedules={drilldownSchedules}
+              getMonthLabel={date => date.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">

@@ -24,13 +24,8 @@ export class SupabaseDataService {
         bloodGroup: employee.blood_group,
         createdAt: employee.created_at,
         qrCode: employee.qr_code,
-        oldId: employee.old_id, // Map old_id to oldId
-        hourlyRate: employee.hourly_rate // Map hourly_rate to hourlyRate
+        oldId: employee.old_id // Map old_id to oldId
       }));
-      
-      console.log('🔍 SupabaseDataService - Raw employee data from DB:', data);
-      console.log('🔍 SupabaseDataService - Transformed employee data:', transformedData);
-      console.log('🔍 SupabaseDataService - Sample employee hourlyRate:', transformedData[0]?.hourlyRate, typeof transformedData[0]?.hourlyRate);
       
       return transformedData;
     } catch (error) {
@@ -58,8 +53,7 @@ export class SupabaseDataService {
       const transformedData: Equipment[] = (data || []).map(equipment => ({
         ...equipment,
         lastUpdated: equipment.last_updated,
-        oldId: equipment.old_id, // Map old_id to oldId
-        hourly_rate: equipment.hourly_rate // Ensure hourly_rate is preserved
+        oldId: equipment.old_id // Map old_id to oldId
       }));
       
       return transformedData;
@@ -91,8 +85,7 @@ export class SupabaseDataService {
         createdAt: material.created_at || material.createdAt,
         qrCode: material.qr_code,
         accessLevel: material.access_level,
-        oldId: material.old_id, // Map old_id to oldId
-        cost: material.cost !== undefined ? Number(material.cost) : undefined // Ensure cost is a number
+        oldId: material.old_id // Map old_id to oldId
       }));
       
       return transformedData;
@@ -295,18 +288,10 @@ export class SupabaseDataService {
   static async getDepartments(): Promise<Department[]> {
     if (!supabase) return [];
     try {
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('getDepartments timeout')), 10000); // 10 second timeout
-      });
-      
-      const fetchPromise = supabase
+      const { data, error } = await supabase
         .from('departments')
         .select('*')
         .order('created_at', { ascending: false });
-        
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
-      
       if (error) {
         console.error('Error fetching departments:', error);
         return [];
@@ -498,327 +483,69 @@ export class SupabaseDataService {
     }
   }
 
-  // Class Maintenance Types Operations
-  static async getAllClassMaintenanceTypes(): Promise<any[]> {
-    if (!supabase) return [];
-    
+  static async createEquipment(equipment: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
     try {
+      // Ensure required fields are present
+      const safeEquipment = {
+        ...equipment,
+        model: equipment.model || 'UNKNOWN_MODEL',
+        site: equipment.site || 'UNKNOWN_SITE',
+        qr_code: equipment.qr_code || equipment.qrCode || equipment.custom_equipment_id || equipment.id || 'UNKNOWN_QR',
+      };
       const { data, error } = await supabase
-        .from('class_maintenance_types')
-        .select('*')
-        .order('maintenance_type');
-      
-      if (error) {
-        console.error('Error fetching class maintenance types:', error);
-        return [];
-      }
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching class maintenance types:', error);
-      return [];
-    }
-  }
-
-  static async createClassMaintenanceType(classType: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase) {
-      return { success: false, error: 'Supabase not configured' };
-    }
-    
-    try {
-      const { data, error } = await supabase
-        .from('class_maintenance_types')
-        .insert([classType])
+        .from('equipment')
+        .insert([safeEquipment])
         .select()
         .single();
-      
-      if (error) {
-        console.error('Error creating class maintenance type:', error);
-        return { success: false, error: error.message };
-      }
-      
+      if (error) throw error;
       return { success: true, data };
-    } catch (error) {
-      console.error('Error creating class maintenance type:', error);
-      return { success: false, error: 'Failed to create class maintenance type' };
+    } catch (error: any) {
+      console.error('Error creating equipment:', error);
+      return { success: false, error: error.message };
     }
   }
 
-  static async updateClassMaintenanceType(id: string, classType: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase) {
-      return { success: false, error: 'Supabase not configured' };
-    }
-    
+  static async createMaintenanceSchedule(schedule: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
     try {
       const { data, error } = await supabase
-        .from('class_maintenance_types')
-        .update(classType)
-        .eq('id', id)
+        .from('equipment_maintenance_schedules')
+        .insert([schedule])
         .select()
         .single();
-      
-      if (error) {
-        console.error('Error updating class maintenance type:', error);
-        return { success: false, error: error.message };
-      }
-      
+      if (error) throw error;
       return { success: true, data };
-    } catch (error) {
-      console.error('Error updating class maintenance type:', error);
-      return { success: false, error: 'Failed to update class maintenance type' };
+    } catch (error: any) {
+      console.error('Error creating maintenance schedule:', error);
+      return { success: false, error: error.message };
     }
   }
+}
 
-  static async deleteClassMaintenanceType(id: string): Promise<{ success: boolean; error?: string }> {
-    if (!supabase) {
-      return { success: false, error: 'Supabase not configured' };
-    }
-    
-    try {
-      const { error } = await supabase
-        .from('class_maintenance_types')
-        .delete()
-        .eq('id', id);
-      
-      if (error) {
-        console.error('Error deleting class maintenance type:', error);
-        return { success: false, error: error.message };
-      }
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting class maintenance type:', error);
-      return { success: false, error: 'Failed to delete class maintenance type' };
-    }
+export async function getPreventiveMaintenanceConfigsForEquipment(equipmentId: string) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('preventive_maintenance_configs')
+    .select('*')
+    .eq('equipment_id', equipmentId);
+  if (error) {
+    console.error('Error fetching preventive maintenance configs:', error);
+    return [];
   }
+  return data;
+}
 
-  // Maintenance Material Request Operations
-  static async getAllMaintenanceMaterialRequests(): Promise<any[]> {
-    if (!supabase) return [];
-    
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_material_requests')
-        .select('*')
-        .order('requested_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching maintenance material requests:', error);
-        return [];
-      }
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching maintenance material requests:', error);
-      return [];
-    }
+export async function getPreventiveMaintenanceLogs(equipmentId?: string) {
+  if (!supabase) return [];
+  let query = supabase.from('preventive_maintenance_logs').select('*');
+  if (equipmentId) {
+    query = query.eq('equipment_id', equipmentId);
   }
-
-  static async createMaintenanceMaterialRequest(requestData: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase) {
-      return { success: false, error: 'Supabase not configured' };
-    }
-    
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_material_requests')
-        .insert([requestData])
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating maintenance material request:', error);
-        return { success: false, error: error.message };
-      }
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error creating maintenance material request:', error);
-      return { success: false, error: 'Failed to create maintenance material request' };
-    }
+  const { data, error } = await query;
+  if (error) {
+    console.error('Error fetching preventive maintenance logs:', error);
+    return [];
   }
-
-  static async updateMaintenanceMaterialRequest(requestId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase) {
-      return { success: false, error: 'Supabase not configured' };
-    }
-    
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_material_requests')
-        .update(updateData)
-        .eq('id', requestId)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error updating maintenance material request:', error);
-        return { success: false, error: error.message };
-      }
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error updating maintenance material request:', error);
-      return { success: false, error: 'Failed to update maintenance material request' };
-    }
-  }
-
-  // Maintenance Material Request Item Operations
-  static async getAllMaintenanceMaterialRequestItems(): Promise<any[]> {
-    if (!supabase) return [];
-    
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_material_request_items')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching maintenance material request items:', error);
-        return [];
-      }
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching maintenance material request items:', error);
-      return [];
-    }
-  }
-
-  static async createMaintenanceMaterialRequestItem(itemData: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase) {
-      return { success: false, error: 'Supabase not configured' };
-    }
-    
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_material_request_items')
-        .insert([itemData])
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating maintenance material request item:', error);
-        return { success: false, error: error.message };
-      }
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error creating maintenance material request item:', error);
-      return { success: false, error: 'Failed to create maintenance material request item' };
-    }
-  }
-
-  static async updateMaintenanceMaterialRequestItem(itemId: string, updateData: any): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!supabase) {
-      return { success: false, error: 'Supabase not configured' };
-    }
-    
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_material_request_items')
-        .update(updateData)
-        .eq('id', itemId)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error updating maintenance material request item:', error);
-        return { success: false, error: error.message };
-      }
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error updating maintenance material request item:', error);
-      return { success: false, error: 'Failed to update maintenance material request item' };
-    }
-  }
-
-  // Time Logs Operations
-  static async getAllTimeLogs(): Promise<any[]> {
-    if (!supabase) return [];
-    
-    try {
-      const { data, error } = await supabase
-        .from('time_logs')
-        .select('*')
-        .order('timestamp', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching time logs:', error);
-        return [];
-      }
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching time logs:', error);
-      return [];
-    }
-  }
-
-  // Materials Operations
-  static async getAllMaterials(): Promise<any[]> {
-    if (!supabase) return [];
-    
-    try {
-      const { data, error } = await supabase
-        .from('materials')
-        .select('*')
-        .order('name');
-      
-      if (error) {
-        console.error('Error fetching materials:', error);
-        return [];
-      }
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching materials:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Clear all notifications for a specific user or role
-   * @param userId - The user ID to clear notifications for
-   * @param role - The role to clear notifications for
-   * @returns Promise<boolean> - Success status
-   */
-  static async clearAllNotifications(userId?: string, role?: string): Promise<boolean> {
-    try {
-      if (!supabase) {
-        console.error('Supabase client not initialized');
-        return false;
-      }
-
-      let query = supabase.from('notifications').delete();
-      
-      if (userId && role) {
-        // Clear notifications for specific user OR role
-        query = query.or(`user_id.eq.${userId},role.eq.${role}`);
-      } else if (userId) {
-        // Clear notifications for specific user only
-        query = query.eq('user_id', userId);
-      } else if (role) {
-        // Clear notifications for specific role only
-        query = query.eq('role', role);
-      } else {
-        // Clear all notifications (admin only)
-        console.warn('Clearing all notifications - this should only be done by admin users');
-      }
-
-      const { error } = await query;
-      
-      if (error) {
-        console.error('Error clearing notifications:', error);
-        return false;
-      }
-
-      console.log('All notifications cleared successfully');
-      return true;
-    } catch (error) {
-      console.error('Error clearing notifications:', error);
-      return false;
-    }
-  }
+  return data;
 }
