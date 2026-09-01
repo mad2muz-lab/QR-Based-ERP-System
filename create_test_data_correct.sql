@@ -1,0 +1,304 @@
+-- Create Test Data for Predictive Stocking System (Correct - All Required Columns)
+-- This script creates test equipment and materials data with all required NOT NULL columns
+
+-- 1. Insert test equipment data (with ALL required NOT NULL columns)
+INSERT INTO equipment (
+  id,
+  name,
+  type,
+  model,
+  site,
+  qr_code
+) VALUES 
+  ('EQUIP-001', 'Excavator-01', 'Excavator', 'CAT 320', 'Site A', 'EXC-001'),
+  ('EQUIP-002', 'Bulldozer-01', 'Bulldozer', 'CAT D6', 'Site A', 'BUL-001'),
+  ('EQUIP-003', 'Crane-01', 'Crane', 'Liebherr LTM', 'Site B', 'CRA-001'),
+  ('EQUIP-004', 'Loader-01', 'Loader', 'CAT 950', 'Site A', 'LOA-001'),
+  ('EQUIP-005', 'Paver-01', 'Asphalt Paver', 'CAT AP655', 'Site B', 'PAV-001');
+
+-- 2. Insert test materials data (with ALL required NOT NULL columns + optional quantity)
+INSERT INTO materials (
+  id,
+  name,
+  type,
+  unit,
+  site,
+  qr_code,
+  quantity
+) VALUES 
+  ('MAT-001', 'Engine Oil Filter', 'Spare Parts', 'Pieces', 'Site A', 'MAT-001', 15),
+  ('MAT-002', 'Hydraulic Fluid', 'Spare Parts', 'Liters', 'Site A', 'MAT-002', 8),
+  ('MAT-003', 'Air Filter', 'Spare Parts', 'Pieces', 'Site B', 'MAT-003', 22),
+  ('MAT-004', 'Brake Pads', 'Spare Parts', 'Sets', 'Site A', 'MAT-004', 5),
+  ('MAT-005', 'Battery', 'Spare Parts', 'Units', 'Site B', 'MAT-005', 3),
+  ('MAT-006', 'Tire Set', 'Spare Parts', 'Sets', 'Site A', 'MAT-006', 2),
+  ('MAT-007', 'Fuel Filter', 'Spare Parts', 'Pieces', 'Site B', 'MAT-007', 12),
+  ('MAT-008', 'Grease', 'Spare Parts', 'Kilos', 'Site A', 'MAT-008', 25);
+
+-- 3. Update equipment with PM data (optional columns)
+UPDATE equipment SET 
+  pm_class = 'Class A',
+  is_pm = true,
+  pm_frequency_days = 30,
+  pm_cost_estimate = 2500.00,
+  status = 'available'
+WHERE id = 'EQUIP-001';
+
+UPDATE equipment SET 
+  pm_class = 'Class B',
+  is_pm = true,
+  pm_frequency_days = 45,
+  pm_cost_estimate = 1800.00,
+  status = 'available'
+WHERE id = 'EQUIP-002';
+
+UPDATE equipment SET 
+  pm_class = 'Class C',
+  is_pm = true,
+  pm_frequency_days = 90,
+  pm_cost_estimate = 3500.00,
+  status = 'available'
+WHERE id = 'EQUIP-003';
+
+UPDATE equipment SET 
+  pm_class = 'Class A',
+  is_pm = true,
+  pm_frequency_days = 30,
+  pm_cost_estimate = 2000.00,
+  status = 'available'
+WHERE id = 'EQUIP-004';
+
+UPDATE equipment SET 
+  pm_class = 'Class B',
+  is_pm = true,
+  pm_frequency_days = 60,
+  pm_cost_estimate = 2200.00,
+  status = 'available'
+WHERE id = 'EQUIP-005';
+
+-- 4. Now create predictive stocking sample data
+INSERT INTO predictive_stocking (
+  material_id,
+  equipment_id,
+  predicted_usage_next_month,
+  confidence_score,
+  recommended_order_date,
+  recommended_quantity,
+  current_stock_level,
+  reorder_point,
+  prediction_factors
+) 
+SELECT 
+  m.id as material_id,
+  e.id as equipment_id,
+  CASE 
+    WHEN e.pm_class = 'Class A' THEN 2
+    WHEN e.pm_class = 'Class B' THEN 1
+    WHEN e.pm_class = 'Class C' THEN 3
+    ELSE 1
+  END as predicted_usage_next_month,
+  CASE 
+    WHEN e.pm_frequency_days <= 30 THEN 0.85
+    WHEN e.pm_frequency_days <= 60 THEN 0.75
+    ELSE 0.65
+  END as confidence_score,
+  (CURRENT_DATE + INTERVAL '7 days')::date as recommended_order_date,
+  CASE 
+    WHEN e.pm_class = 'Class A' THEN 2
+    WHEN e.pm_class = 'Class B' THEN 1
+    WHEN e.pm_class = 'Class C' THEN 3
+    ELSE 1
+  END as recommended_quantity,
+  m.quantity as current_stock_level,
+  CASE 
+    WHEN e.pm_class = 'Class A' THEN 1
+    WHEN e.pm_class = 'Class B' THEN 1
+    WHEN e.pm_class = 'Class C' THEN 2
+    ELSE 1
+  END as reorder_point,
+  jsonb_build_object(
+    'pm_frequency_days', e.pm_frequency_days,
+    'total_pm_logs', 5,
+    'average_usage_per_pm', 1,
+    'equipment_type', e.type,
+    'pm_class', e.pm_class
+  ) as prediction_factors
+FROM equipment e
+CROSS JOIN materials m
+WHERE e.is_pm = true
+  AND m.type = 'Spare Parts';
+
+-- 5. Insert sample AI learning data
+INSERT INTO ai_learning_data (
+  prediction_date,
+  material_id,
+  equipment_id,
+  predicted_usage,
+  actual_usage,
+  prediction_accuracy,
+  factors_considered
+)
+SELECT 
+  (CURRENT_DATE - INTERVAL '1 month')::date as prediction_date,
+  m.id as material_id,
+  e.id as equipment_id,
+  CASE 
+    WHEN e.pm_class = 'Class A' THEN 2
+    WHEN e.pm_class = 'Class B' THEN 1
+    WHEN e.pm_class = 'Class C' THEN 3
+    ELSE 1
+  END as predicted_usage,
+  CASE 
+    WHEN e.pm_class = 'Class A' THEN 2
+    WHEN e.pm_class = 'Class B' THEN 1
+    WHEN e.pm_class = 'Class C' THEN 3
+    ELSE 1
+  END as actual_usage,
+  0.85 as prediction_accuracy,
+  jsonb_build_object(
+    'pm_frequency_days', e.pm_frequency_days,
+    'equipment_type', e.type,
+    'pm_class', e.pm_class,
+    'historical_data_points', 5
+  ) as factors_considered
+FROM equipment e
+CROSS JOIN materials m
+WHERE e.is_pm = true
+  AND m.type = 'Spare Parts';
+
+-- 6. Insert sample alerts
+INSERT INTO predictive_alerts (
+  material_id,
+  equipment_id,
+  alert_type,
+  alert_message,
+  priority,
+  recommended_action
+)
+SELECT 
+  m.id as material_id,
+  e.id as equipment_id,
+  CASE 
+    WHEN m.quantity = 0 THEN 'low_stock'
+    WHEN m.quantity <= 2 THEN 'low_stock'
+    ELSE 'high_confidence_prediction'
+  END as alert_type,
+  CASE 
+    WHEN m.quantity = 0 THEN 
+      'Critical: No stock available for ' || m.name || ' needed by ' || e.name
+    WHEN m.quantity <= 2 THEN 
+      'Low stock alert: Only ' || m.quantity || ' ' || m.unit || ' of ' || m.name || ' remaining'
+    ELSE 
+      'High confidence prediction: ' || 
+      CASE 
+        WHEN e.pm_class = 'Class A' THEN '2'
+        WHEN e.pm_class = 'Class B' THEN '1'
+        WHEN e.pm_class = 'Class C' THEN '3'
+        ELSE '1'
+      END || ' ' || m.unit || ' of ' || m.name || ' needed next month'
+  END as alert_message,
+  CASE 
+    WHEN m.quantity = 0 THEN 'critical'
+    WHEN m.quantity <= 2 THEN 'high'
+    ELSE 'medium'
+  END as priority,
+  CASE 
+    WHEN m.quantity = 0 THEN 
+      'Urgent: Order ' || 
+      CASE 
+        WHEN e.pm_class = 'Class A' THEN '5'
+        WHEN e.pm_class = 'Class B' THEN '3'
+        WHEN e.pm_class = 'Class C' THEN '5'
+        ELSE '3'
+      END || ' ' || m.unit || ' immediately'
+    WHEN m.quantity <= 2 THEN 
+      'Order ' || 
+      CASE 
+        WHEN e.pm_class = 'Class A' THEN '3'
+        WHEN e.pm_class = 'Class B' THEN '2'
+        WHEN e.pm_class = 'Class C' THEN '4'
+        ELSE '2'
+      END || ' ' || m.unit || ' within 7 days'
+    ELSE 
+      'Consider pre-ordering ' || 
+      CASE 
+        WHEN e.pm_class = 'Class A' THEN '2'
+        WHEN e.pm_class = 'Class B' THEN '1'
+        WHEN e.pm_class = 'Class C' THEN '3'
+        ELSE '1'
+      END || ' ' || m.unit || ' for next month'
+  END as recommended_action
+FROM equipment e
+CROSS JOIN materials m
+WHERE e.is_pm = true
+  AND m.type = 'Spare Parts'
+  AND (
+    m.quantity <= 2 
+    OR e.pm_frequency_days <= 30
+  );
+
+-- 7. Insert sample accuracy tracking data
+INSERT INTO prediction_accuracy_tracking (
+  material_id,
+  month_year,
+  predicted_usage,
+  actual_usage,
+  accuracy_percentage,
+  total_predictions,
+  correct_predictions
+)
+SELECT 
+  m.id as material_id,
+  TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM') as month_year,
+  CASE 
+    WHEN e.pm_class = 'Class A' THEN 2
+    WHEN e.pm_class = 'Class B' THEN 1
+    WHEN e.pm_class = 'Class C' THEN 3
+    ELSE 1
+  END as predicted_usage,
+  CASE 
+    WHEN e.pm_class = 'Class A' THEN 2
+    WHEN e.pm_class = 'Class B' THEN 1
+    WHEN e.pm_class = 'Class C' THEN 3
+    ELSE 1
+  END as actual_usage,
+  85.5 as accuracy_percentage,
+  10 as total_predictions,
+  8 as correct_predictions
+FROM equipment e
+CROSS JOIN materials m
+WHERE e.is_pm = true
+  AND m.type = 'Spare Parts';
+
+-- 8. Verification queries
+SELECT 'Test Data Created Successfully' as status;
+
+-- Check what was created
+SELECT 
+  'Equipment' as table_name,
+  COUNT(*) as record_count
+FROM equipment;
+
+SELECT 
+  'Materials' as table_name,
+  COUNT(*) as record_count
+FROM materials;
+
+SELECT 
+  'Predictions' as table_name,
+  COUNT(*) as record_count
+FROM predictive_stocking;
+
+SELECT 
+  'Alerts' as table_name,
+  COUNT(*) as record_count,
+  priority,
+  alert_type
+FROM predictive_alerts
+GROUP BY priority, alert_type;
+
+SELECT 
+  'Accuracy Tracking' as table_name,
+  COUNT(*) as record_count,
+  AVG(accuracy_percentage) as avg_accuracy
+FROM prediction_accuracy_tracking; 

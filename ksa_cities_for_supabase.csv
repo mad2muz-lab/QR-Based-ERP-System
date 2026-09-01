@@ -1,0 +1,98 @@
+city,province,latitude,longitude,source
+Riyadh,Riyadh,24.7136,46.6753,imported
+Jeddah,Makkah,21.4858,39.1925,imported
+Mecca,Makkah,21.3891,39.8579,imported
+Medina,Madinah,24.5247,39.5692,imported
+Dammam,Eastern Province,26.4207,50.0888,imported
+Khobar,Eastern Province,26.2794,50.2083,imported
+Dhahran,Eastern Province,26.2886,50.1134,imported
+Jubail,Eastern Province,27.004,49.6465,imported
+Hofuf,Eastern Province,25.3839,49.6058,imported
+Taif,Makkah,21.4373,40.5127,imported
+Buraidah,Qassim,26.3259,43.974,imported
+Unaizah,Qassim,26.0753,43.9917,imported
+Abha,Asir,18.2465,42.5117,imported
+Khamis Mushait,Asir,18.3029,42.7369,imported
+Najran,Najran,17.5654,44.2289,imported
+Jizan,Jizan,16.8891,42.5511,imported
+Sakaka,Al Jawf,29.9697,40.2064,imported
+Tabuk,Tabuk,28.3838,36.555,imported
+Arar,Northern Borders,30.9753,41.0381,imported
+Hail,Hail,27.5114,41.7208,imported
+Al Bahah,Al Bahah,20.0129,41.4677,imported
+Al Qurayyat,Al Jawf,31.3314,37.3428,imported
+Yanbu,Madinah,24.0889,38.1494,imported
+Rabigh,Makkah,22.7986,39.0346,imported
+Al Lith,Makkah,20.1301,40.2669,imported
+Al Qunfudhah,Makkah,19.1256,41.0787,imported
+Baljurashi,Al Bahah,19.8811,41.5606,imported
+Mahd adh Dhahab,Madinah,23.4893,40.8721,imported
+Dumat Al-Jandal,Al Jawf,29.8106,39.8679,imported
+Wadi ad-Dawasir,Riyadh,20.4446,44.8374,imported
+Al Majma'ah,Riyadh,25.9104,45.3591,imported
+Al Zulfi,Riyadh,26.305,44.823,imported
+Shaqraa,Riyadh,25.2581,45.2463,imported
+Al-Kharj,Riyadh,24.1555,47.312,imported
+Al Ghat,Riyadh,26.0367,44.9475,imported
+Al Wajh,Tabuk,26.2455,36.4526,imported
+Turaif,Northern Borders,31.6725,38.6636,imported
+Al Ula,Madinah,26.6181,37.9326,imported
+Hafr Al-Batin,Eastern Province,28.438,45.969,imported
+Qaisumah,Eastern Province,28.3032,46.1257,imported
+Ras Tanura,Eastern Province,26.6406,50.1582,imported
+Qatif,Eastern Province,26.5651,49.9962,imported
+Al Khafji,Eastern Province,28.4393,48.4912,imported
+Rafha,Northern Borders,29.6203,43.4931,imported
+Al Bukayriyah,Qassim,26.1446,43.6577,imported
+Al-Hawiyah,Makkah,21.5026,40.5516,imported
+Al Bad,Tabuk,28.6903,35.3005,imported
+Umluj,Tabuk,25.0213,37.2685,imported
+Thuwal,Makkah,22.2656,39.1036,imported
+Ras Al Khair,Eastern Province,27.5307,49.1509,imported
+Salwa,Eastern Province,24.6827,50.7105,imported
+Haradh,Eastern Province,23.5275,48.4937,imported
+Shaibah,Eastern Province,21.0821,49.3927,imported
+Al Aflaj,Riyadh,22.0396,46.7276,imported
+Al Duwadimi,Riyadh,24.5121,44.3853,imported
+Al-'Uyayna,Riyadh,24.8833,46.4,imported
+Al Muzahmiyya,Riyadh,24.4717,46.2614,imported
+As Sulayyil,Riyadh,20.4601,45.5772,imported
+Ad Dilam,Riyadh,23.9914,47.1618,imported
+Bisha,Asir,19.9875,42.5896,imported
+Tannumah,Asir,19.9781,42.0599,imported
+Al Nammas,Asir,19.1171,42.1183,imported
+Rijal Alma,Asir,18.0644,42.7321,imported
+Ahad Rafidah,Asir,18.2275,42.8057,imported
+Samtah,Jizan,16.5962,42.9449,imported
+Sabya,Jizan,17.1475,42.6265,imported
+Abu Arish,Jizan,16.9688,42.8034,imported
+Al Ardah,Jizan,16.8427,42.5259,imported
+Al Dayer,Jizan,17.3112,43.1154,imported
+Baish,Jizan,17.4514,42.5587,imported
+Al Khurmah,Makkah,21.9361,42.0398,imported
+Ranyah,Makkah,21.2469,42.8546,imported
+Turubah,Makkah,21.2104,41.6319,imported
+Al Muwayh,Makkah,22.4357,41.7603,imported
+Al Jumum,Makkah,21.6273,39.6954,imported
+Khulays,Makkah,22.1708,39.4372,imported
+Dhurma,Riyadh,24.5046,46.3371,imported
+Al Hariq,Riyadh,23.1231,46.6552,imported
+Tayma,Tabuk,27.6139,38.6071,imported
+Sharurah,Najran,17.4753,47.1039,imported
+Al Mahd,Madinah,23.4813,41.7629,imported
+Al Mahayel,Asir,18.5476,42.0597,imported
+Riyadh Al Khabra,Qassim,26.0506,43.5165,imported
+Al Namas,Asir,19.112,42.12,imported
+Al Qassim,Qassim,26.2,43.9667,imported
+Farasan,Jizan,16.6966,42.1182,imported
+Al Lith Industrial City,Makkah,20.1335,40.2672,imported
+Tanuma,Asir,19.9785,42.0532,imported
+Badr,Madinah,23.7806,38.7908,imported
+Al Mahmal,Makkah,21.8379,39.7202,imported
+Al Aqiq,Al Bahah,20.2731,41.6333,imported
+Al Jafr,Eastern Province,25.4202,49.7182,imported
+Abqaiq,Eastern Province,25.9344,49.6686,imported
+Thadiq,Riyadh,25.2913,45.9612,imported
+Al Mandaq,Al Bahah,20.0733,41.2756,imported
+Al Majardah,Asir,19.1419,41.9158,imported
+Uqair,Eastern Province,25.6372,50.2005,imported 

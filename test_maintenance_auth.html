@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Auth Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Equipment Maintenance Authentication Test</h1>
+    
+    <div id="results"></div>
+    
+    <button onclick="testConnection()">Test Supabase Connection</button>
+    <button onclick="testAuth()">Test Authentication</button>
+    <button onclick="testMaintenanceInsert()">Test Maintenance Insert</button>
+    <button onclick="testMaintenanceSelect()">Test Maintenance Select</button>
+    
+    <script>
+        // You'll need to replace these with your actual Supabase credentials
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            resultsDiv.appendChild(div);
+        }
+        
+        async function testConnection() {
+            try {
+                addResult('Testing Supabase connection...', 'info');
+                const { data, error } = await supabase.from('equipment_maintenance_logs').select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    addResult(`Connection failed: ${error.message}`, 'error');
+                } else {
+                    addResult(`Connection successful! Table exists with ${data.count || 0} records.`, 'success');
+                }
+            } catch (err) {
+                addResult(`Connection error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function testAuth() {
+            try {
+                addResult('Testing authentication...', 'info');
+                const { data, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    addResult(`Auth error: ${error.message}`, 'error');
+                } else if (data.session) {
+                    addResult(`Authenticated as: ${data.session.user.email} (ID: ${data.session.user.id})`, 'success');
+                } else {
+                    addResult('Not authenticated - no session found', 'error');
+                }
+            } catch (err) {
+                addResult(`Auth test error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function testMaintenanceSelect() {
+            try {
+                addResult('Testing maintenance logs SELECT...', 'info');
+                const { data, error } = await supabase
+                    .from('equipment_maintenance_logs')
+                    .select('*')
+                    .limit(5);
+                
+                if (error) {
+                    addResult(`SELECT failed: ${error.message}`, 'error');
+                } else {
+                    addResult(`SELECT successful! Found ${data.length} records.`, 'success');
+                }
+            } catch (err) {
+                addResult(`SELECT error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function testMaintenanceInsert() {
+            try {
+                addResult('Testing maintenance logs INSERT...', 'info');
+                const testData = {
+                    id: 'test-' + Date.now(),
+                    equipment_id: 'test-equipment',
+                    maintenance_type: 'repair',
+                    status: 'scheduled',
+                    description: 'Test maintenance log from auth test',
+                    start_date: new Date().toISOString(),
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+                
+                const { data, error } = await supabase
+                    .from('equipment_maintenance_logs')
+                    .insert([testData])
+                    .select();
+                
+                if (error) {
+                    addResult(`INSERT failed: ${error.message}`, 'error');
+                } else {
+                    addResult(`INSERT successful! Created record with ID: ${data[0].id}`, 'success');
+                    
+                    // Clean up the test record
+                    await supabase
+                        .from('equipment_maintenance_logs')
+                        .delete()
+                        .eq('id', testData.id);
+                    addResult('Test record cleaned up.', 'info');
+                }
+            } catch (err) {
+                addResult(`INSERT error: ${err.message}`, 'error');
+            }
+        }
+    </script>
+    
+    <div style="margin-top: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Replace <code>YOUR_SUPABASE_URL</code> and <code>YOUR_SUPABASE_ANON_KEY</code> with your actual Supabase credentials</li>
+            <li>Make sure you're logged into your application first</li>
+            <li>Click the test buttons in order to diagnose the issue</li>
+            <li>The results will show what's working and what's failing</li>
+        </ol>
+    </div>
+</body>
+</html> 

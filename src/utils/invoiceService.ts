@@ -1,0 +1,3 @@
+// Legacy service - re-exports from comprehensive ERP invoice service
+export { getInvoices, getInvoiceById, createInvoice, updateInvoice as saveInvoice, deleteInvoice, getPayments, getPaymentsByInvoice, createPayment as savePayment, deletePayment, generatePaymentNumber, createInvoiceFromQuotation as createInvoiceFromProforma, postInvoiceToLedger, postPaymentToLedger, getChartOfAccounts, getJournalEntries, createJournalEntry, generateZATCAXML, getZATCAComplianceChecklist, generateQRCodeData } from './erpInvoiceService';
+export type { Invoice, InvoiceItem, Quotation, QuotationItem, Payment, ChartOfAccount, JournalEntry } from '../types';
