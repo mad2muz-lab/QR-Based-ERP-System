@@ -1,241 +1,690 @@
-// PDF generation utility for ID cards
+// PDF generation utility for ID cards and Asset Labels
 export const generateIDCardPDF = (entityData: any, qrCodeImage: string, entityType: string = 'employee') => {
   // Create a new window for printing
   const printWindow = window.open('', '_blank');
   
   if (!printWindow) {
-    alert('Please allow popups to print ID cards');
+    alert('Please allow popups to print ID cards or labels');
     return;
   }
 
-  // A4 page with multiple cards or single card
-  const isIDCard = entityType === 'employee';
-  const pageWidth = isIDCard ? '85.60mm' : '210mm';
-  const pageHeight = isIDCard ? '53.98mm' : '297mm';
+  const isEmployee = entityType === 'employee';
+  const isMaterial = entityType === 'material';
+  const isEquipment = entityType === 'equipment';
 
   // Company info
-  const companyName = entityData.companyName || entityData.company || '';
+  const companyName = entityData.companyName || entityData.company || 'ERP SYSTEM';
   const companyLogo = entityData.companyLogo || entityData.logoUrl || '';
 
-  const printContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>${isIDCard ? 'Employee ID Card' : 'QR Label'} - ${entityData.name}</title>
-      <style>
-        @page {
-          size: ${pageWidth} ${pageHeight};
-          margin: 0;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: 'Arial', sans-serif;
-          width: ${pageWidth};
-          height: ${pageHeight};
-          background: #f4f6fa;
-          color: #222;
-          box-sizing: border-box;
-          position: relative;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-        .card-container {
-          width: 100%;
-          height: 100%;
-          background: #fff;
-          border-radius: 3mm;
-          box-shadow: 0 2px 8px rgba(30,58,138,0.10);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: flex-start;
-          position: relative;
-          overflow: hidden;
-        }
-        .header-section {
-          width: 100%;
-          min-height: 13mm;
-          background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
-          color: #fff;
-          text-align: center;
-          font-size: 8pt;
-          font-weight: bold;
-          border-radius: 3mm 3mm 0 0;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 1mm;
-          padding: 2mm 0 1mm 0;
-        }
-        .company-logo {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5mm;
-        }
-        .logo-img {
-          width: 10mm;
-          height: 10mm;
-          object-fit: contain;
-          border-radius: 2mm;
-          background: #fff;
-          margin-bottom: 1mm;
-        }
-        .company-name-text {
-          font-size: 8pt;
-          font-weight: bold;
-          color: #fff;
-          margin-bottom: 0.5mm;
-          text-transform: uppercase;
-          letter-spacing: 0.5mm;
-        }
-        .main-content {
-          flex: 1;
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: flex-start;
-          padding: 2mm 2mm 0 2mm;
-        }
-        .photo-section {
-          width: 22mm;
-          height: 26mm;
-          background: #f3f4f6;
-          border-radius: 2mm;
-          overflow: hidden;
-          border: 1.5px solid #e5e7eb;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 2mm;
-        }
-        .employee-photo {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-        .no-photo {
-          color: #9ca3af;
-          font-size: 7pt;
-          text-align: center;
-        }
-        .qr-section {
-          width: 100%;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          margin: 2mm 0 0 0;
-        }
-        .qr-code {
-          width: 24mm;
-          height: 24mm;
-          background: #fff;
-          padding: 1mm;
-          border-radius: 2mm;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-        }
-        .qr-code img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-        .info-section {
-          width: 100%;
-          margin: 2mm 0 0 0;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .employee-name {
-          font-size: 9pt;
-          font-weight: bold;
-          color: #1f2937;
-          text-align: center;
-          margin-bottom: 1mm;
-          text-transform: uppercase;
-        }
-        .employee-title {
-          font-size: 7pt;
-          color: #2563eb;
-          text-align: center;
-          margin-bottom: 1mm;
-        }
-        .employee-details {
-          font-size: 6pt;
-          color: #374151;
-          margin-bottom: 1mm;
-          width: 90%;
-        }
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 0.5mm;
-        }
-        .detail-label {
-          font-weight: bold;
-        }
-        .detail-value {
-          text-align: right;
-        }
-        .footer-section {
-          width: 100%;
-          text-align: center;
-          font-size: 7pt;
-          color: #2563eb;
-          margin: 0.5mm 0 0 0;
-          padding-bottom: 1mm;
-        }
-        @media print {
-          body {
+  let printContent = '';
+
+  if (isMaterial) {
+    // Dedicated Professional Material Asset Tag
+    const pageWidth = '100mm';
+    const pageHeight = '72mm';
+    const materialCode = entityData.qrCode || entityData.id || 'N/A';
+    const formattedDate = entityData.createdAt ? new Date(entityData.createdAt).toLocaleDateString() : new Date().toLocaleDateString();
+
+    printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Material Label - ${entityData.name || 'Item'}</title>
+        <style>
+          @page {
+            size: ${pageWidth} ${pageHeight};
+            margin: 0;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="card-container">
-        <div class="header-section">
-          <div class="company-logo">
-            ${companyLogo ? `<img src="${companyLogo}" class="logo-img" alt="Logo" />` : ''}
-            <div class="company-name-text">${companyName || ''}</div>
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            width: ${pageWidth};
+            height: ${pageHeight};
+            background: #ffffff;
+            color: #0f172a;
+            position: relative;
+            padding: 2.5mm;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .label-container {
+            width: 100%;
+            height: 100%;
+            border: 1.5px solid #0f172a;
+            border-radius: 3mm;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #ffffff;
+          }
+          .header-bar {
+            background: linear-gradient(135deg, #002e17 0%, #004d26 100%);
+            color: #ffffff;
+            padding: 1.8mm 3mm;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .header-title {
+            font-size: 8.5pt;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 1.5mm;
+          }
+          .header-badge {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            font-size: 6.5pt;
+            padding: 0.5mm 2mm;
+            border-radius: 2mm;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          .main-body {
+            flex: 1;
+            display: flex;
+            padding: 2.5mm 3mm 1.5mm 3mm;
+            gap: 3mm;
+          }
+          .qr-column {
+            width: 32mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+          }
+          .qr-box {
+            width: 28mm;
+            height: 28mm;
+            padding: 1mm;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 2mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .qr-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+          }
+          .qr-code-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 5.5pt;
+            font-weight: 700;
+            color: #334155;
+            margin-top: 1mm;
+            text-align: center;
+            word-break: break-all;
+            max-width: 30mm;
+          }
+          .scan-hint {
+            font-size: 5pt;
+            color: #059669;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+          }
+          .details-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .item-name {
+            font-size: 9.5pt;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.2;
+            margin-bottom: 1.5mm;
+            text-transform: uppercase;
+          }
+          .info-table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.7mm 0;
+            border-bottom: 0.5px solid #f1f5f9;
+            font-size: 6.5pt;
+          }
+          .info-label {
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+          .info-val {
+            color: #0f172a;
+            font-weight: 700;
+            text-align: right;
+            max-width: 36mm;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .stock-badge {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            padding: 0.3mm 1.5mm;
+            border-radius: 1.5mm;
+            font-weight: 800;
+          }
+          .footer-bar {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 1mm 3mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 5.5pt;
+            color: #64748b;
+          }
+          .footer-instruction {
+            font-weight: 600;
+            color: #334155;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="label-container">
+          <div class="header-bar">
+            <div class="header-title">
+              ${companyLogo ? `<img src="${companyLogo}" style="height: 4mm; object-fit: contain;" />` : ''}
+              <span>${companyName} • ASSET TAG</span>
+            </div>
+            <div class="header-badge">${entityData.type || 'MATERIAL'}</div>
           </div>
-        </div>
-        <div class="main-content">
-          <div class="photo-section">
-            ${entityData.photo ? `<img src="${entityData.photo}" alt="Employee Photo" class="employee-photo" />` : `<div class="no-photo">EMPLOYEE<br>PHOTO</div>`}
-          </div>
-          <div class="qr-section">
-            <div class="qr-code">
-              <img src="${qrCodeImage}" alt="QR Code" />
+          <div class="main-body">
+            <div class="qr-column">
+              <div class="qr-box">
+                <img src="${qrCodeImage}" alt="QR Code" />
+              </div>
+              <div class="qr-code-text">${materialCode}</div>
+              <div class="scan-hint">SCAN TO AUDIT / LOG</div>
+            </div>
+            <div class="details-column">
+              <div>
+                <div class="item-name">${entityData.name || 'Untitled Material'}</div>
+                <div class="info-table">
+                  <div class="info-row">
+                    <span class="info-label">Material ID:</span>
+                    <span class="info-val" style="font-family: monospace;">${entityData.oldId || entityData.id || 'N/A'}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Stock Quantity:</span>
+                    <span class="info-val"><span class="stock-badge">${entityData.quantity ?? 0} ${entityData.unit || 'Units'}</span></span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Site / Warehouse:</span>
+                    <span class="info-val">${entityData.site || 'Main Warehouse'}</span>
+                  </div>
+                  ${entityData.batchNumber || entityData.lotNumber ? `
+                  <div class="info-row">
+                    <span class="info-label">Batch/Lot:</span>
+                    <span class="info-val">${entityData.batchNumber || entityData.lotNumber}</span>
+                  </div>` : ''}
+                  <div class="info-row">
+                    <span class="info-label">Tagged Date:</span>
+                    <span class="info-val">${formattedDate}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="info-section">
-            <div class="employee-name">${entityData.name}</div>
-            <div class="employee-title">${entityData.position || ''}</div>
-            <div class="employee-details">
-              <div class="detail-row"><span class="detail-label">ID No</span><span class="detail-value">${entityData.oldId || entityData.id || ''}</span></div>
-              <div class="detail-row"><span class="detail-label">Dept</span><span class="detail-value">${entityData.department || ''}</span></div>
-              <div class="detail-row"><span class="detail-label">Blood</span><span class="detail-value">${entityData.bloodGroup || 'N/A'}</span></div>
-              <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${entityData.email || 'Not provided'}</span></div>
-              <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">${entityData.phone || 'Not provided'}</span></div>
-            </div>
+          <div class="footer-bar">
+            <span class="footer-instruction">Scan with ERP QR Scanner for In / Out / Transfer</span>
+            <span>ERP ASSET IDENTIFIER</span>
           </div>
         </div>
-        <div class="footer-section">
+      </body>
+      </html>
+    `;
+  } else if (isEquipment) {
+    // Dedicated Equipment Asset Tag
+    const pageWidth = '100mm';
+    const pageHeight = '72mm';
+    const equipmentCode = entityData.custom_equipment_id || entityData.qrCode || entityData.id || 'N/A';
+
+    printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Equipment Label - ${entityData.name || 'Equipment'}</title>
+        <style>
+          @page {
+            size: ${pageWidth} ${pageHeight};
+            margin: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            width: ${pageWidth};
+            height: ${pageHeight};
+            background: #ffffff;
+            color: #0f172a;
+            position: relative;
+            padding: 2.5mm;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .label-container {
+            width: 100%;
+            height: 100%;
+            border: 1.5px solid #0f172a;
+            border-radius: 3mm;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #ffffff;
+          }
+          .header-bar {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            color: #ffffff;
+            padding: 1.8mm 3mm;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .header-title {
+            font-size: 8.5pt;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 1.5mm;
+          }
+          .header-badge {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            font-size: 6.5pt;
+            padding: 0.5mm 2mm;
+            border-radius: 2mm;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          .main-body {
+            flex: 1;
+            display: flex;
+            padding: 2.5mm 3mm 1.5mm 3mm;
+            gap: 3mm;
+          }
+          .qr-column {
+            width: 32mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+          }
+          .qr-box {
+            width: 28mm;
+            height: 28mm;
+            padding: 1mm;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 2mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .qr-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+          }
+          .qr-code-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 5.5pt;
+            font-weight: 700;
+            color: #334155;
+            margin-top: 1mm;
+            text-align: center;
+            word-break: break-all;
+            max-width: 30mm;
+          }
+          .scan-hint {
+            font-size: 5pt;
+            color: #2563eb;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+          }
+          .details-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .item-name {
+            font-size: 9.5pt;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.2;
+            margin-bottom: 1.5mm;
+            text-transform: uppercase;
+          }
+          .info-table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.7mm 0;
+            border-bottom: 0.5px solid #f1f5f9;
+            font-size: 6.5pt;
+          }
+          .info-label {
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+          .info-val {
+            color: #0f172a;
+            font-weight: 700;
+            text-align: right;
+            max-width: 36mm;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .footer-bar {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 1mm 3mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 5.5pt;
+            color: #64748b;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="label-container">
+          <div class="header-bar">
+            <div class="header-title">
+              ${companyLogo ? `<img src="${companyLogo}" style="height: 4mm; object-fit: contain;" />` : ''}
+              <span>${companyName} • EQUIPMENT TAG</span>
+            </div>
+            <div class="header-badge">${entityData.status || 'ACTIVE'}</div>
+          </div>
+          <div class="main-body">
+            <div class="qr-column">
+              <div class="qr-box">
+                <img src="${qrCodeImage}" alt="QR Code" />
+              </div>
+              <div class="qr-code-text">${equipmentCode}</div>
+              <div class="scan-hint">SCAN FOR USAGE LOGS</div>
+            </div>
+            <div class="details-column">
+              <div>
+                <div class="item-name">${entityData.name || 'Equipment'}</div>
+                <div class="info-table">
+                  <div class="info-row">
+                    <span class="info-label">Equipment ID:</span>
+                    <span class="info-val" style="font-family: monospace;">${equipmentCode}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Type / Category:</span>
+                    <span class="info-val">${entityData.type || 'N/A'}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Model:</span>
+                    <span class="info-val">${entityData.model || 'N/A'}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Site / Location:</span>
+                    <span class="info-val">${entityData.site || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="footer-bar">
+            <span>Scan to Clock-In / Start Use / Stop Use / Maintenance</span>
+            <span>EQUIPMENT ASSET TAG</span>
+          </div>
         </div>
-      </div>
-    </body>
-    </html>
-  `;
+      </body>
+      </html>
+    `;
+  } else {
+    // Standard Employee ID Card (CR80 standard dimensions)
+    const pageWidth = '85.60mm';
+    const pageHeight = '53.98mm';
+
+    printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Employee ID Card - ${entityData.name}</title>
+        <style>
+          @page {
+            size: ${pageWidth} ${pageHeight};
+            margin: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            width: ${pageWidth};
+            height: ${pageHeight};
+            background: #f4f6fa;
+            color: #222;
+            position: relative;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .card-container {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+          }
+          .header-section {
+            width: 100%;
+            height: 11mm;
+            background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4mm;
+          }
+          .company-name-text {
+            font-size: 7.5pt;
+            font-weight: bold;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 2mm 3mm;
+            gap: 3mm;
+          }
+          .photo-section {
+            width: 20mm;
+            height: 24mm;
+            background: #f3f4f6;
+            border-radius: 1.5mm;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .employee-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          .no-photo {
+            color: #9ca3af;
+            font-size: 6pt;
+            text-align: center;
+            font-weight: 600;
+          }
+          .info-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+          }
+          .employee-name {
+            font-size: 8.5pt;
+            font-weight: 800;
+            color: #1f2937;
+            text-transform: uppercase;
+            margin-bottom: 0.5mm;
+          }
+          .employee-title {
+            font-size: 6.5pt;
+            color: #2563eb;
+            font-weight: 600;
+            margin-bottom: 1.5mm;
+          }
+          .employee-details {
+            font-size: 5.5pt;
+            color: #374151;
+            width: 100%;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5mm;
+          }
+          .detail-label {
+            font-weight: bold;
+            color: #64748b;
+          }
+          .detail-value {
+            text-align: right;
+            font-weight: 600;
+          }
+          .qr-section {
+            width: 18mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .qr-code {
+            width: 16mm;
+            height: 16mm;
+            background: #fff;
+            padding: 0.5mm;
+            border-radius: 1.5mm;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .qr-code img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+          }
+          .footer-section {
+            width: 100%;
+            height: 4mm;
+            background: #f8fafc;
+            border-top: 0.5px solid #e2e8f0;
+            text-align: center;
+            font-size: 5pt;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card-container">
+          <div class="header-section">
+            <span class="company-name-text">${companyName}</span>
+            <span style="font-size: 6pt; opacity: 0.9;">STAFF ID</span>
+          </div>
+          <div class="main-content">
+            <div class="photo-section">
+              ${entityData.photo ? `<img src="${entityData.photo}" alt="Employee Photo" class="employee-photo" />` : `<div class="no-photo">PHOTO</div>`}
+            </div>
+            <div class="info-section">
+              <div class="employee-name">${entityData.name}</div>
+              <div class="employee-title">${entityData.position || 'Staff'}</div>
+              <div class="employee-details">
+                <div class="detail-row"><span class="detail-label">ID No</span><span class="detail-value">${entityData.oldId || entityData.id || ''}</span></div>
+                <div class="detail-row"><span class="detail-label">Dept</span><span class="detail-value">${entityData.department || 'Operations'}</span></div>
+                ${entityData.bloodGroup ? `<div class="detail-row"><span class="detail-label">Blood</span><span class="detail-value">${entityData.bloodGroup}</span></div>` : ''}
+                ${entityData.phone ? `<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">${entityData.phone}</span></div>` : ''}
+              </div>
+            </div>
+            <div class="qr-section">
+              <div class="qr-code">
+                <img src="${qrCodeImage}" alt="QR Code" />
+              </div>
+            </div>
+          </div>
+          <div class="footer-section">
+            Authorized Personnel Identification Card
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
 
   printWindow.document.write(printContent);
   printWindow.document.close();
@@ -244,11 +693,11 @@ export const generateIDCardPDF = (entityData: any, qrCodeImage: string, entityTy
   const handleLoad = () => {
     setTimeout(() => {
       printWindow.print();
-      // Don't auto-close to allow user to save as PDF
+      // Don't auto-close immediately to allow user to save as PDF
       setTimeout(() => {
         printWindow.close();
       }, 1000);
-    }, 1000);
+    }, 800);
   };
   
   if (printWindow.document.readyState === 'complete') {
@@ -259,7 +708,5 @@ export const generateIDCardPDF = (entityData: any, qrCodeImage: string, entityTy
 };
 
 export const downloadIDCardAsPDF = (entityData: any, qrCodeImage: string, entityType: string = 'employee') => {
-  // For now, we'll use the print functionality which allows "Save as PDF"
-  // In a real application, you would use a library like jsPDF or Puppeteer
   generateIDCardPDF(entityData, qrCodeImage, entityType);
 };

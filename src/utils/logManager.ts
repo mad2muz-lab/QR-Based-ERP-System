@@ -345,32 +345,44 @@ export class LogManager {
     const now = new Date();
 
     // --- Robust stock validation and current quantity fetch ---
-    let latestMaterial: Material | undefined;
-    let currentQuantity = 0;
-    
-    // Always fetch latest material data for accurate quantity calculation
+    const { DataStorage } = await import('./dataStorage');
+    const localMaterials = DataStorage.loadMaterials();
+    const findMatchingMaterial = (list: Material[]) =>
+      list.find(m =>
+        (material.id && m.id === material.id) ||
+        (material.qrCode && m.qrCode === material.qrCode) ||
+        (material.oldId && m.oldId === material.oldId) ||
+        (material.name && m.name.trim().toLowerCase() === material.name.trim().toLowerCase() && m.site === material.site)
+      );
+
+    const localMat = findMatchingMaterial(localMaterials);
+    let latestMaterial: Material | undefined = localMat;
+    let currentQuantity = (localMat && typeof localMat.quantity === 'number')
+      ? localMat.quantity
+      : (typeof material.quantity === 'number' ? material.quantity : Number(material.quantity) || 0);
+
+    // If Supabase is active, only adopt remote if remote is valid and explicitly newer or local has no stock
     if (await AuthManager.shouldUseSupabase()) {
-      // Supabase mode: always fetch latest from server
       try {
         const { SupabaseDataService } = await import('./supabaseDataService');
         const supabaseMaterials = await SupabaseDataService.getMaterials();
-        latestMaterial = supabaseMaterials.find(m => m.id === material.id);
-        currentQuantity = latestMaterial ? latestMaterial.quantity : 0;
-        console.log('📊 LogManager: Fetched from Supabase - Current quantity:', currentQuantity);
+        const remoteMat = findMatchingMaterial(supabaseMaterials);
+        if (remoteMat && typeof remoteMat.quantity === 'number') {
+          const remoteTime = remoteMat.lastUpdated ? new Date(remoteMat.lastUpdated).getTime() : 0;
+          const localTime = localMat?.lastUpdated ? new Date(localMat.lastUpdated).getTime() : 0;
+          if (remoteTime > localTime || !localMat || localMat.quantity === undefined) {
+            latestMaterial = remoteMat;
+            currentQuantity = remoteMat.quantity;
+            console.log('📊 LogManager: Fetched newer stock from Supabase - Current quantity:', currentQuantity);
+          } else {
+            console.log('📊 LogManager: Local stock is most current:', currentQuantity);
+          }
+        }
       } catch (error) {
-        console.warn('⚠️ LogManager: Failed to fetch from Supabase, using local data:', error);
-        // Fallback to local data
-        const { DataStorage } = await import('./dataStorage');
-        const localMaterials = DataStorage.loadMaterials();
-        latestMaterial = localMaterials.find(m => m.id === material.id);
-        currentQuantity = latestMaterial ? latestMaterial.quantity : 0;
+        console.warn('⚠️ LogManager: Failed to fetch from Supabase, using local/material stock:', error);
       }
     } else {
-      // Local mode
-      const { DataStorage } = await import('./dataStorage');
-      const localMaterials = DataStorage.loadMaterials();
-      latestMaterial = localMaterials.find(m => m.id === material.id);
-      currentQuantity = latestMaterial ? latestMaterial.quantity : 0;
+      console.log('📊 LogManager: Local mode - Current quantity:', currentQuantity);
     }
     
     // Validate OUT operation
@@ -445,19 +457,11 @@ export class LogManager {
     try {
       const { offlineSyncManager } = await import('./offlineSync');
       if (offlineSyncManager) {
-        console.log('🔄 LogManager: Forcing immediate sync...');
-        await offlineSyncManager.processSyncQueue();
-        console.log('✅ LogManager: Sync completed');
-        
-        // After sync, refresh local materials from Supabase if online
-        if (await AuthManager.shouldUseSupabase()) {
-          console.log('🔄 LogManager: Refreshing local materials from Supabase...');
-          const { SupabaseDataService } = await import('./supabaseDataService');
-          const supabaseMaterials = await SupabaseDataService.getMaterials();
-          const { DataStorage } = await import('./dataStorage');
-          DataStorage.saveMaterials(supabaseMaterials);
-          console.log('✅ LogManager: Local materials refreshed');
-        }
+        // Process sync queue in background
+        offlineSyncManager.processSyncQueue().catch(err => {
+          console.warn('⚠️ LogManager: Background sync notice:', err);
+        });
+        console.log('✅ LogManager: Sync queue triggered');
       }
     } catch (syncError) {
       console.error('⚠️ LogManager: Material sync failed:', syncError);

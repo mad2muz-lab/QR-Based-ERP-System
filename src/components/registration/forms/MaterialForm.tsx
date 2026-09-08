@@ -3,6 +3,8 @@ import { Package, X, Plus, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Material } from '../../../types';
 import { materialCategories } from '../../../data/materialTypes';
 import { CustomMaterialTypeManager } from '../../../utils/customMaterialTypeManager';
+import { sites as defaultMockSites } from '../../../data/mockData';
+import { REGIONS } from '../../../modules/inventory/data/ksaData';
 
 interface MaterialFormProps {
   sites: any[];
@@ -46,9 +48,27 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
     serialNumber: '',
   });
   const [showCustomType, setShowCustomType] = useState(false);
+  const [showCustomSite, setShowCustomSite] = useState(false);
+  const [warehousesList, setWarehousesList] = useState<any[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [customMaterialTypes, setCustomMaterialTypes] = useState<string[]>([]);
   const [expandedSections, setExpandedSections] = useState({ identity: true, pricing: true, stock: true, supplier: true, location: true, batch: true });
+
+  // Load warehouses for site assignment
+  useEffect(() => {
+    try {
+      const storedWh = localStorage.getItem('registered_warehouses');
+      if (storedWh) {
+        setWarehousesList(JSON.parse(storedWh));
+      } else {
+        setWarehousesList(REGIONS.flatMap(r => r.warehouses));
+      }
+    } catch {
+      setWarehousesList(REGIONS.flatMap(r => r.warehouses));
+    }
+  }, []);
+
+  const availableSites = (sites && sites.length > 0) ? sites : defaultMockSites;
 
   // Handle initial data for editing
   useEffect(() => {
@@ -320,11 +340,72 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
                 <input type="number" min="0" step="0.01" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Site Assignment *</label>
-                <select value={formData.site} onChange={(e) => setFormData({ ...formData, site: e.target.value })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                  <option value="">Select site</option>
-                  {sites.map(site => (<option key={site.id} value={site.id}>{site.name}</option>))}
-                </select>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Site Assignment *</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCustomSite(!showCustomSite);
+                      if (showCustomSite) {
+                        setFormData(prev => ({ ...prev, site: '' }));
+                      }
+                    }}
+                    className="text-xs text-blue-600 font-medium hover:underline"
+                  >
+                    {showCustomSite ? '← Choose from Sites/Warehouses' : '+ Enter Custom Site'}
+                  </button>
+                </div>
+                {showCustomSite ? (
+                  <input
+                    type="text"
+                    value={formData.site}
+                    onChange={(e) => setFormData({ ...formData, site: e.target.value })}
+                    placeholder="Enter custom site or location name"
+                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                ) : (
+                  <select
+                    value={formData.site}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '__custom__') {
+                        setShowCustomSite(true);
+                        setFormData(prev => ({ ...prev, site: '' }));
+                      } else {
+                        const matchedWh = warehousesList.find(w => w.id === val || w.name === val);
+                        setFormData(prev => ({
+                          ...prev,
+                          site: val,
+                          warehouseId: matchedWh ? matchedWh.id : prev.warehouseId
+                        }));
+                      }
+                    }}
+                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select site or warehouse</option>
+                    {availableSites.length > 0 && (
+                      <optgroup label="Construction Sites">
+                        {availableSites.map(site => (
+                          <option key={site.id} value={site.id || site.name}>
+                            {site.name} {site.province ? `(${site.province})` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {warehousesList.length > 0 && (
+                      <optgroup label="Warehouses">
+                        {warehousesList.map(wh => (
+                          <option key={wh.id} value={wh.id || wh.name}>
+                            {wh.name} ({wh.city})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <option value="__custom__">+ Enter Custom Site / Location...</option>
+                  </select>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -396,7 +477,55 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
           {expandedSections.location && (
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Location (Aisle-Rack-Shelf)</label><input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., A-3-B-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Warehouse ID</label><input type="text" value={formData.warehouseId} onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Warehouse identifier" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Warehouse ID</label>
+                <select
+                  value={formData.warehouseId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__custom__') {
+                      const customId = prompt('Enter custom Warehouse ID:');
+                      if (customId) {
+                        setFormData(prev => ({ ...prev, warehouseId: customId }));
+                      }
+                    } else {
+                      const matched = warehousesList.find(w => (w.id || w.name) === val);
+                      setFormData(prev => ({
+                        ...prev,
+                        warehouseId: val,
+                        site: (!prev.site || prev.site === '') && matched ? matched.name : prev.site
+                      }));
+                    }
+                  }}
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
+                >
+                  <option value="">Select a warehouse...</option>
+                  {warehousesList.length > 0 && (
+                    <optgroup label="Registered Warehouses">
+                      {warehousesList.map(wh => (
+                        <option key={wh.id || wh.name} value={wh.id || wh.name}>
+                          {wh.name} {wh.city ? `(${wh.city})` : ''} — ID: {wh.id || wh.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {availableSites.length > 0 && (
+                    <optgroup label="Construction Sites & Facilities">
+                      {availableSites.map(s => (
+                        <option key={s.id || s.name} value={s.id || s.name}>
+                          {s.name} {s.province ? `(${s.province})` : ''} — ID: {s.id}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <option value="__custom__">+ Enter Custom Warehouse ID...</option>
+                </select>
+                {formData.warehouseId && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Selected Warehouse ID: <span className="font-mono font-semibold text-gray-700">{formData.warehouseId}</span>
+                  </p>
+                )}
+              </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Zone ID</label><input type="text" value={formData.zoneId} onChange={(e) => setFormData({ ...formData, zoneId: e.target.value })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Zone identifier" /></div>
             </div>
           )}

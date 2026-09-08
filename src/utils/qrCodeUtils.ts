@@ -43,10 +43,15 @@ export const parseQRCode = async (qrData: string): Promise<{
     }
     
     // Check materials (now using UUIDs like equipment)
-    const matchingMaterial = materials.find(mat => mat.id === qrData || mat.qrCode === qrData);
+    const matchingMaterial = materials.find(mat => 
+      mat.id === qrData || mat.qrCode === qrData || 
+      (mat.oldId && mat.oldId === qrData) ||
+      (mat.sku && mat.sku === qrData) ||
+      ((mat as any).barcode && (mat as any).barcode === qrData)
+    );
     if (matchingMaterial) {
       console.log('✅ Found matching material in database:', matchingMaterial.name);
-      return { type: 'material', id: qrData };
+      return { type: 'material', id: matchingMaterial.id };
     }
     
     // Check equipment (for custom_equipment_id and UUIDs)

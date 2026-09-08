@@ -506,7 +506,13 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
         break;
 
       case 'material':
-        entity = (materials as any[]).find((mat: any) => mat.id === parsed.id);
+        entity = (materials as any[]).find((mat: any) => 
+          mat.id === parsed.id || 
+          mat.qrCode === parsed.id || 
+          (mat.oldId && mat.oldId === parsed.id) ||
+          (mat.sku && mat.sku === parsed.id) ||
+          (mat.barcode && mat.barcode === parsed.id)
+        );
         if (entity) {
           currentStatus = entity.status;
           actions = [
@@ -778,7 +784,37 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
               notes
             );
             
-            // Material quantity update is now handled within logManager.createMaterialLog
+            // Calculate and immediately reflect updated inventory stock
+            const currentQty = typeof scanResult.entity.quantity === 'number'
+              ? scanResult.entity.quantity
+              : (Number(scanResult.entity.quantity) || 0);
+            const newQty = actionId === 'material-in' ? currentQty + quantity : Math.max(0, currentQty - quantity);
+            const newStatus = newQty === 0 ? 'out-of-stock' : newQty < 50 ? 'low-stock' : 'available';
+            
+            const updatedEntity = {
+              ...scanResult.entity,
+              quantity: newQty,
+              status: newStatus,
+              lastUpdated: new Date().toISOString()
+            };
+
+            // Update live scanResult so UI updates immediately
+            setScanResult(prev => prev ? {
+              ...prev,
+              entity: updatedEntity,
+              currentStatus: newStatus
+            } : null);
+
+            // Update local allEntities state so search reflects new stock
+            setAllEntities(prev => ({
+              ...prev,
+              materials: prev.materials.map(m => (m.id === updatedEntity.id || (updatedEntity.qrCode && m.qrCode === updatedEntity.qrCode)) ? updatedEntity : m)
+            }));
+
+            const actionLabel = actionId === 'material-in' ? 'Material IN' : 'Material OUT';
+            setSuccess(`✅ ${actionLabel} recorded! Updated Stock: ${newQty} ${scanResult.entity.unit || 'units'} (previously ${currentQty})`);
+            setTimeout(() => setSuccess(''), 6000);
+            return;
           } else if (actionId === 'transfer-material') {
             if (!quantity || quantity <= 0) {
               throw new Error('Valid quantity is required for material transfer');
@@ -913,41 +949,41 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
       
 
       
-      // Show success message
-      setError(`✅ ${actionId.replace('-', ' ').toUpperCase()} recorded successfully!`);
+      // Show success message for non-material actions (material actions already set specific message with stock)
+      setSuccess(`✅ ${actionId.replace('-', ' ').toUpperCase()} recorded successfully!`);
+      setTimeout(() => setSuccess(''), 5000);
       
       // For equipment actions, add a small delay to ensure log is persisted before potential re-scan
       if (scanResult.type === 'equipment' && (actionId === 'start-use' || actionId === 'stop-use')) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to log action:', error);
-      setError(`❌ Failed to record ${actionId.replace('-', ' ')}. Please try again.`);
+      const errMsg = error?.message || `Failed to record ${actionId.replace('-', ' ')}. Please try again.`;
+      setError(`❌ ${errMsg}`);
+      setTimeout(() => setError(''), 6000);
     } finally {
-        console.log('🏁 Action completed:', actionId);
-        
-        // For equipment stop-use, clear debounce immediately to allow instant re-scanning
-        if (actionId === 'stop-use') {
+      console.log('🏁 Action completed:', actionId);
+      isProcessingRef.current = false;
+      setIsProcessingAction(false);
+      
+      // For equipment stop-use, clear debounce immediately to allow instant re-scanning
+      if (actionId === 'stop-use') {
+        setLastScannedCode('');
+        setLastScanTime(0);
+      }
+      
+      // For materials, keep the card visible with the latest stock so user can inspect or do another action!
+      // For other entities, clear scan result after delay to allow quick rescanning
+      if (scanResult && scanResult.type !== 'material') {
+        setTimeout(() => {
+          console.log('🔄 Clearing scan result for non-material entity:', actionId);
+          setScanResult(null);
           setLastScannedCode('');
           setLastScanTime(0);
-        }
-        
-        // Clear scan result after action to allow rescanning
-        // Keep processing state active until scan result is cleared to prevent duplicate actions
-        setTimeout(() => {
-  console.log('🔄 Clearing scan result and processing state for:', actionId);
-  setScanResult(null);
-  isProcessingRef.current = false;
-  setIsProcessingAction(false);
-  setLastScannedCode(''); // Reset to allow future scans after delay
-  if (actionId !== 'stop-use') {
-            setLastScannedCode('');
-            setLastScanTime(0);
-          }
         }, actionId === 'stop-use' ? 500 : 800);
       }
-    
-    setTimeout(() => setError(''), 3000);
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1074,6 +1110,20 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
       {/* Main Card */}
       <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
         <div style={{ padding: '32px' }}>
+          {/* Alerts: Visible whether scanning or viewing scan results */}
+          {error && (
+            <div style={{ padding: '16px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '16px', fontWeight: '600', background: error.includes('✅') ? '#d1fae5' : '#fee2e2', color: error.includes('✅') ? '#065f46' : '#991b1b', border: `2px solid ${error.includes('✅') ? '#6ee7b7' : '#fca5a5'}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {error.includes('✅') ? <CheckCircle style={{ width: '20px', height: '20px', flexShrink: 0 }} /> : <AlertCircle style={{ width: '20px', height: '20px', flexShrink: 0 }} />}
+              <span>{error}</span>
+            </div>
+          )}
+          {success && (
+            <div style={{ padding: '16px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '16px', fontWeight: '600', background: '#d1fae5', color: '#065f46', border: '2px solid #6ee7b7', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <CheckCircle style={{ width: '20px', height: '20px', flexShrink: 0 }} />
+              <span>{success}</span>
+            </div>
+          )}
+
           {!scanResult ? (
             <div>
               {/* Search Field */}
@@ -1129,14 +1179,6 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
                   </div>
                 )}
               </div>
-
-              {/* Error/Success Message */}
-              {error && (
-                <div style={{ padding: '16px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '16px', fontWeight: '600', background: error.includes('✅') ? '#d1fae5' : '#fee2e2', color: error.includes('✅') ? '#065f46' : '#991b1b', border: `2px solid ${error.includes('✅') ? '#6ee7b7' : '#fca5a5'}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {error.includes('✅') ? <CheckCircle style={{ width: '20px', height: '20px' }} /> : <AlertCircle style={{ width: '20px', height: '20px' }} />}
-                  <span>{error}</span>
-                </div>
-              )}
 
               {/* Hidden input for hardware scanner */}
               <input

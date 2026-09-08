@@ -88,7 +88,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
         setEmployees(employeesData);
         setEquipment(equipmentData);
         setMaterials(materialsData);
-        setSites(sitesData);
+        const resolvedSites = (sitesData && sitesData.length > 0) ? sitesData : DataStorage.loadSites();
+        setSites(resolvedSites);
         setDataSource('supabase');
       } else {
         setEmployees(DataStorage.loadEmployees());
@@ -201,6 +202,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
         setEmployees(updatedEmployees);
         DataStorage.saveEmployees(updatedEmployees);
         showMessage('success', `Employee ${newEmployee.name} registered successfully!`);
+        setNewEntity({ type: 'employee', data: newEmployee });
+        setShowQRCode(true);
       }
     } catch (error) {
       console.error('Error saving employee:', error);
@@ -315,6 +318,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
         setMaterials(updatedMaterials);
         DataStorage.saveMaterials(updatedMaterials);
         showMessage('success', `Material ${newMaterial.name} registered successfully!`);
+        setNewEntity({ type: 'material', data: newMaterial });
+        setShowQRCode(true);
       }
     } catch (error) {
       console.error('Error saving material:', error);
@@ -546,7 +551,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
       {/* QR Code Display Modal */}
       {showQRCode && newEntity && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <QRCodeDisplay entity={newEntity.data} onClose={() => setShowQRCode(false)} />
+          <QRCodeDisplay 
+            entity={newEntity.data} 
+            entityType={newEntity.type} 
+            onClose={() => setShowQRCode(false)} 
+          />
         </div>
       )}
     </div>

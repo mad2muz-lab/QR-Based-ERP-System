@@ -2,6 +2,7 @@ import Papa from 'papaparse';
 import { Employee, Equipment, Material, Site, TimeLog, User, EmployeeLog, EquipmentLog, MaterialLog, EquipmentMaintenanceLog, EquipmentMaintenanceSchedule } from '../types';
 import { CSVAppendManager } from './csvAppendUtils';
 import { AOPDataService } from './aopDataService';
+import { sites as defaultMockSites } from '../data/mockData';
 
 interface Department {
   id: string;
@@ -287,7 +288,11 @@ export class DataStorage {
   }
 
   static loadSites(): Site[] {
-    const sites = this.loadFromCSV<Site>(this.STORAGE_KEYS.sites);
+    let sites = this.loadFromCSV<Site>(this.STORAGE_KEYS.sites);
+    if (!sites || sites.length === 0) {
+      sites = [...defaultMockSites];
+      this.saveSites(sites);
+    }
     console.log(`Sites loaded from storage: ${sites.length} sites`);
 
     // Process and fix site coordinates

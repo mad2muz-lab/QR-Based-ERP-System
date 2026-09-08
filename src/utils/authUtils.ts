@@ -28,6 +28,11 @@ export class AuthManager {
     }
   }
 
+  // Backward compatibility alias used throughout codebase
+  static async shouldUseSupabase(): Promise<boolean> {
+    return await this.useSupabase();
+  }
+
   // Enhanced authentication check with better logging
   static async isAuthenticated(): Promise<boolean> {
     try {

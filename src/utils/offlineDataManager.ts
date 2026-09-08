@@ -173,10 +173,15 @@ export class OfflineDataManager {
     console.log('🔧 OfflineDataManager: Starting updateMaterial for:', material.name, 'ID:', material.id, 'New quantity:', material.quantity);
     try {
       const materials = DataStorage.loadMaterials();
-      const index = materials.findIndex(mat => mat.id === material.id);
+      const index = materials.findIndex(mat => 
+        mat.id === material.id ||
+        (material.qrCode && mat.qrCode === material.qrCode) ||
+        (material.oldId && mat.oldId === material.oldId) ||
+        (material.name && mat.name.trim().toLowerCase() === material.name.trim().toLowerCase() && mat.site === material.site)
+      );
       if (index !== -1) {
         console.log('✅ OfflineDataManager: Found material locally, updating...');
-        materials[index] = { ...material, lastUpdated: new Date().toISOString() };
+        materials[index] = { ...materials[index], ...material, lastUpdated: new Date().toISOString() };
         DataStorage.saveMaterials(materials);
         // Dispatch custom event to notify other components
         window.dispatchEvent(new CustomEvent('materialUpdated', {
@@ -192,8 +197,13 @@ export class OfflineDataManager {
           }));
         }, 100);
       } else {
-        // Not found locally, skip local update but still queue for Supabase sync
-        console.warn(`Material not found locally for update: ${material.id}. Will still sync to Supabase.`);
+        console.log('✅ OfflineDataManager: Material not found locally, adding to local cache with updated quantity...');
+        const newLocal = { ...material, lastUpdated: new Date().toISOString() };
+        materials.push(newLocal);
+        DataStorage.saveMaterials(materials);
+        window.dispatchEvent(new CustomEvent('materialUpdated', {
+          detail: { material: newLocal, action: 'update' }
+        }));
       }
       // Always queue the update operation for Supabase
       console.log('🔄 OfflineDataManager: Queuing material update for Supabase sync...');
