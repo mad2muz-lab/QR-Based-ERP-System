@@ -75,14 +75,14 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex items-center gap-3 flex-1 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="relative flex-1 sm:w-96">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
             <input
               type="text"
-              placeholder="Search materials by name or SKU..."
+              placeholder="Search materials by name, SKU, or QR code..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#131B2A] border border-slate-300 dark:border-[#202C3F] rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
           </div>
         </div>
@@ -92,30 +92,30 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
             <button
               key={filter}
               onClick={() => onFilterChange(filter)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-sm ${
                 activeFilter === filter
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white'
+                  : 'bg-white dark:bg-[#131B2A] border border-slate-200 dark:border-[#202C3F] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
-              {filter === 'all' ? 'All' : filter === 'low_stock' ? 'Low Stock' : 'Out of Stock'}
+              {filter === 'all' ? 'All Materials' : filter === 'low_stock' ? 'Low Stock' : 'Out of Stock'}
             </button>
           ))}
           <button
             onClick={() => setShowZones(!showZones)}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1"
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-white dark:bg-[#131B2A] border border-slate-200 dark:border-[#202C3F] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-1.5 shadow-sm"
           >
-            <Package className="w-3 h-3" />
-            Zones
+            <Package className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+            Zones ({zones.length})
           </button>
         </div>
       </div>
 
       {/* Zones Breakdown */}
       {showZones && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-700 mb-3">Zone Overview</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        <div className="bg-white dark:bg-[#131B2A] rounded-2xl border border-slate-200/90 dark:border-[#202C3F] p-5 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 tracking-wide uppercase">Zone Storage Overview</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {zones.map(zone => {
               const zoneItems = items.filter(i => i.zoneId === zone.id);
               const usedPercent = Math.round((zone.usedCapacity / zone.capacity) * 100);
@@ -123,15 +123,15 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                 <button
                   key={zone.id}
                   onClick={() => onZoneClick(zone.id)}
-                  className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-blue-300 hover:bg-blue-50 transition-all text-left"
+                  className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-800/80 hover:border-emerald-500/50 dark:hover:border-emerald-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all text-left shadow-sm group"
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{zone.name}</p>
-                    <p className="text-xs text-slate-500">{zoneItems.length} items • {zone.category}</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{zone.name}</p>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{zoneItems.length} items • {zone.category}</p>
                   </div>
                   <div className="text-right flex-shrink-0 ml-3">
-                    <p className="text-xs text-slate-500">Capacity</p>
-                    <p className="text-sm font-semibold">{usedPercent}%</p>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Capacity</p>
+                    <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{usedPercent}%</p>
                   </div>
                 </button>
               );
@@ -141,87 +141,89 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
       )}
 
       {/* Material Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-[#131B2A] rounded-2xl border border-slate-200/90 dark:border-[#202C3F] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+            <thead className="bg-slate-50/80 dark:bg-[#0B0F17]/80">
               <tr>
                 {[
                   { key: 'name', label: 'Material', sortable: true },
-                  { key: 'quantity', label: 'Qty', sortable: true },
+                  { key: 'quantity', label: 'Qty On Hand', sortable: true },
                   { key: 'cost', label: 'Unit Cost', sortable: true },
                   { key: 'status', label: 'Status', sortable: false },
                 ].map(col => (
                   <th
                     key={col.key}
                     onClick={() => col.sortable && handleSort(col.key as any)}
-                    className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900 select-none"
+                    className="px-5 py-3.5 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider cursor-pointer hover:text-slate-900 dark:hover:text-white select-none"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       {col.label}
                       {col.sortable && (
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-xs text-slate-400 font-bold">
                           {sortBy === col.key ? (sortAsc ? '↑' : '↓') : '↕'}
                         </span>
                       )}
                     </div>
                   </th>
                 ))}
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   Location
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   Category
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="px-5 py-3.5 text-right text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
+            <tbody className="bg-white dark:bg-[#131B2A] divide-y divide-slate-100 dark:divide-slate-800/80">
               {filteredAndSortedItems.map(item => (
                 <tr 
                   key={item.id} 
-                  className="hover:bg-slate-50 cursor-pointer transition-colors"
+                  className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   onClick={() => onViewMaterial(item)}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4">
                     <div className="flex items-center">
-                      <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                        <Package className="w-4 h-4 text-slate-500" />
+                      <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 flex items-center justify-center">
+                        <Package className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                       </div>
-                      <div className="ml-3 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">{item.name}</p>
-                        <p className="text-xs text-slate-500">{item.sku}</p>
+                      <div className="ml-3.5 min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{item.name}</p>
+                        <p className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400 mt-0.5">{item.sku}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4">
                     <div className="flex items-center">
-                      <span className="text-sm font-semibold text-slate-900">{item.quantity.toLocaleString()}</span>
-                      <span className="text-xs text-slate-500 ml-1.5">{item.unit}</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{item.quantity.toLocaleString()}</span>
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 ml-1.5">{item.unit}</span>
                       {item.reserved > 0 && (
-                        <span className="text-xs text-blue-600 ml-1">({item.reserved} res)</span>
+                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 ml-1.5 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded">
+                          {item.reserved} reserved
+                        </span>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-900">SAR {item.unitCost}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColors[item.status] || statusColors.in_stock}`}>
+                  <td className="px-5 py-4 text-sm font-bold text-slate-900 dark:text-slate-100">SAR {item.unitCost.toLocaleString()}</td>
+                  <td className="px-5 py-4">
+                    <span className={`px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${statusColors[item.status] || statusColors.in_stock}`}>
                       {item.status.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{item.location}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600">{item.category}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-5 py-4 text-sm font-medium text-slate-700 dark:text-slate-300">{item.location}</td>
+                  <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">{item.category}</td>
+                  <td className="px-5 py-4 text-right">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onViewMaterial(item);
                       }}
-                      className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                      className="text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 px-3 py-1.5 rounded-lg transition-colors"
                     >
-                      View →
+                      View Details →
                     </button>
                   </td>
                 </tr>
@@ -232,14 +234,15 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
         
         {filteredAndSortedItems.length === 0 && (
           <div className="p-12 text-center">
-            <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500">No materials found matching your criteria</p>
+            <Package className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <p className="text-base font-semibold text-slate-600 dark:text-slate-300">No materials found matching your criteria</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Try adjusting your search or active filter</p>
           </div>
         )}
 
-        <div className="px-4 py-3 bg-slate-50 border-t text-xs text-slate-500 flex justify-between">
+        <div className="px-5 py-3.5 bg-slate-50 dark:bg-[#0B0F17]/80 border-t border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 flex justify-between items-center">
           <span>{filteredAndSortedItems.length} materials{searchQuery && ` matching "${searchQuery}"`}</span>
-          <span>Total: SAR {filteredAndSortedItems.reduce((sum, i) => sum + (i.quantity * i.unitCost), 0).toLocaleString()}</span>
+          <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">Total Value: SAR {filteredAndSortedItems.reduce((sum, i) => sum + (i.quantity * i.unitCost), 0).toLocaleString()}</span>
         </div>
       </div>
     </div>

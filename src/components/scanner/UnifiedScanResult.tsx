@@ -174,12 +174,12 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
           </div>
 
           {/* Entity details */}
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg}`}>
+          <div className="rounded-2xl border border-slate-200/90 dark:border-[#202C3F] bg-white dark:bg-[#131B2A] shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-[#202C3F] bg-slate-50/50 dark:bg-[#182235]/60 flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg} dark:bg-slate-800 dark:text-emerald-400`}>
                 <EntityIcon className="w-4 h-4" />
               </div>
-              <h3 className="font-semibold text-slate-900">Details</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm">Entity Specifications</h3>
             </div>
             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
               {scanResult.type === 'employee' && (
@@ -205,7 +205,7 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                   <DetailRow
                     label="Current Stock"
                     value={`${scanResult.entity.quantity} ${scanResult.entity.unit}`}
-                    accent={scanResult.entity.quantity <= 0 ? 'text-rose-600' : scanResult.entity.quantity < 50 ? 'text-amber-600' : 'text-emerald-600'}
+                    accent={scanResult.entity.quantity <= 0 ? 'text-rose-600 dark:text-rose-400' : scanResult.entity.quantity < 50 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}
                     bold
                   />
                   <DetailRow label="Material ID" value={scanResult.entity.id} mono />
@@ -227,35 +227,35 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
           {scanResult.type === 'employee' && scanResult.currentShift && (
             <div className={`rounded-2xl border p-5 shadow-sm ${
               scanResult.currentShift.isOvertime
-                ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'
-                : 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200'
+                ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-800/60'
+                : 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800/60'
             }`}>
               <div className="flex items-center gap-2 mb-3">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${scanResult.currentShift.isOvertime ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${scanResult.currentShift.isOvertime ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'}`}>
                   <Clock className="w-5 h-5" />
                 </div>
-                <h4 className={`font-bold ${scanResult.currentShift.isOvertime ? 'text-amber-900' : 'text-emerald-900'}`}>Current Shift</h4>
+                <h4 className={`font-bold ${scanResult.currentShift.isOvertime ? 'text-amber-900 dark:text-amber-200' : 'text-emerald-900 dark:text-emerald-200'}`}>Current Shift</h4>
                 {scanResult.currentShift.isOvertime && (
-                  <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-xs font-semibold">OVERTIME</span>
+                  <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 text-xs font-semibold">OVERTIME</span>
                 )}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Started</p>
-                  <p className="font-semibold text-slate-900 mt-0.5">{scanResult.currentShift.startTime.toLocaleTimeString()}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Started</p>
+                  <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{scanResult.currentShift.startTime.toLocaleTimeString()}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Hours Worked</p>
-                  <p className="font-semibold text-slate-900 mt-0.5">{formatDuration(scanResult.currentShift.currentHours * 60)}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Hours Worked</p>
+                  <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{formatDuration(scanResult.currentShift.currentHours * 60)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Regular</p>
-                  <p className="font-semibold text-slate-900 mt-0.5">8:00</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Regular</p>
+                  <p className="font-semibold text-slate-900 dark:text-white mt-0.5">8:00</p>
                 </div>
                 {scanResult.currentShift.isOvertime && (
                   <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Overtime</p>
-                    <p className="font-semibold text-amber-700 mt-0.5">{formatDuration((scanResult.currentShift.currentHours - 8) * 60)}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Overtime</p>
+                    <p className="font-semibold text-amber-700 dark:text-amber-300 mt-0.5">{formatDuration((scanResult.currentShift.currentHours - 8) * 60)}</p>
                   </div>
                 )}
               </div>
@@ -263,15 +263,18 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
           )}
 
           {/* Actions */}
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100">
-              <h4 className="font-semibold text-slate-900">Available Actions</h4>
+          <div className="rounded-2xl border border-slate-200/90 dark:border-[#202C3F] bg-white dark:bg-[#131B2A] shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-[#202C3F] bg-slate-50/50 dark:bg-[#182235]/60 flex items-center justify-between">
+              <h4 className="font-bold text-slate-900 dark:text-white text-sm">Available Actions</h4>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {scanResult.actions?.length || 0} Operational Flows
+              </span>
             </div>
             <div className="p-6">
               {showDestinationSelect ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                  <h5 className="font-semibold text-slate-900 mb-1">Select Destination</h5>
-                  <p className="text-xs text-slate-500 mb-4">Choose where to transfer this material.</p>
+                <div className="rounded-xl border border-slate-200 dark:border-[#202C3F] bg-slate-50 dark:bg-[#0e1624] p-5">
+                  <h5 className="font-semibold text-slate-900 dark:text-white mb-1">Select Destination</h5>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Choose where to transfer this material.</p>
                   <div className="space-y-2">
                     {sites.length === 0 ? (
                       <p className="text-sm text-slate-500">No sites available. Please add sites first.</p>
@@ -280,12 +283,12 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                         <button
                           key={site.id}
                           onClick={() => handleDestinationSelect(site)}
-                          className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 transition flex items-center gap-3"
+                          className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 dark:border-[#202C3F] bg-white dark:bg-[#131B2A] hover:bg-emerald-50/50 dark:hover:bg-[#182235] transition flex items-center gap-3"
                         >
-                          <Building className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                          <Building className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                           <div>
-                            <div className="font-medium text-slate-900">{site.name}</div>
-                            <div className="text-xs text-slate-500">{site.province} • {site.address}</div>
+                            <div className="font-medium text-slate-900 dark:text-white">{site.name}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">{site.province} • {site.address}</div>
                           </div>
                         </button>
                       ))
@@ -293,65 +296,58 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                   </div>
                   <button
                     onClick={() => setShowDestinationSelect(false)}
-                    className="mt-3 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
+                    className="mt-3 px-4 py-2 bg-white dark:bg-[#131B2A] border border-slate-200 dark:border-[#202C3F] text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                   >
                     Cancel
                   </button>
                 </div>
               ) : showQuantityInput ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                  <h5 className="font-semibold text-slate-900 mb-1">
+                <div className="rounded-xl border border-slate-200 dark:border-[#202C3F] bg-slate-50 dark:bg-[#0e1624] p-5">
+                  <h5 className="font-semibold text-slate-900 dark:text-white mb-1">
                     {showQuantityInput === 'material-in' ? 'Add to Inventory' : showQuantityInput === 'material-out' ? 'Issue from Inventory' : 'Transfer Material'}
                   </h5>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                     Enter the quantity to {showQuantityInput === 'material-in' ? 'add to' : showQuantityInput === 'material-out' ? 'remove from' : 'transfer'} stock.
                     {selectedDestination && (
-                      <span className="block mt-1 text-blue-600">
+                      <span className="block mt-1 text-emerald-600 dark:text-emerald-400">
                         Destination: {selectedDestination.name} ({selectedDestination.province})
                       </span>
                     )}
                   </p>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
                     <div className="flex-1">
-                      <label className="block text-xs font-medium text-slate-700 mb-1">Quantity ({scanResult.entity.unit})</label>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Quantity ({scanResult.entity.unit})</label>
                       <input
                         type="number"
                         min="1"
                         value={materialQuantity}
                         onChange={(e) => setMaterialQuantity(Number(e.target.value) || 1)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm"
+                        className="w-full px-3 py-2 bg-white dark:bg-[#131B2A] border border-slate-300 dark:border-[#202C3F] text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-emerald-500/20 text-sm outline-none"
                         placeholder="Enter quantity"
                       />
                     </div>
                     <button
                       onClick={() => handleQuantitySubmit(showQuantityInput)}
                       disabled={isProcessing}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition disabled:bg-slate-300"
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition disabled:bg-slate-300 dark:disabled:bg-slate-800"
                     >
                       {isProcessing ? 'Processing…' : 'Confirm'}
                     </button>
                     <button
                       onClick={() => setShowQuantityInput(null)}
                       disabled={isProcessing}
-                      className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
+                      className="px-4 py-2 bg-white dark:bg-[#131B2A] border border-slate-200 dark:border-[#202C3F] text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {scanResult.actions.map((action: any) => {
                     const isMaterialIn = action.id === 'material-in';
                     const isMaterialOut = action.id === 'material-out';
                     const isDisabled = isMaterialOut && scanResult.entity.quantity <= 0;
-                    const tileColor = isMaterialIn
-                      ? { bg: '#ecfdf5', border: '#a7f3d0', iconBg: '#d1fae5', iconColor: '#059669' }
-                      : isMaterialOut
-                      ? isDisabled
-                        ? { bg: '#f9fafb', border: '#e5e7eb', iconBg: '#f3f4f6', iconColor: '#9ca3af' }
-                        : { bg: '#fffbeb', border: '#fde68a', iconBg: '#fef3c7', iconColor: '#d97706' }
-                      : { bg: '#f8fafc', border: '#e2e8f0', iconBg: '#f1f5f9', iconColor: '#475569' };
                     return (
                       <button
                         key={action.id}
@@ -360,29 +356,29 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                           handleActionClick(action.id);
                         }}
                         disabled={isDisabled}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '10px',
-                          padding: '20px 16px',
-                          borderRadius: '14px',
-                          border: `2px solid ${tileColor.border}`,
-                          background: tileColor.bg,
-                          cursor: isDisabled ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.2s',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                          minHeight: '120px'
-                        }}
+                        className={`flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl border transition-all duration-150 min-h-[120px] ${
+                          isDisabled
+                            ? 'bg-slate-100 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800/60 opacity-60 cursor-not-allowed text-slate-400'
+                            : isMaterialIn
+                            ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-sm'
+                            : isMaterialOut
+                            ? 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 shadow-sm'
+                            : 'bg-white dark:bg-[#0e1624] border-slate-200/90 dark:border-[#202C3F] hover:border-emerald-500/50 dark:hover:border-emerald-500/50 hover:bg-slate-50/60 dark:hover:bg-[#182235] shadow-sm'
+                        }`}
                       >
                         {action.icon && (
-                          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: tileColor.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <action.icon style={{ width: '22px', height: '22px', color: tileColor.iconColor }} />
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                            isMaterialIn
+                              ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400'
+                              : isMaterialOut
+                              ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                          }`}>
+                            <action.icon className="w-5 h-5" />
                           </div>
                         )}
-                        <span style={{ fontSize: '15px', fontWeight: '700', color: isDisabled ? '#9ca3af' : '#111827', textAlign: 'center' }}>{action.label}</span>
-                        <span style={{ fontSize: '12px', color: isDisabled ? '#9ca3af' : '#6b7280', textAlign: 'center', lineHeight: '1.3' }}>{action.description}</span>
+                        <span className="font-bold text-sm text-slate-900 dark:text-white text-center leading-snug">{action.label}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 text-center leading-snug line-clamp-2">{action.description}</span>
                       </button>
                     );
                   })}
@@ -398,8 +394,8 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
 
 const DetailRow: React.FC<{ label: string; value: any; mono?: boolean; bold?: boolean; capitalize?: boolean; accent?: string }> = ({ label, value, mono, bold, capitalize, accent }) => (
   <div>
-    <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-    <p className={`mt-0.5 ${mono ? 'font-mono' : ''} ${bold ? 'font-semibold' : 'font-medium'} ${capitalize ? 'capitalize' : ''} ${accent || 'text-slate-900'}`}>
+    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">{label}</p>
+    <p className={`mt-0.5 ${mono ? 'font-mono' : ''} ${bold ? 'font-semibold' : 'font-medium'} ${capitalize ? 'capitalize' : ''} ${accent || 'text-slate-900 dark:text-white'}`}>
       {value || '—'}
     </p>
   </div>

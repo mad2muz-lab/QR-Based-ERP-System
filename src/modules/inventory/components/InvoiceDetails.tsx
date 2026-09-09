@@ -109,7 +109,7 @@ const InvoiceDetails: React.FC = () => {
   const statusColor = getStatusColor(invoice.status);
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px', background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '28px' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px', background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => navigate('/inventory/invoices')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>

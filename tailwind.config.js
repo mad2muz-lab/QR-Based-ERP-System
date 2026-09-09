@@ -1,12 +1,24 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       backdropBlur: {
         'xs': '2px',
       },
       colors: {
+        // Deep enterprise dark palette
+        midnight: {
+          950: '#070A0F',
+          900: '#0B0F17',
+          800: '#111827',
+        },
+        nightcard: {
+          DEFAULT: '#131B2A',
+          hover: '#182235',
+          border: '#202C3F',
+        },
         // Saudi official green palette
         primary: {
           50: '#e6f2ec',
@@ -31,3 +43,4 @@ export default {
     preflight: true,
   },
 };
+

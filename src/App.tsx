@@ -17,6 +17,7 @@ import LogisticsDataService from './utils/logisticsDataService';
 
 import { LanguageProvider } from './i18n/LanguageContext';
 import { ToastProvider } from './components/common/ToastNotification';
+import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -118,24 +119,26 @@ function App() {
   }
 
   return (
-    <ToastProvider>
-      <LanguageProvider>
-        <div className="h-screen flex flex-col bg-gray-50" dir={document.documentElement.dir || 'ltr'}>
-          <Header currentUser={currentUser} onLogout={handleLogout} />
-          <main className="flex-1 overflow-auto">
-            {routes}
-          </main>
-          {showPasswordModal && currentUser && (
-            <ChangePasswordModal
-              isOpen={showPasswordModal}
-              onClose={handlePasswordChange}
-              userId={currentUser.id}
-              isFirstLogin={currentUser.isFirstLogin}
-            />
-          )}
-        </div>
-      </LanguageProvider>
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <LanguageProvider>
+          <div className="h-screen flex flex-col bg-slate-50 dark:bg-[#0B0F17] text-slate-900 dark:text-slate-100 transition-colors duration-150" dir={document.documentElement.dir || 'ltr'}>
+            <Header currentUser={currentUser} onLogout={handleLogout} />
+            <main className="flex-1 overflow-auto bg-slate-50 dark:bg-[#0B0F17]">
+              {routes}
+            </main>
+            {showPasswordModal && currentUser && (
+              <ChangePasswordModal
+                isOpen={showPasswordModal}
+                onClose={handlePasswordChange}
+                userId={currentUser.id}
+                isFirstLogin={currentUser.isFirstLogin}
+              />
+            )}
+          </div>
+        </LanguageProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 

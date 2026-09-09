@@ -38,7 +38,7 @@ const QuotationForm: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px', background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '28px' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px', background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
         <button onClick={() => navigate('/inventory/quotations')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}><FileText style={{ width: '20px', height: '20px', color: '#475569' }} /></button>
         <div><h2 style={{ fontSize: '22px', fontWeight: '700', color: '#0f172a', margin: 0 }}>New Quotation</h2></div>

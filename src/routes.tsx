@@ -54,6 +54,7 @@ import FinancialReports from './modules/inventory/components/FinancialReports';
 import CreditDebitNoteForm from './modules/inventory/components/CreditDebitNoteForm';
 import AccountsHub from './modules/accounts/AccountsHub';
 import InventoryHub from './modules/inventory/components/InventoryHub';
+import InventoryReportsCenter from './modules/inventory/components/InventoryReportsCenter';
 
 // AOP Components
 const AOPDashboard = React.lazy(() => import('./components/aop/AOPDashboard').then(module => ({ default: module.AOPDashboard })));
@@ -119,6 +120,26 @@ export const AppRoutes = ({ currentUser }: AppRoutesProps): RouteObject[] => [
       </LazyComponentErrorBoundary>
     ),
   },
+    {
+      path: '/reports',
+      element: (
+        <LazyComponentErrorBoundary>
+          <Suspense fallback={<LoadingSpinner message="Loading Reports Center..." />}>
+            <InventoryReportsCenter />
+          </Suspense>
+        </LazyComponentErrorBoundary>
+      ),
+    },
+    {
+      path: '/inventory/reports',
+      element: (
+        <LazyComponentErrorBoundary>
+          <Suspense fallback={<LoadingSpinner message="Loading Reports Center..." />}>
+            <InventoryReportsCenter />
+          </Suspense>
+        </LazyComponentErrorBoundary>
+      ),
+    },
     {
       path: '/inventory',
       element: (

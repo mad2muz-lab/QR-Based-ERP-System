@@ -357,59 +357,53 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
   ];
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px' }}>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: '800', color: '#0f172a', margin: '0 0 8px 0' }}>Registration</h1>
-        <p style={{ fontSize: '16px', color: '#64748b', margin: 0 }}>Register and manage employees, warehouses, and materials</p>
+      <div className="mb-6 pb-4 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Master Registry</h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">Enroll and manage personnel credentials, multi-region facilities, and inventory asset tags</p>
+        </div>
+
+        {/* Data Source Indicator */}
+        {!isLoading && (
+          <div className="flex items-center gap-3 bg-white px-3.5 py-1.5 rounded-xl border border-slate-200/80 shadow-sm text-xs">
+            <div className="flex items-center gap-2">
+              <Database className={`w-3.5 h-3.5 ${useSupabase ? 'text-blue-600' : 'text-slate-500'}`} />
+              <span className="font-semibold text-slate-700">{useSupabase ? 'Supabase DB' : 'Local Storage'}</span>
+              <span className={`w-2 h-2 rounded-full ${useSupabase ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+            </div>
+            <div className="w-px h-4 bg-slate-200" />
+            <button
+              onClick={refreshData}
+              className="flex items-center gap-1.5 text-slate-600 hover:text-emerald-700 font-medium transition"
+              title="Sync records"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Sync</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Message Display */}
       {message && (
-        <div style={{ padding: '16px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '16px', fontWeight: '600', background: message.type === 'success' ? '#d1fae5' : '#fee2e2', color: message.type === 'success' ? '#065f46' : '#991b1b', border: `2px solid ${message.type === 'success' ? '#6ee7b7' : '#fca5a5'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className={`p-4 rounded-xl mb-6 text-xs sm:text-sm font-semibold flex items-center justify-between border ${
+          message.type === 'success' 
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+            : 'bg-rose-50 text-rose-800 border-rose-200'
+        }`}>
           <span>{message.text}</span>
           {message.type === 'error' && (
-            <button onClick={acknowledgeMessage} style={{ padding: '6px 16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}>OK</button>
+            <button onClick={acknowledgeMessage} className="px-3 py-1 bg-rose-600 text-white rounded-lg text-xs font-bold">OK</button>
           )}
-        </div>
-      )}
-
-      {/* Data Source Indicator */}
-      {!isLoading && (
-        <div style={{ background: 'white', borderRadius: '12px', border: '2px solid #e2e8f0', padding: '16px 20px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {useSupabase ? (
-              <>
-                <Database style={{ width: '20px', height: '20px', color: '#2563eb' }} />
-                <span style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>Supabase Database</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Wifi style={{ width: '16px', height: '16px', color: '#059669' }} />
-                  <span style={{ fontSize: '14px', color: '#059669', fontWeight: '600' }}>Online</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <Database style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-                <span style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>Local Storage</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Wifi style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                  <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>Offline</span>
-                </div>
-              </>
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={refreshData} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#eff6ff', color: '#1d4ed8', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>
-              <RefreshCw style={{ width: '16px', height: '16px' }} /> Refresh
-            </button>
-          </div>
         </div>
       )}
 
       {/* Tab Navigation */}
       {!isLoading && (
-        <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '16px', background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden mb-8">
+          <div className="flex flex-wrap items-center gap-2 p-3 bg-slate-50/80 border-b border-slate-200/80">
             {tabs.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -417,32 +411,17 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ currentUser }) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '14px 24px',
-                    borderRadius: '12px',
-                    fontSize: '17px',
-                    fontWeight: '700',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    background: isActive ? '#002e17' : 'transparent',
-                    color: isActive ? 'white' : '#475569',
-                    boxShadow: isActive ? '0 4px 12px rgba(0,46,23,0.3)' : 'none'
-                  }}
+                  className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-150 ${
+                    isActive
+                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-950/20'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  }`}
                 >
-                  <Icon style={{ width: '20px', height: '20px' }} />
+                  <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
-                  <span style={{
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    background: isActive ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
-                    color: isActive ? 'white' : '#475569'
-                  }}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  }`}>
                     {tab.count}
                   </span>
                 </button>

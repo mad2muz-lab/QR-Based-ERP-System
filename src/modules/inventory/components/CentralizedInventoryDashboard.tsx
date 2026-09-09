@@ -96,43 +96,56 @@ const CentralizedInventoryDashboard: React.FC = () => {
     : items;
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      {/* Header with back button when in drilldown */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#131B2A] rounded-2xl border border-slate-200/90 dark:border-[#202C3F] p-6 shadow-sm">
         <div>
-          <h1 style={{ fontSize: '36px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-            {currentView === 'dashboard' && 'KSA Inventory Dashboard'}
-            {currentView === 'region' && selectedRegion?.name}
-            {currentView === 'warehouse' && warehouse?.name}
-            {currentView === 'material' && selectedMaterial?.name}
-          </h1>
-          <p style={{ fontSize: '18px', color: '#475569', marginTop: '6px', fontWeight: '500' }}>
-            {currentView === 'dashboard' && '6 KSA Regions • 17 Warehouses • 510+ Materials'}
-            {currentView === 'region' && 'Select warehouse or return to dashboard'}
-            {currentView === 'warehouse' && 'Select zone or return to region'}
+          <div className="flex items-center gap-3">
+            {currentView !== 'dashboard' && (
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition"
+              >
+                ← Back
+              </button>
+            )}
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              {currentView === 'dashboard' && 'Enterprise Inventory Overview'}
+              {currentView === 'region' && selectedRegion?.name}
+              {currentView === 'warehouse' && (warehouses.find(w => w.id === selectedWarehouse)?.name || 'Warehouse View')}
+            </h1>
+            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              LIVE STREAM ACTIVE
+            </span>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+            {currentView === 'dashboard' && 'Enterprise multi-region network • 6 KSA Regions • 17 Facilities • 510+ Managed Assets'}
+            {currentView === 'region' && 'Select warehouse or return to national dashboard'}
+            {currentView === 'warehouse' && 'Select zone or return to regional view'}
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => navigate('/inventory')}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', background: '#2563eb', color: 'white', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)' }}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition shadow-sm"
           >
-            <Package style={{ width: '20px', height: '20px' }} />
-            Inventory Hub
+            <Package className="w-4 h-4" />
+            <span>Operations Hub</span>
           </button>
           <button
             onClick={() => setShowMovements(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', background: '#f1f5f9', color: '#334155', borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '15px', cursor: 'pointer' }}
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-xs transition shadow-sm"
           >
-            <BarChart3 style={{ width: '20px', height: '20px' }} />
-            Movements ({stats.totalMovements})
+            <BarChart3 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            <span>Movements ({stats.totalMovements})</span>
           </button>
           <button
             onClick={refreshData}
-            style={{ padding: '12px', borderRadius: '12px', border: 'none', background: '#f1f5f9', cursor: 'pointer' }}
+            className="p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-slate-700 transition shadow-sm"
+            title="Refresh inventory metrics"
           >
-            <RefreshCw style={{ width: '20px', height: '20px', color: '#475569' }} />
+            <RefreshCw className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -140,56 +153,72 @@ const CentralizedInventoryDashboard: React.FC = () => {
       {/* Dashboard View */}
       {currentView === 'dashboard' && (
         <>
-          {/* Stats Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-            <div style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', borderRadius: '16px', padding: '24px', border: '2px solid #bfdbfe' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Executive Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+            <div className="bg-white dark:bg-[#131B2A] rounded-2xl p-6 border border-slate-200/90 dark:border-[#202C3F] shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: '700', color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Warehouses</p>
-                  <p style={{ fontSize: '36px', fontWeight: '800', color: '#1e3a8a', marginTop: '8px' }}>{stats.totalWarehouses}</p>
-                  <p style={{ fontSize: '14px', color: '#1e40af', fontWeight: '600', marginTop: '4px' }}>{stats.totalRegions} Regions</p>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Warehouses & Hubs</span>
+                  <div className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mt-2">{stats.totalWarehouses}</div>
+                  <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-2 flex items-center gap-1">
+                    <span>{stats.totalRegions} Administrative Regions</span>
+                  </div>
                 </div>
-                <div style={{ background: '#bfdbfe', padding: '16px', borderRadius: '14px' }}>
-                  <MapPin style={{ width: '28px', height: '28px', color: '#1d4ed8' }} />
+                <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-sm">
+                  <MapPin className="w-5 h-5" />
                 </div>
               </div>
             </div>
 
-            <div style={{ background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', borderRadius: '16px', padding: '24px', border: '2px solid #a7f3d0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="bg-white dark:bg-[#131B2A] rounded-2xl p-6 border border-slate-200/90 dark:border-[#202C3F] shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: '700', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Materials</p>
-                  <p style={{ fontSize: '36px', fontWeight: '800', color: '#064e3b', marginTop: '8px' }}>{stats.totalItems}</p>
-                  <p style={{ fontSize: '14px', color: '#065f46', fontWeight: '600', marginTop: '4px' }}>SAR {(stats.totalValue / 1000000).toFixed(1)}M value</p>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Cataloged Materials</span>
+                  <div className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mt-2">{stats.totalItems}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-2">
+                    Valuation: <strong className="text-slate-800 dark:text-slate-200 font-black">SAR {(stats.totalValue / 1000000).toFixed(1)}M</strong>
+                  </div>
                 </div>
-                <div style={{ background: '#a7f3d0', padding: '16px', borderRadius: '14px' }}>
-                  <Package style={{ width: '28px', height: '28px', color: '#059669' }} />
+                <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-sm">
+                  <Package className="w-5 h-5" />
                 </div>
               </div>
             </div>
 
-            <div style={{ background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', borderRadius: '16px', padding: '24px', border: '2px solid #ddd6fe' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="bg-white dark:bg-[#131B2A] rounded-2xl p-6 border border-slate-200/90 dark:border-[#202C3F] shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: '700', color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Inventory Units</p>
-                  <p style={{ fontSize: '36px', fontWeight: '800', color: '#4c1d95', marginTop: '8px' }}>{stats.totalQuantity.toLocaleString()}</p>
-                  <p style={{ fontSize: '14px', color: '#5b21b6', fontWeight: '600', marginTop: '4px' }}>{stats.totalMovements} movements</p>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Stock Volume</span>
+                  <div className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mt-2">{stats.totalQuantity.toLocaleString()}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-2">
+                    {stats.totalMovements} logged movements
+                  </div>
                 </div>
-                <div style={{ background: '#ddd6fe', padding: '16px', borderRadius: '14px' }}>
-                  <Box style={{ width: '28px', height: '28px', color: '#7c3aed' }} />
+                <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-sm">
+                  <Box className="w-5 h-5" />
                 </div>
               </div>
             </div>
 
-            <div style={{ background: stats.criticalStock > 0 ? 'linear-gradient(135deg, #fef2f2, #fecaca)' : stats.lowStockItems > 0 ? 'linear-gradient(135deg, #fffbeb, #fde68a)' : 'linear-gradient(135deg, #ecfdf5, #a7f3d0)', borderRadius: '16px', padding: '24px', border: stats.criticalStock > 0 ? '2px solid #fca5a5' : stats.lowStockItems > 0 ? '2px solid #fcd34d' : '2px solid #6ee7b7' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="bg-white dark:bg-[#131B2A] rounded-2xl p-6 border border-slate-200/90 dark:border-[#202C3F] shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: '700', color: stats.criticalStock > 0 ? '#991b1b' : stats.lowStockItems > 0 ? '#92400e' : '#065f46', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Low Stock Alerts</p>
-                  <p style={{ fontSize: '36px', fontWeight: '800', color: stats.criticalStock > 0 ? '#7f1d1d' : stats.lowStockItems > 0 ? '#78350f' : '#064e3b', marginTop: '8px' }}>{stats.lowStockItems}</p>
-                  <p style={{ fontSize: '14px', color: stats.criticalStock > 0 ? '#991b1b' : stats.lowStockItems > 0 ? '#92400e' : '#065f46', fontWeight: '600', marginTop: '4px' }}>{stats.criticalStock > 0 ? `${stats.criticalStock} critical` : 'needs attention'}</p>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Stock Alerts & Discrepancies</span>
+                  <div className={`text-3xl sm:text-4xl font-black mt-2 ${stats.criticalStock > 0 ? 'text-rose-600 dark:text-rose-400' : stats.lowStockItems > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {stats.lowStockItems}
+                  </div>
+                  <div className="text-xs font-bold mt-2">
+                    {stats.criticalStock > 0 ? (
+                      <span className="text-rose-600 dark:text-rose-400">{stats.criticalStock} Critical Out-of-Stock</span>
+                    ) : stats.lowStockItems > 0 ? (
+                      <span className="text-amber-600 dark:text-amber-400">Below Reorder Level</span>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400">All Stocks Optimal</span>
+                    )}
+                  </div>
                 </div>
-                <div style={{ background: stats.criticalStock > 0 ? '#fecaca' : stats.lowStockItems > 0 ? '#fde68a' : '#a7f3d0', padding: '16px', borderRadius: '14px' }}>
-                  <AlertTriangle style={{ width: '28px', height: '28px', color: stats.criticalStock > 0 ? '#dc2626' : stats.lowStockItems > 0 ? '#d97706' : '#059669' }} />
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center border shadow-sm ${stats.criticalStock > 0 ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/50 text-rose-600' : stats.lowStockItems > 0 ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/50 text-amber-600' : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50 text-emerald-600'}`}>
+                  <AlertTriangle className="w-5 h-5" />
                 </div>
               </div>
             </div>
@@ -198,18 +227,22 @@ const CentralizedInventoryDashboard: React.FC = () => {
           {/* Low Stock Alerts */}
           {stats.lowStockItems > 0 && <LowStockAlerts items={items.filter(i => i.status === 'low_stock' || i.status === 'out_of_stock')} />}
 
-          {/* KSA Regions */}
-          <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '28px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: 0 }}>KSA Regions</h2>
+          {/* KSA Regions Grid Container */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 tracking-tight">KSA Regional Operations</h2>
+                <p className="text-xs text-slate-500 font-medium">Click on any region to inspect localized facility capacity and zone allocations</p>
+              </div>
               <button
                 onClick={() => navigate('/inventory')}
-                style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800 transition"
               >
-                View All Operations <ArrowRight style={{ width: '18px', height: '18px' }} />
+                <span>Full Operations Hub</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {REGIONS.map(region => (
                 <RegionCard key={region.id} region={region} onClick={handleRegionClick} />
               ))}

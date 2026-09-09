@@ -64,6 +64,7 @@ export interface MaterialItem {
   lastReceived: string;
   lastIssued?: string;
   status: ItemStatus;
+  binLocation?: string;
   batchNumber?: string;
   manufacturingDate?: string;
   expirationDate?: string;

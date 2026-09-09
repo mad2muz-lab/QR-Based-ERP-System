@@ -623,8 +623,8 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
               },
               {
                 id: 'manifest',
-                label: 'Manifest',
-                description: 'Inbound/outbound shipment manifest',
+                label: 'Delivery Note / Gate Pass',
+                description: 'Outbound dispatch & gate pass verification',
                 icon: Package,
                 color: 'blue'
               },
@@ -1095,31 +1095,38 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
 
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px' }}>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: '800', color: '#0f172a', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #002e17, #004d26)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Camera style={{ width: '24px', height: '24px', color: 'white' }} />
+      <div className="mb-6 pb-4 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-sm shadow-emerald-950/20">
+              <Camera className="w-5 h-5" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">QR Scanner Engine</h1>
+            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Auto-Detection
+            </span>
           </div>
-          QR Scanner
-        </h1>
-        <p style={{ fontSize: '16px', color: '#64748b', margin: 0 }}>Scan any QR code for employees, equipment, materials, or warehouses</p>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">Scan any asset tag, employee badge, equipment QR, or warehouse location code</p>
+        </div>
       </div>
 
       {/* Main Card */}
-      <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-        <div style={{ padding: '32px' }}>
+      <div className="bg-white dark:bg-[#131B2A] rounded-2xl border border-slate-200/90 dark:border-[#202C3F] shadow-sm overflow-hidden mb-8 transition-colors">
+        <div className="p-6 sm:p-8">
           {/* Alerts: Visible whether scanning or viewing scan results */}
           {error && (
-            <div style={{ padding: '16px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '16px', fontWeight: '600', background: error.includes('✅') ? '#d1fae5' : '#fee2e2', color: error.includes('✅') ? '#065f46' : '#991b1b', border: `2px solid ${error.includes('✅') ? '#6ee7b7' : '#fca5a5'}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {error.includes('✅') ? <CheckCircle style={{ width: '20px', height: '20px', flexShrink: 0 }} /> : <AlertCircle style={{ width: '20px', height: '20px', flexShrink: 0 }} />}
+            <div className={`p-4 rounded-xl mb-6 text-xs sm:text-sm font-semibold flex items-center gap-2 border ${
+              error.includes('✅') ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+            }`}>
+              {error.includes('✅') ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
               <span>{error}</span>
             </div>
           )}
           {success && (
-            <div style={{ padding: '16px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '16px', fontWeight: '600', background: '#d1fae5', color: '#065f46', border: '2px solid #6ee7b7', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <CheckCircle style={{ width: '20px', height: '20px', flexShrink: 0 }} />
+            <div className="p-4 rounded-xl mb-6 text-xs sm:text-sm font-semibold flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+              <CheckCircle className="w-4 h-4 flex-shrink-0" />
               <span>{success}</span>
             </div>
           )}
@@ -1127,46 +1134,53 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           {!scanResult ? (
             <div>
               {/* Search Field */}
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>
-                  Search database: {allEntities.employees.length} employees, {allEntities.equipment.length} equipment, {allEntities.materials.length} materials
+              <div className="mb-6">
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold mb-2">
+                  <span>Direct Entity Quick Search</span>
+                  <span className="text-[11px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    {allEntities.employees.length} Personnel • {allEntities.equipment.length} Assets • {allEntities.materials.length} Materials
+                  </span>
                 </div>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search employee, equipment, or material..."
-                  style={{ width: '100%', padding: '14px 18px', border: '2px solid #d1d5db', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' }}
-                  autoComplete="off"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search by code, SKU, or name (e.g. EMP-001, Portland, Excavator)..."
+                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#0e1624] border border-slate-300 dark:border-[#202C3F] text-slate-900 dark:text-white placeholder-slate-400 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm outline-none transition shadow-sm"
+                    autoComplete="off"
+                  />
+                </div>
                 {searchQuery && (
-                  <div style={{ marginTop: '8px', background: 'white', border: '2px solid #e5e7eb', borderRadius: '12px', maxHeight: '256px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                  <div className="mt-2 bg-white dark:bg-[#131B2A] border border-slate-200 dark:border-[#202C3F] rounded-xl max-h-64 overflow-y-auto shadow-xl z-20">
                     {isSearching ? (
-                      <div style={{ padding: '16px', color: '#6b7280', textAlign: 'center', fontSize: '16px' }}>Searching...</div>
+                      <div className="p-4 text-slate-400 dark:text-slate-500 text-center text-xs font-medium">Searching registry...</div>
                     ) : searchResults.length === 0 ? (
-                      <div style={{ padding: '16px', color: '#6b7280', textAlign: 'center', fontSize: '16px' }}>No results found</div>
+                      <div className="p-4 text-slate-400 dark:text-slate-500 text-center text-xs font-medium">No matching entities found in database</div>
                     ) : (
                       <>
                         {['employee', 'equipment', 'material'].map(type => {
                           const group = searchResults.filter(r => r._entityType === type);
                           if (group.length === 0) return null;
                           return (
-                            <div key={type} style={{ marginTop: type !== 'employee' ? '8px' : '0', paddingTop: type !== 'employee' ? '8px' : '0', borderTop: type !== 'employee' ? '1px solid #f3f4f6' : 'none' }}>
-                              <div style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', background: '#f9fafb' }}>{type.charAt(0).toUpperCase() + type.slice(1)}s</div>
-                              <div>
+                            <div key={type} className="border-t first:border-t-0 border-slate-100 dark:border-[#202C3F]">
+                              <div className="px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-[#182235]">
+                                {type.charAt(0).toUpperCase() + type.slice(1)}s
+                              </div>
+                              <div className="divide-y divide-slate-50 dark:divide-[#202C3F]/60">
                                 {group.map(entity => (
                                   <button
                                     key={entity.id + (entity.custom_equipment_id || '')}
                                     onClick={() => handleEntitySelect(entity)}
-                                    style={{ width: '100%', textAlign: 'left', padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '16px' }}
+                                    className="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/50 dark:hover:bg-[#182235] flex items-center gap-2.5 text-xs transition"
                                   >
-                                    {type === 'employee' && <User style={{ width: '18px', height: '18px', color: '#2563eb', flexShrink: 0 }} />}
-                                    {type === 'equipment' && <Wrench style={{ width: '18px', height: '18px', color: '#059669', flexShrink: 0 }} />}
-                                    {type === 'material' && <Package style={{ width: '18px', height: '18px', color: '#ea580c', flexShrink: 0 }} />}
-                                    <span style={{ fontWeight: '600', color: '#111827' }}>{entity.name}</span>
-                                    <span style={{ marginLeft: 'auto', fontSize: '14px', color: '#6b7280', flexShrink: 0 }}>{entity.id}</span>
+                                    {type === 'employee' && <User className="w-4 h-4 text-blue-600 flex-shrink-0" />}
+                                    {type === 'equipment' && <Wrench className="w-4 h-4 text-emerald-600 flex-shrink-0" />}
+                                    {type === 'material' && <Package className="w-4 h-4 text-amber-600 flex-shrink-0" />}
+                                    <span className="font-semibold text-slate-900 dark:text-white">{entity.name}</span>
+                                    <span className="ml-auto text-[11px] font-mono text-slate-400 dark:text-slate-500">{entity.id}</span>
                                     {type === 'equipment' && entity.custom_equipment_id && (
-                                      <span style={{ fontSize: '14px', color: '#9ca3af', flexShrink: 0 }}>({entity.custom_equipment_id})</span>
+                                      <span className="text-[11px] text-slate-400 dark:text-slate-500">({entity.custom_equipment_id})</span>
                                     )}
                                   </button>
                                 ))}
@@ -1191,23 +1205,23 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
               />
 
               {/* Camera Preview */}
-              <div style={{ background: '#111827', borderRadius: '16px', overflow: 'hidden', marginBottom: '24px' }}>
+              <div className="rounded-2xl overflow-hidden mb-6 border border-slate-200 dark:border-[#202C3F] bg-slate-900">
                 <video
                   ref={videoRef}
                   style={{ width: '100%', height: '320px', objectFit: 'cover', display: isScanning ? 'block' : 'none' }}
                 />
                 {!isScanning && (
-                  <div style={{ height: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
-                    <div style={{ textAlign: 'center', padding: '24px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '16px' }}>
-                        <User style={{ width: '40px', height: '40px', color: '#60a5fa' }} />
-                        <Wrench style={{ width: '40px', height: '40px', color: '#34d399' }} />
-                        <Package style={{ width: '40px', height: '40px', color: '#fb923c' }} />
+                  <div className="h-80 flex items-center justify-center bg-slate-100 dark:bg-[#0e1624]">
+                    <div className="text-center p-6">
+                      <div className="flex items-center justify-center gap-4 mb-4">
+                        <User className="w-10 h-10 text-blue-500" />
+                        <Wrench className="w-10 h-10 text-emerald-500" />
+                        <Package className="w-10 h-10 text-amber-500" />
                       </div>
-                      <p style={{ color: '#374151', fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0' }}>Ready to scan any QR code</p>
-                      <p style={{ color: '#6b7280', fontSize: '16px', margin: '0 0 16px 0' }}>Camera preview will appear here</p>
+                      <p className="text-slate-800 dark:text-slate-200 text-lg font-bold mb-2">Ready to scan any QR code</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">Camera preview will appear here</p>
                       {cameraPermission === 'denied' && (
-                        <p style={{ color: '#dc2626', fontSize: '16px', fontWeight: '600' }}>
+                        <p className="text-rose-600 font-semibold text-sm">
                           Camera access denied. Please enable camera permissions in your browser settings.
                         </p>
                       )}
@@ -1217,50 +1231,28 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   onClick={isScanning ? stopScanning : startScanning}
                   disabled={cameraPermission === 'denied'}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    padding: '16px 24px',
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    fontSize: '17px',
-                    border: 'none',
-                    cursor: cameraPermission === 'denied' ? 'not-allowed' : 'pointer',
-                    background: isScanning ? '#dc2626' : '#002e17',
-                    color: 'white',
-                    boxShadow: isScanning ? '0 4px 12px rgba(220,38,38,0.3)' : '0 4px 12px rgba(0,46,23,0.3)'
-                  }}
+                  className={`flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm transition-all duration-150 ${
+                    cameraPermission === 'denied'
+                      ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed'
+                      : isScanning
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm shadow-rose-950/20'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-950/20'
+                  }`}
                 >
-                  <Camera style={{ width: '22px', height: '22px' }} />
-                  <span>{isScanning ? 'Stop Scanning' : 'Start Camera'}</span>
+                  <Camera className="w-5 h-5" />
+                  <span>{isScanning ? 'Halt Scanner' : 'Activate Live Camera'}</span>
                 </button>
 
                 <button
                   onClick={() => inputRef.current?.click()}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    padding: '16px 24px',
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    fontSize: '17px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: '#374151',
-                    color: 'white',
-                    boxShadow: '0 4px 12px rgba(55,65,81,0.3)'
-                  }}
+                  className="flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm bg-white dark:bg-[#0e1624] hover:bg-slate-50 dark:hover:bg-[#182235] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#202C3F] transition-all duration-150 shadow-sm"
                 >
-                  <Upload style={{ width: '22px', height: '22px' }} />
-                  <span>Upload Image</span>
+                  <Upload className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                  <span>Upload QR Image File</span>
                 </button>
               </div>
 

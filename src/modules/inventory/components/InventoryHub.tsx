@@ -31,8 +31,8 @@ const CATEGORIES: HubCategory[] = [
     description: 'Inbound materials and shipments',
     icon: Truck,
     cards: [
-      { id: 'goods-receipt', label: 'Goods Receipt', description: 'Receive materials from supplier', icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'hover:border-blue-300', path: '/inventory/goods-receipt' },
-      { id: 'inbound-manifest', label: 'Inbound Manifest', description: 'Shipment verification & loading', icon: FileCheck, color: 'text-indigo-600', bgColor: 'bg-indigo-50', borderColor: 'hover:border-indigo-300', path: '/inventory/manifest' }
+      { id: 'goods-receipt', label: 'Goods Receipt (GRN)', description: 'Receive materials from supplier', icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'hover:border-blue-300', path: '/inventory/goods-receipt' },
+      { id: 'inbound-manifest', label: 'Receiving Voucher / GRN', description: 'Shipment verification & dock intake', icon: FileCheck, color: 'text-indigo-600', bgColor: 'bg-indigo-50', borderColor: 'hover:border-indigo-300', path: '/inventory/manifest' }
     ]
   },
   {
@@ -42,8 +42,8 @@ const CATEGORIES: HubCategory[] = [
     icon: ArrowLeftRight,
     cards: [
       { id: 'picking-packing', label: 'Picking / Packing', description: 'Pick and issue to project/warehouse', icon: Package, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'hover:border-purple-300', path: '/inventory/picking' },
-      { id: 'return-to-vendor', label: 'Return to Vendor', description: 'Return defective/excess materials', icon: ArrowLeftRight, color: 'text-rose-600', bgColor: 'bg-rose-50', borderColor: 'hover:border-rose-300', path: '/inventory/return-to-vendor' },
-      { id: 'outbound-manifest', label: 'Outbound Manifest', description: 'Shipment dispatch & loading', icon: FileCheck, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'hover:border-cyan-300', path: '/inventory/manifest' }
+      { id: 'outbound-manifest', label: 'Delivery Note / Gate Pass', description: 'Vehicle loading, gate pass & delivery note', icon: FileCheck, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'hover:border-cyan-300', path: '/inventory/manifest' },
+      { id: 'return-to-vendor', label: 'Return to Vendor', description: 'Return defective/excess materials', icon: ArrowLeftRight, color: 'text-rose-600', bgColor: 'bg-rose-50', borderColor: 'hover:border-rose-300', path: '/inventory/return-to-vendor' }
     ]
   },
   {
@@ -75,6 +75,7 @@ const CATEGORIES: HubCategory[] = [
     description: 'Quotations, invoices, payments, alerts',
     icon: FileText,
     cards: [
+      { id: 'reports-center', label: 'Reports & Export Center', description: 'Centralized extraction & multi-format export', icon: FileText, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'hover:border-blue-400', path: '/reports' },
       { id: 'quotations', label: 'Quotations', description: 'Create and manage quotations', icon: FileText, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'hover:border-blue-300', path: '/inventory/quotations' },
       { id: 'proforma', label: 'Proforma Invoices', description: 'Create and manage proforma invoices', icon: FileText, color: 'text-indigo-600', bgColor: 'bg-indigo-50', borderColor: 'hover:border-indigo-300', path: '/inventory/proforma' },
       { id: 'invoices', label: 'Invoices', description: 'Create and track tax invoices', icon: DollarSign, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'hover:border-green-300', path: '/inventory/invoices' },
@@ -90,52 +91,65 @@ const InventoryHub: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F17] py-8 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-950/20">
               <Package className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory Operations Hub</h1>
-              <p className="text-sm text-gray-500">All inventory management tools organized by workflow</p>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Inventory Operations Hub</h1>
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  SUITE ACTIVE
+                </span>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">All inventory management tools organized by executive workflow</p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-10">
           {CATEGORIES.map(category => {
             const CategoryIcon = category.icon;
             return (
-              <div key={category.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
-                      <CategoryIcon className="w-5 h-5 text-white" />
+              <div key={category.id} className="bg-white dark:bg-[#131B2A] rounded-2xl shadow-sm border border-slate-200/90 dark:border-[#202C3F] overflow-hidden hover:shadow-md transition-all">
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-[#202C3F]/80 bg-slate-50/70 dark:bg-[#182235]/60 flex items-center justify-between">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-xl bg-slate-900 dark:bg-[#0B0F17] border border-slate-800 dark:border-[#202C3F] flex items-center justify-center shadow-sm">
+                      <CategoryIcon className="w-5 h-5 text-emerald-400" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-900">{category.title}</h2>
-                      <p className="text-sm text-gray-500">{category.description}</p>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{category.title}</h2>
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{category.description}</p>
                     </div>
                   </div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 bg-slate-200/60 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-300/40 dark:border-slate-700">
+                    {category.cards.length} tools
+                  </span>
                 </div>
-                <div className="p-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {category.cards.map(card => {
                       const Icon = card.icon;
                       return (
                         <button
                           key={card.id}
                           onClick={() => navigate(card.path)}
-                          className={`flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 ${card.borderColor} hover:shadow-md transition-all duration-200 text-left group`}
+                          className={`flex items-start gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-[#202C3F] bg-white dark:bg-[#0e1624] hover:bg-slate-50/50 dark:hover:bg-[#162134] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-left group`}
                         >
-                          <div className={`w-12 h-12 rounded-xl ${card.bgColor} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                            <Icon className={`w-6 h-6 ${card.color}`} />
+                          <div className={`w-12 h-12 p-2.5 rounded-xl ${card.bgColor} dark:bg-slate-800/90 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-sm border dark:border-slate-700/60`}>
+                            <Icon className={`w-6 h-6 ${card.color} dark:text-emerald-400`} />
                           </div>
-                          <div>
-                            <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{card.label}</div>
-                            <div className="text-xs text-gray-500 mt-0.5">{card.description}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-base text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                              {card.label}
+                            </div>
+                            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                              {card.description}
+                            </div>
                           </div>
                         </button>
                       );
@@ -150,7 +164,7 @@ const InventoryHub: React.FC = () => {
         <div className="mt-8 flex justify-center">
           <button
             onClick={() => navigate('/scan')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition flex items-center gap-2 font-medium shadow-lg shadow-blue-600/20"
+            className="px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition flex items-center gap-2 font-bold shadow-lg shadow-emerald-950/20"
           >
             <QrCode className="w-5 h-5" />
             Go to QR Scanner

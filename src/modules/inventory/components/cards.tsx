@@ -40,18 +40,39 @@ export const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon: Icon, 
 };
 
 export const RegionCard: React.FC<{ region: Region; onClick: (r: Region) => void }> = ({ region, onClick }) => (
-  <div onClick={() => onClick(region)} style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '24px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.2s' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-      <div style={{ width: '56px', height: '56px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '22px', background: region.color, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-        {region.name[0]}
+  <div
+    onClick={() => onClick(region)}
+    className="bg-white dark:bg-[#131B2A] rounded-2xl border border-slate-200/90 dark:border-[#202C3F] hover:border-emerald-500/50 dark:hover:border-emerald-500/40 p-6 cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 group flex flex-col justify-between"
+  >
+    <div>
+      <div className="flex items-center gap-4 mb-4">
+        <div
+          className="w-13 h-13 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md flex-shrink-0 transition-transform group-hover:scale-105"
+          style={{ background: region.color }}
+        >
+          {region.name[0]}
+        </div>
+        <div>
+          <h3 className="font-extrabold text-slate-900 dark:text-white text-lg sm:text-xl group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
+            {region.name}
+          </h3>
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-0.5" dir="rtl">{region.arabicName}</p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+              {region.warehouses.length} Active Facilities
+            </span>
+          </div>
+        </div>
       </div>
-      <div>
-        <h3 style={{ fontWeight: '700', color: '#0f172a', fontSize: '20px', margin: '0 0 4px 0' }}>{region.name}</h3>
-        <p style={{ fontSize: '16px', color: '#475569', margin: '0 0 2px 0', fontWeight: '500' }}>{region.arabicName}</p>
-        <p style={{ fontSize: '15px', color: '#64748b', fontWeight: '600', margin: 0 }}>{region.warehouses.length} warehouses</p>
-      </div>
+      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Regional Hub & Logistic Distribution Nodes</p>
     </div>
-    <p style={{ fontSize: '14px', fontWeight: '700', color: '#2563eb', margin: 0 }}>View details →</p>
+
+    <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+      <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">Tap to inspect facilities</span>
+      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 transition-all flex items-center gap-1">
+        Explore Warehouses →
+      </span>
+    </div>
   </div>
 );
 
@@ -60,48 +81,66 @@ export const WarehouseCard: React.FC<{
   stats: { totalItems: number; totalQuantity: number; totalValue: number; lowStockCount: number };
   onClick: (id: string) => void;
 }> = ({ warehouse, stats, onClick }) => {
-  const statusColors: Record<string, { bg: string; text: string }> = {
-    active: { bg: '#d1fae5', text: '#065f46' },
-    maintenance: { bg: '#fef3c7', text: '#92400e' },
-    full: { bg: '#fee2e2', text: '#991b1b' }
+  const statusColors: Record<string, { bg: string; text: string; border: string }> = {
+    active: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-900/50' },
+    maintenance: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-900/50' },
+    full: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-400', border: 'border-rose-200 dark:border-rose-900/50' }
   };
   const status = statusColors[warehouse.status] || statusColors.active;
 
   return (
-    <div onClick={() => onClick(warehouse.id)} style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '24px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.2s' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '48px', height: '48px', background: '#f1f5f9', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Archive style={{ width: '22px', height: '22px', color: '#475569' }} />
+    <div
+      onClick={() => onClick(warehouse.id)}
+      className="bg-white dark:bg-[#131B2A] rounded-2xl border border-slate-200/90 dark:border-[#202C3F] hover:border-emerald-500/50 dark:hover:border-emerald-500/40 p-6 cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 group"
+    >
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center transition-colors flex-shrink-0">
+            <Archive className="w-6 h-6 text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
           </div>
           <div>
-            <h3 style={{ fontWeight: '700', color: '#0f172a', fontSize: '18px', margin: '0 0 2px 0' }}>{warehouse.name}</h3>
-            <p style={{ fontSize: '15px', color: '#475569', fontWeight: '500', margin: 0 }}>{warehouse.code} • {warehouse.city}</p>
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base sm:text-lg group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-snug">
+              {warehouse.name}
+            </h3>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                {warehouse.code}
+              </span>
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{warehouse.city}</span>
+            </div>
           </div>
         </div>
-        <span style={{ padding: '6px 14px', fontSize: '13px', fontWeight: '700', borderRadius: '20px', background: status.bg, color: status.text }}>{warehouse.status}</span>
+        <span className={`px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wider border ${status.bg} ${status.text} ${status.border}`}>
+          {warehouse.status}
+        </span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px' }}>
+
+      <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50/90 dark:bg-[#0B0F17]/70 rounded-xl border border-slate-100 dark:border-slate-800/80">
         <div>
-          <p style={{ color: '#475569', fontSize: '14px', fontWeight: '600', margin: '0 0 4px 0', textTransform: 'uppercase' }}>Items</p>
-          <p style={{ fontWeight: '800', color: '#0f172a', fontSize: '24px', margin: 0 }}>{stats.totalItems}</p>
+          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Catalog Items</span>
+          <div className="font-black text-slate-900 dark:text-white text-xl mt-0.5">{stats.totalItems}</div>
         </div>
         <div>
-          <p style={{ color: '#475569', fontSize: '14px', fontWeight: '600', margin: '0 0 4px 0', textTransform: 'uppercase' }}>Qty</p>
-          <p style={{ fontWeight: '800', color: '#0f172a', fontSize: '24px', margin: 0 }}>{stats.totalQuantity.toLocaleString()}</p>
+          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Quantity</span>
+          <div className="font-black text-slate-900 dark:text-white text-xl mt-0.5">{stats.totalQuantity.toLocaleString()}</div>
         </div>
         <div>
-          <p style={{ color: '#475569', fontSize: '14px', fontWeight: '600', margin: '0 0 4px 0', textTransform: 'uppercase' }}>Value</p>
-          <p style={{ fontWeight: '800', color: '#0f172a', fontSize: '24px', margin: 0 }}>SAR {(stats.totalValue / 1000).toFixed(0)}k</p>
+          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Stock Valuation</span>
+          <div className="font-black text-slate-900 dark:text-slate-200 text-xl mt-0.5">SAR {(stats.totalValue / 1000).toFixed(0)}k</div>
         </div>
         <div>
-          <p style={{ color: '#475569', fontSize: '14px', fontWeight: '600', margin: '0 0 4px 0', textTransform: 'uppercase' }}>Alerts</p>
-          <p style={{ fontWeight: '800', color: stats.lowStockCount > 0 ? '#dc2626' : '#059669', fontSize: '24px', margin: 0 }}>{stats.lowStockCount}</p>
+          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Alerts</span>
+          <div className={`font-black text-xl mt-0.5 ${stats.lowStockCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+            {stats.lowStockCount}
+          </div>
         </div>
       </div>
-      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', color: '#475569', fontWeight: '500' }}>Manager: {warehouse.manager}</span>
-        <span style={{ fontSize: '14px', color: '#2563eb', fontWeight: '700' }}>View →</span>
+
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
+        <span>Manager: <strong className="text-slate-700 dark:text-slate-300">{warehouse.manager}</strong></span>
+        <span className="font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 transition-all flex items-center gap-1">
+          View Facility Details →
+        </span>
       </div>
     </div>
   );
