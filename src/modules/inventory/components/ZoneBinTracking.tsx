@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, MapPin, Box } from 'lucide-react';
 import { InventoryStorageService } from '../utils/inventoryStorage';
 import { REGIONS, MaterialItem, Warehouse, Zone } from '../data/ksaData';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
 
 const ZoneBinTracking: React.FC = () => {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ const ZoneBinTracking: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-100">
             <div className="flex items-center gap-3">
@@ -85,22 +86,27 @@ const ZoneBinTracking: React.FC = () => {
             )}
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Material</label>
-                <select value={selectedMaterial?.id || ''} onChange={e => {
-                  const item = inventoryStorage.getItemById(e.target.value);
+              <SearchableSelect
+                label="Select Material"
+                required
+                placeholder="Select material from inventory..."
+                searchPlaceholder="Search material by name, SKU..."
+                value={selectedMaterial?.id || ''}
+                onChange={val => {
+                  const item = inventoryStorage.getItemById(val);
                   setSelectedMaterial(item || null);
                   if (item) {
                     setZone(item.zoneId || '');
                     setBinLocation(item.binLocation || '');
                   }
-                }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                  <option value="">Select material</option>
-                  {materials.map(m => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.sku}) - Stock: {m.quantity} {m.unit}</option>
-                  ))}
-                </select>
-              </div>
+                }}
+                options={materials.map(m => ({
+                  value: m.id,
+                  label: m.name,
+                  sublabel: m.sku,
+                  badge: `Stock: ${m.quantity} ${m.unit}`
+                }))}
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

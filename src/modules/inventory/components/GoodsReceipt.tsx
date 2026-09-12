@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, CheckCircle, X, FileText, Truck, Package } from 'lucide-react';
+import { ArrowLeft, Upload, CheckCircle, X, FileText, Truck, Package, AlertTriangle } from 'lucide-react';
 import { InventoryStorageService } from '../utils/inventoryStorage';
 import { REGIONS, MaterialItem, Warehouse } from '../data/ksaData';
 import { OfflineDataManager } from '../../../utils/offlineDataManager';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
 
 const GoodsReceipt: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ const GoodsReceipt: React.FC = () => {
   
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialItem | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
+  const [orderedQuantity, setOrderedQuantity] = useState<number>(1);
+  const [varianceDisposition, setVarianceDisposition] = useState<'partial_backorder' | 'short_closed' | 'over_delivery' | 'none'>('none');
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
   const [supplier, setSupplier] = useState('');
   const [grnNumber, setGrnNumber] = useState('');
@@ -43,7 +46,11 @@ const GoodsReceipt: React.FC = () => {
 
     try {
       const grn = grnNumber || generateGRN();
-      const receiptNotes = `Goods Receipt | GRN: ${grn} | PO: ${purchaseOrder || 'N/A'} | Supplier: ${supplier || 'N/A'} | ${notes}`;
+      const varianceDiff = orderedQuantity - quantity;
+      const varianceText = varianceDiff !== 0
+        ? ` | Ordered: ${orderedQuantity}, Received: ${quantity} (${varianceDiff > 0 ? `Shortfall: ${varianceDiff}` : `Over: ${Math.abs(varianceDiff)}`}, Disp: ${varianceDisposition})`
+        : ` | Ordered: ${orderedQuantity}, Received: ${quantity}`;
+      const receiptNotes = `Goods Receipt | GRN: ${grn} | PO: ${purchaseOrder || 'N/A'} | Supplier: ${supplier || 'N/A'}${varianceText} | ${notes}`;
       
       const now = new Date();
       const materialLog = {
@@ -86,7 +93,7 @@ const GoodsReceipt: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-100">
             <div className="flex items-center gap-3">
@@ -101,6 +108,19 @@ const GoodsReceipt: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <span>Receiving a delivery shipment with <strong>multiple goods</strong>, supplier PO, or QC inspection?</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/inventory/manifest')}
+                className="font-bold text-blue-700 hover:text-blue-900 underline whitespace-nowrap ml-2"
+              >
+                Use Multi-Item GRN &rarr;
+              </button>
+            </div>
             {success && (
               <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5" />
@@ -112,38 +132,111 @@ const GoodsReceipt: React.FC = () => {
             )}
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Material</label>
-                <select value={selectedMaterial?.id || ''} onChange={e => {
-                  const item = inventoryStorage.getItemById(e.target.value);
+              <SearchableSelect
+                label="Material"
+                required
+                placeholder="Select material from inventory..."
+                searchPlaceholder="Search material by name, SKU..."
+                value={selectedMaterial?.id || ''}
+                onChange={val => {
+                  const item = inventoryStorage.getItemById(val);
                   setSelectedMaterial(item || null);
-                }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                  <option value="">Select material</option>
-                  {inventoryStorage.getItems().map(m => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.sku}) - Current: {m.quantity} {m.unit}</option>
-                  ))}
-                </select>
-              </div>
+                }}
+                options={inventoryStorage.getItems().map(m => ({
+                  value: m.id,
+                  label: m.name,
+                  sublabel: m.sku,
+                  badge: `${m.quantity} ${m.unit}`
+                }))}
+              />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Warehouse *</label>
-                  <select value={warehouse?.id || ''} onChange={e => {
-                    const wh = warehouses.find(w => w.id === e.target.value);
-                    setWarehouse(wh || null);
-                  }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                    <option value="">Select warehouse</option>
-                    {warehouses.map(w => (
-                      <option key={w.id} value={w.id}>{w.name} ({w.code}) - {w.city}</option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    label="Warehouse"
+                    required
+                    placeholder="Select warehouse..."
+                    searchPlaceholder="Search warehouse, city, code..."
+                    value={warehouse?.id || ''}
+                    onChange={val => {
+                      const wh = warehouses.find(w => w.id === val);
+                      setWarehouse(wh || null);
+                    }}
+                    options={warehouses.map(w => ({
+                      value: w.id,
+                      label: w.name,
+                      sublabel: `${w.city} • Code: ${w.code}`,
+                      badge: w.status
+                    }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity Ordered (PO)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={orderedQuantity}
+                    onChange={e => setOrderedQuantity(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
+                    placeholder="e.g. 20"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Quantity Received *</label>
-                  <input type="number" min="1" value={quantity} onChange={e => setQuantity(Number(e.target.value) || 1)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={e => setQuantity(Number(e.target.value) || 1)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-slate-900"
+                    required
+                  />
                 </div>
               </div>
+
+              {/* Real-time Discrepancy & Shortfall Warning Banner */}
+              {orderedQuantity > 0 && quantity !== orderedQuantity && (
+                <div className={`p-4 rounded-xl border ${
+                  quantity < orderedQuantity
+                    ? 'bg-amber-50/90 border-amber-300 dark:bg-amber-950/40 dark:border-amber-800'
+                    : 'bg-blue-50/90 border-blue-300 dark:bg-blue-950/40 dark:border-blue-800'
+                } transition-all space-y-3`}>
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${quantity < orderedQuantity ? 'text-amber-600' : 'text-blue-600'}`} />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="font-bold text-sm text-slate-900 dark:text-white">
+                          {quantity < orderedQuantity
+                            ? `Short Delivery Detected: Missing ${orderedQuantity - quantity} ${selectedMaterial?.unit || 'units'} (-${Math.round(((orderedQuantity - quantity) / orderedQuantity) * 100)}% Variance)`
+                            : `Over-Delivery: Received +${quantity - orderedQuantity} ${selectedMaterial?.unit || 'units'} above PO ordered quantity`}
+                        </span>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200">
+                          {Math.round((Math.abs(orderedQuantity - quantity) / orderedQuantity) * 100)}% Variance
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                        Ordered: <strong>{orderedQuantity}</strong> | Delivered: <strong>{quantity}</strong>. Please record the disposition reason for backorder or supplier reconciliation:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-amber-200 dark:border-amber-800/60 flex flex-col sm:flex-row sm:items-center gap-3 text-xs">
+                    <label className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                      Variance Disposition:
+                    </label>
+                    <select
+                      value={varianceDisposition}
+                      onChange={e => setVarianceDisposition(e.target.value as any)}
+                      className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-100 outline-none"
+                    >
+                      <option value="none">-- Select Action / Reason --</option>
+                      <option value="partial_backorder">📦 Partial Delivery - Remaining balance expected on backorder</option>
+                      <option value="short_closed">❌ Short Shipped / Closed - Supplier cannot fulfill remainder</option>
+                      <option value="over_delivery">➕ Excess / Sample - Accepted extra units from supplier</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DollarSign, Search, TrendingUp, Calendar } from 'lucide-react';
 import { getPayments, getInvoices } from '../../../utils/erpInvoiceService';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const PaymentList: React.FC = () => {
   const navigate = useNavigate();
@@ -43,7 +44,13 @@ const PaymentList: React.FC = () => {
         <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><DollarSign style={{ width: '20px', height: '20px', color: '#059669' }} /></div>
-            <div><p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Total Payments</p><p style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: 0 }}>SAR {totalPayments.toFixed(2)}</p></div>
+            <div>
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Total Payments</p>
+              <p style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <SaudiRiyalSymbol style={{ width: '20px', height: '20px', color: '#059669' }} />
+                <span>{totalPayments.toFixed(2)}</span>
+              </p>
+            </div>
           </div>
         </div>
         <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '20px' }}>
@@ -84,7 +91,12 @@ const PaymentList: React.FC = () => {
                       <td style={{ padding: '14px 16px', fontSize: '14px', color: '#475569' }}>{p.customerName}</td>
                       <td style={{ padding: '14px 16px', fontSize: '14px', color: '#6b7280' }}>{p.paymentDate}</td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}><span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: mb.bg, color: mb.color }}>{p.paymentMethod?.replace('_', ' ')}</span></td>
-                      <td style={{ padding: '14px 16px', fontSize: '15px', fontWeight: '700', color: '#059669', textAlign: 'right' }}>SAR {p.amount.toFixed(2)}</td>
+                      <td style={{ padding: '14px 16px', fontSize: '15px', fontWeight: '700', color: '#059669', textAlign: 'right' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                          <SaudiRiyalSymbol style={{ width: '14px', height: '14px', color: '#059669' }} />
+                          <span>{p.amount.toFixed(2)}</span>
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}

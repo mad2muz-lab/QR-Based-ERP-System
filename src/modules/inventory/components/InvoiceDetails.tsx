@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer, Plus, DollarSign, CheckCircle } from 'lucide-react';
 import { Invoice, getInvoiceById, saveInvoice, getPaymentsByInvoice, savePayment, generatePaymentNumber } from '../../../utils/invoiceService';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const InvoiceDetails: React.FC = () => {
   const navigate = useNavigate();
@@ -56,14 +57,14 @@ const InvoiceDetails: React.FC = () => {
         <div style="text-align: right;"><div class="info-label">Issue Date</div><div class="info-value">${invoice.issueDate}</div><div class="info-label" style="margin-top: 12px;">Due Date</div><div class="info-value">${invoice.dueDate}</div></div>
       </div>
       <table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Price</th><th>Discount</th><th>VAT</th><th style="text-align: right;">Total</th></tr></thead>
-      <tbody>${invoice.items.map((item, idx) => `<tr><td>${idx + 1}</td><td>${item.description}</td><td>${item.quantity} ${item.unit}</td><td>SAR ${item.unitPrice.toFixed(2)}</td><td>SAR ${item.discount.toFixed(2)}</td><td>SAR ${item.vatAmount.toFixed(2)}</td><td style="text-align: right; font-weight: 600;">SAR ${item.totalAmount.toFixed(2)}</td></tr>`).join('')}</tbody></table>
+      <tbody>${invoice.items.map((item, idx) => `<tr><td>${idx + 1}</td><td>${item.description}</td><td>${item.quantity} ${item.unit}</td><td><span class="icon-saudi_riyal">&#xea;</span> ${item.unitPrice.toFixed(2)}</td><td><span class="icon-saudi_riyal">&#xea;</span> ${item.discount.toFixed(2)}</td><td><span class="icon-saudi_riyal">&#xea;</span> ${item.vatAmount.toFixed(2)}</td><td style="text-align: right; font-weight: 600;"><span class="icon-saudi_riyal">&#xea;</span> ${item.totalAmount.toFixed(2)}</td></tr>`).join('')}</tbody></table>
       <div class="totals">
-        <div class="total-row"><span>Subtotal:</span><span>SAR ${invoice.subtotal.toFixed(2)}</span></div>
-        <div class="total-row"><span>Discount:</span><span style="color: #dc2626;">- SAR ${invoice.totalDiscount.toFixed(2)}</span></div>
-        <div class="total-row"><span>VAT (15%):</span><span>SAR ${invoice.totalVat.toFixed(2)}</span></div>
-        <div class="total-row grand-total"><span>Grand Total:</span><span>SAR ${invoice.grandTotal.toFixed(2)}</span></div>
-        <div class="total-row" style="color: #059669;"><span>Amount Paid:</span><span>SAR ${invoice.amountPaid.toFixed(2)}</span></div>
-        <div class="total-row" style="font-weight: bold;"><span>Balance Due:</span><span>SAR ${(invoice.grandTotal - invoice.amountPaid).toFixed(2)}</span></div>
+        <div class="total-row"><span>Subtotal:</span><span><span class="icon-saudi_riyal">&#xea;</span> ${invoice.subtotal.toFixed(2)}</span></div>
+        <div class="total-row"><span>Discount:</span><span style="color: #dc2626;">- <span class="icon-saudi_riyal">&#xea;</span> ${invoice.totalDiscount.toFixed(2)}</span></div>
+        <div class="total-row"><span>VAT (15%):</span><span><span class="icon-saudi_riyal">&#xea;</span> ${invoice.totalVat.toFixed(2)}</span></div>
+        <div class="total-row grand-total"><span>Grand Total:</span><span><span class="icon-saudi_riyal">&#xea;</span> ${invoice.grandTotal.toFixed(2)}</span></div>
+        <div class="total-row" style="color: #059669;"><span>Amount Paid:</span><span><span class="icon-saudi_riyal">&#xea;</span> ${invoice.amountPaid.toFixed(2)}</span></div>
+        <div class="total-row" style="font-weight: bold;"><span>Balance Due:</span><span><span class="icon-saudi_riyal">&#xea;</span> ${(invoice.grandTotal - invoice.amountPaid).toFixed(2)}</span></div>
       </div>
       <script>window.onload = () => { window.print(); };</script></body></html>
     `;
@@ -90,7 +91,7 @@ const InvoiceDetails: React.FC = () => {
 
     savePayment(payment);
     setPayments(getPaymentsByInvoice(invoice.id));
-    setInvoice(getInvoiceById(invoice.id));
+    setInvoice(getInvoiceById(invoice.id) || null);
     setShowPaymentForm(false);
     setPaymentAmount(0);
     setPaymentRef('');
@@ -151,11 +152,41 @@ const InvoiceDetails: React.FC = () => {
       </table>
 
       <div style={{ width: '300px', marginLeft: 'auto', padding: '20px', background: '#f8fafc', borderRadius: '12px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ fontSize: '14px', color: '#6b7280' }}>Subtotal:</span><span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>SAR {invoice.subtotal.toFixed(2)}</span></div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ fontSize: '14px', color: '#6b7280' }}>VAT:</span><span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>SAR {invoice.totalVat.toFixed(2)}</span></div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '2px solid #002e17' }}><span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Grand Total:</span><span style={{ fontSize: '18px', fontWeight: '800', color: '#002e17' }}>SAR {invoice.grandTotal.toFixed(2)}</span></div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', color: '#059669' }}><span style={{ fontSize: '14px', fontWeight: '600' }}>Paid:</span><span style={{ fontSize: '14px', fontWeight: '700' }}>SAR {invoice.amountPaid.toFixed(2)}</span></div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}><span style={{ fontSize: '14px', fontWeight: '600' }}>Balance:</span><span style={{ fontSize: '14px', fontWeight: '700' }}>SAR {(invoice.grandTotal - invoice.amountPaid).toFixed(2)}</span></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <span style={{ fontSize: '14px', color: '#6b7280' }}>Subtotal:</span>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+            <span>{invoice.subtotal.toFixed(2)}</span>
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <span style={{ fontSize: '14px', color: '#6b7280' }}>VAT:</span>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+            <span>{invoice.totalVat.toFixed(2)}</span>
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '2px solid #002e17' }}>
+          <span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Grand Total:</span>
+          <span style={{ fontSize: '18px', fontWeight: '800', color: '#002e17', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <SaudiRiyalSymbol style={{ width: '17px', height: '17px', color: '#002e17' }} />
+            <span>{invoice.grandTotal.toFixed(2)}</span>
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', color: '#059669' }}>
+          <span style={{ fontSize: '14px', fontWeight: '600' }}>Paid:</span>
+          <span style={{ fontSize: '14px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#059669' }} />
+            <span>{invoice.amountPaid.toFixed(2)}</span>
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#dc2626' }}>
+          <span style={{ fontSize: '14px', fontWeight: '600' }}>Balance:</span>
+          <span style={{ fontSize: '14px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#dc2626' }} />
+            <span>{(invoice.grandTotal - invoice.amountPaid).toFixed(2)}</span>
+          </span>
+        </div>
       </div>
 
       {/* Payments */}
@@ -172,7 +203,14 @@ const InvoiceDetails: React.FC = () => {
         {showPaymentForm && (
           <div style={{ padding: '20px', background: '#f0fdf4', borderRadius: '12px', border: '2px solid #6ee7b7', marginBottom: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', alignItems: 'end' }}>
-              <div><label style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Amount (SAR)</label><input type="number" min="0.01" step="0.01" value={paymentAmount || ''} onChange={e => setPaymentAmount(Number(e.target.value))} style={{ width: '100%', padding: '10px', border: '2px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} /></div>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>Amount (</span>
+                  <SaudiRiyalSymbol style={{ width: '12px', height: '12px', color: '#059669' }} />
+                  <span>)</span>
+                </label>
+                <input type="number" min="0.01" step="0.01" value={paymentAmount || ''} onChange={e => setPaymentAmount(Number(e.target.value))} style={{ width: '100%', padding: '10px', border: '2px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} />
+              </div>
               <div><label style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Method</label><select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as any)} style={{ width: '100%', padding: '10px', border: '2px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}><option value="cash">Cash</option><option value="bank_transfer">Bank Transfer</option><option value="check">Check</option><option value="credit_card">Credit Card</option></select></div>
               <div><label style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Reference</label><input type="text" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} placeholder="Check/Trans #" style={{ width: '100%', padding: '10px', border: '2px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} /></div>
               <button onClick={handleRecordPayment} style={{ padding: '10px 20px', background: '#059669', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Save</button>
@@ -191,7 +229,10 @@ const InvoiceDetails: React.FC = () => {
                   <div><span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{p.paymentNumber}</span><span style={{ fontSize: '13px', color: '#6b7280', marginLeft: '8px' }}>{p.paymentMethod}</span></div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '15px', fontWeight: '700', color: '#059669' }}>SAR {p.amount.toFixed(2)}</span>
+                  <span style={{ fontSize: '15px', fontWeight: '700', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <SaudiRiyalSymbol style={{ width: '14px', height: '14px', color: '#059669' }} />
+                    <span>{p.amount.toFixed(2)}</span>
+                  </span>
                   <span style={{ fontSize: '13px', color: '#94a3b8', marginLeft: '8px' }}>{p.paymentDate}</span>
                 </div>
               </div>

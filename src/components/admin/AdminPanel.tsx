@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, Download, Trash2, Edit, Plus, Eye, EyeOff, Building2, Users, Database, Activity, FileText, Settings } from 'lucide-react';
+import EmployeeForm from '../registration/forms/EmployeeForm';
+import WarehouseForm from '../registration/forms/WarehouseForm';
+import { Shield, Download, Trash2, Edit, Plus, Eye, EyeOff, Building2, Users, Database, Activity, FileText, Settings, CheckSquare, Package } from 'lucide-react';
+import { Material } from '../../types';
 import { AuthManager } from '../../utils/authUtils';
+import { useLocation } from 'react-router-dom';
 import { DataStorage } from '../../utils/dataStorage';
 import { SupabaseAuthManager } from '../../utils/supabaseAuthUtils';
 import { supabase } from '../../utils/supabaseClient';
@@ -8,10 +12,11 @@ import { User } from '../../types';
 import DepartmentManager from './DepartmentManager';
 import UnauthorizedAccess from '../common/UnauthorizedAccess';
 import AuditLogViewer from './AuditLogViewer';
+import MaterialForm from '../registration/forms/MaterialForm';
+import MaterialList from '../registration/lists/MaterialList';
 import DataBackup from '../pages/DataBackup';
 import ActivityTimeline from '../pages/ActivityTimeline';
-
-
+import { ApprovalWorkflowManager } from './ApprovalWorkflowManager';
 
 interface AdminPanelProps {
   currentUser?: any;
@@ -26,7 +31,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   }
 
   const [users, setUsers] = useState<User[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'departments' | 'auditlog' | 'company'>('users');
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [activeTab, setActiveTab] = useState<'users' | 'company' | 'departments' | 'backup' | 'activity' | 'auditlog' | 'approvals' | 'employees' | 'warehouses' | 'materials'>('users');
+  const location = useLocation();
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [companyData, setCompanyData] = useState({
@@ -58,6 +66,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       await loadUsers();
     })();
     // Load company data
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab) {
+      setActiveTab(tab as any);
+    }
+
     const storedCompany = localStorage.getItem('company_details');
     if (storedCompany) {
       try {
@@ -66,9 +80,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     }
   }, []);
 
+  const loadMaterials = async () => {
+    const mats = DataStorage.loadMaterials();
+    setMaterials(mats);
+  };
+
   const loadUsers = async () => {
     if (await AuthManager.useSupabase()) {
       try {
+        // existing user load logic
+
         const { data, error } = await supabase!.from('users').select();
         if (error) throw error;
         if (data && data.length > 0) {
@@ -80,7 +101,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       }
     }
     const loadedUsers = DataStorage.loadUsers();
+    // Load materials after users
+    loadMaterials();
     setUsers(loadedUsers);
+  };
+
+  const handleMaterialSubmit = (materialData: any) => {
+    DataStorage.saveMaterial(materialData);
+    loadMaterials();
+  };
+
+  const handleMaterialDelete = (materialId: string) => {
+    DataStorage.deleteMaterial(materialId);
+    loadMaterials();
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -263,12 +296,27 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
   const tabs = [
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'approvals', label: 'Approvals', icon: CheckSquare },
     { id: 'company', label: 'Company', icon: Building2 },
     { id: 'departments', label: 'Departments', icon: Settings },
+    { id: 'warehouses', label: 'Warehouses', icon: Building2 },
+    { id: 'employees', label: 'Employees', icon: Users },
+    { id: 'materials', label: 'Materials', icon: Package },
     { id: 'backup', label: 'Backup', icon: Database },
     { id: 'activity', label: 'Activity', icon: Activity },
     { id: 'auditlog', label: 'Audit Log', icon: FileText },
   ];
+
+  // Sync active tab with URL query param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab && tabs.find(t => t.id === tab)) {
+      setActiveTab(tab as any);
+    }
+  }, [location.search]);
+
+  // Continue with tabs array usage
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px' }}>
@@ -497,6 +545,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       </div>
       )}
 
+      {activeTab === 'approvals' && (
+        <ApprovalWorkflowManager />
+      )}
+
       {activeTab === 'backup' && (
         <DataBackup />
       )}
@@ -508,6 +560,37 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       {activeTab === 'auditlog' && (
         <div style={{ background: 'white', borderRadius: '16px', padding: '28px', border: '2px solid #e2e8f0' }}>
           <AuditLogViewer />
+        </div>
+      )}
+
+      {/* Employees Registration */}
+      {activeTab === 'employees' && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <EmployeeForm sites={DataStorage.loadSites()} onSubmit={(emp) => { console.log('Employee submitted', emp); }} />
+        </div>
+      )}
+
+      {activeTab === 'materials' && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <MaterialForm
+            sites={DataStorage.loadSites()}
+            onSubmit={handleMaterialSubmit}
+          />
+          <div className="mt-6">
+            <MaterialList
+              materials={materials}
+              sites={DataStorage.loadSites()}
+              onEdit={(mat) => console.log('Edit material', mat)}
+              onDelete={handleMaterialDelete}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Warehouses Registration */}
+      {activeTab === 'warehouses' && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <WarehouseForm onSubmit={(wh) => { console.log('Warehouse submitted', wh); }} />
         </div>
       )}
 

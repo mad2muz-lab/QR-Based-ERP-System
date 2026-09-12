@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle, Search, X, Package, ChevronDown } from 'lucide-
 import { REGIONS, Warehouse, MaterialItem } from '../data/ksaData';
 import { InventoryStorageService } from '../utils/inventoryStorage';
 import { OfflineDataManager } from '../../../utils/offlineDataManager';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
 
 const InterWarehouseTransfer: React.FC = () => {
   const navigate = useNavigate();
@@ -170,7 +171,7 @@ const InterWarehouseTransfer: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F17] py-8 transition-colors duration-150">
-      <div className="max-w-2xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="bg-white dark:bg-[#131B2A] rounded-2xl shadow-sm border border-slate-200/90 dark:border-[#202C3F] overflow-hidden">
           <div className="p-6 border-b border-slate-100 dark:border-[#202C3F] bg-slate-50/70 dark:bg-[#182235]/60">
             <div className="flex items-center gap-3">
@@ -332,42 +333,42 @@ const InterWarehouseTransfer: React.FC = () => {
               {/* Source & Destination Warehouses */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                    From Warehouse (Source) <span className="text-rose-500">*</span>
-                  </label>
-                  <select
+                  <SearchableSelect
+                    label="From Warehouse (Source)"
+                    required
+                    placeholder="Select source warehouse..."
+                    searchPlaceholder="Search warehouse, city, code..."
                     value={sourceWarehouse?.id || ''}
-                    onChange={e => {
-                      const wh = warehouses.find(w => w.id === e.target.value);
+                    onChange={val => {
+                      const wh = warehouses.find(w => w.id === val);
                       setSourceWarehouse(wh || null);
                     }}
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-[#0e1624] border border-slate-300 dark:border-[#202C3F] rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
-                    required
-                  >
-                    <option value="">Select source warehouse</option>
-                    {warehouses.map(w => (
-                      <option key={w.id} value={w.id}>{w.name} ({w.code}) - {w.city}</option>
-                    ))}
-                  </select>
+                    options={warehouses.map(w => ({
+                      value: w.id,
+                      label: w.name,
+                      sublabel: `${w.code} - ${w.city}`
+                    }))}
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                    To Warehouse (Destination) <span className="text-rose-500">*</span>
-                  </label>
-                  <select
+                  <SearchableSelect
+                    label="To Warehouse (Destination)"
+                    required
+                    placeholder="Select destination warehouse..."
+                    searchPlaceholder="Search warehouse, city, code..."
                     value={destinationWarehouse?.id || ''}
-                    onChange={e => {
-                      const wh = warehouses.find(w => w.id === e.target.value);
+                    onChange={val => {
+                      const wh = warehouses.find(w => w.id === val);
                       setDestinationWarehouse(wh || null);
                     }}
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-[#0e1624] border border-slate-300 dark:border-[#202C3F] rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
-                    required
-                  >
-                    <option value="">Select destination warehouse</option>
-                    {warehouses.filter(w => w.id !== sourceWarehouse?.id).map(w => (
-                      <option key={w.id} value={w.id}>{w.name} ({w.code}) - {w.city}</option>
-                    ))}
-                  </select>
+                    options={warehouses
+                      .filter(w => w.id !== sourceWarehouse?.id)
+                      .map(w => ({
+                        value: w.id,
+                        label: w.name,
+                        sublabel: `${w.code} - ${w.city}`
+                      }))}
+                  />
                 </div>
               </div>
 

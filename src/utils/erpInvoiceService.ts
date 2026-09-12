@@ -1,4 +1,5 @@
 import { Invoice, InvoiceItem, Quotation, QuotationItem, Payment, ChartOfAccount, JournalEntry } from '../types';
+export type { Invoice, InvoiceItem, Quotation, QuotationItem, Payment, ChartOfAccount, JournalEntry };
 
 // ==================== INVOICE SERVICE ====================
 

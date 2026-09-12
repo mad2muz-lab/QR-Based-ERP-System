@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { MaterialItem } from '../data/ksaData';
 import { useInventory } from '../hooks/useInventory';
 import { TrendingUp, CheckCircle, X, AlertTriangle, Package } from 'lucide-react';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 interface MaterialDetailSheetProps {
   material: MaterialItem;
@@ -76,7 +77,12 @@ export const MaterialDetailSheet: React.FC<MaterialDetailSheetProps> = ({ materi
     quarantine: 'bg-gray-100 text-gray-700'
   };
 
-  const formatCurrency = (num: number) => new Intl.NumberFormat('en-SA', { style: 'currency', currency: 'SAR' }).format(num);
+  const formatCurrency = (num: number) => (
+    <span className="inline-flex items-center gap-1 font-semibold text-slate-900">
+      <SaudiRiyalSymbol className="w-3.5 h-3.5 text-emerald-600" />
+      <span>{num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+    </span>
+  );
 
   const modal = (
     <div
@@ -148,7 +154,7 @@ export const MaterialDetailSheet: React.FC<MaterialDetailSheetProps> = ({ materi
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-slate-500">Selling Price</span>
-                      <span className="text-sm font-semibold text-slate-900">{formatCurrency(formData.sellingPrice)}</span>
+                      <span className="text-sm font-semibold text-slate-900">{formatCurrency(formData.sellingPrice || 0)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-slate-500">Profit Margin</span>
@@ -255,7 +261,11 @@ export const MaterialDetailSheet: React.FC<MaterialDetailSheetProps> = ({ materi
                   <input type="number" name="minStock" value={formData.minStock} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Unit Cost (SAR)</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center gap-1">
+                    <span>Unit Cost (</span>
+                    <SaudiRiyalSymbol className="w-3 h-3 text-emerald-600" />
+                    <span>)</span>
+                  </label>
                   <input type="number" name="unitCost" value={formData.unitCost} onChange={handleChange} min="0" step="0.01" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div className="md:col-span-2">
@@ -275,7 +285,11 @@ export const MaterialDetailSheet: React.FC<MaterialDetailSheetProps> = ({ materi
                   <input type="number" name="safetyStock" value={formData.safetyStock || ''} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Selling Price (SAR)</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center gap-1">
+                    <span>Selling Price (</span>
+                    <SaudiRiyalSymbol className="w-3 h-3 text-emerald-600" />
+                    <span>)</span>
+                  </label>
                   <input type="number" name="sellingPrice" value={formData.sellingPrice || ''} onChange={handleChange} min="0" step="0.01" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>

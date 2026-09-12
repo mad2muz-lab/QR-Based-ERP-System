@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Save, FileText } from 'lucide-react';
-import { Invoice, InvoiceItem, createInvoiceFromProforma, getInvoiceById, saveInvoice } from '../../../utils/invoiceService';
+import { Invoice, InvoiceItem, createInvoice, getInvoiceById, saveInvoice } from '../../../utils/invoiceService';
 import { getProformaById } from '../../../utils/proformaService';
 import { InventoryStorageService } from '../utils/inventoryStorage';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const InvoiceForm: React.FC = () => {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ const InvoiceForm: React.FC = () => {
     return { subtotal, vatAmount, total: afterDisc + vatAmount };
   };
 
-  const totals = items.reduce((acc, item) => {
+  const totals = items.reduce<{ subtotal: number; discount: number; vat: number; grand: number }>((acc, item) => {
     const calc = calculateItem(item);
     return {
       subtotal: acc.subtotal + calc.subtotal,
@@ -93,6 +94,8 @@ const InvoiceForm: React.FC = () => {
 
     const invoiceItems: InvoiceItem[] = items.map((item, idx) => {
       const calc = calculateItem(item);
+      const subtotal = (item.quantity || 0) * (item.unitPrice || 0);
+      const afterDisc = subtotal - (item.discount || 0);
       return {
         id: `inv-item-${idx}`,
         description: item.description || '',
@@ -102,6 +105,7 @@ const InvoiceForm: React.FC = () => {
         discount: item.discount || 0,
         vatRate: item.vatRate || 15,
         vatAmount: calc.vatAmount,
+        taxableAmount: afterDisc,
         totalAmount: calc.total,
         materialId: item.materialId,
         sku: item.sku
@@ -121,6 +125,7 @@ const InvoiceForm: React.FC = () => {
       totalDiscount: totals.discount,
       totalVat: totals.vat,
       grandTotal: totals.grand,
+      vatRate: 15,
       status: 'draft' as const,
       paymentStatus: 'unpaid' as const,
       amountPaid: 0,
@@ -129,7 +134,7 @@ const InvoiceForm: React.FC = () => {
       createdBy: 'System'
     };
 
-    const invoice = createInvoiceFromProforma(invoiceData);
+    const invoice = createInvoice(invoiceData);
     setSaved(true);
     setTimeout(() => navigate(`/inventory/invoice/${invoice.id}`), 1500);
   };
@@ -224,21 +229,34 @@ const InvoiceForm: React.FC = () => {
         </div>
 
         <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '2px solid #e2e8f0', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '15px', color: '#475569' }}>Subtotal:</span>
-            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>SAR {totals.subtotal.toFixed(2)}</span>
+            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+              <span>{totals.subtotal.toFixed(2)}</span>
+            </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '15px', color: '#475569' }}>Discount:</span>
-            <span style={{ fontSize: '15px', fontWeight: '600', color: '#dc2626' }}>- SAR {totals.discount.toFixed(2)}</span>
+            <span style={{ fontSize: '15px', fontWeight: '600', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span>-</span>
+              <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#dc2626' }} />
+              <span>{totals.discount.toFixed(2)}</span>
+            </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '15px', color: '#475569' }}>VAT (15%):</span>
-            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>SAR {totals.vat.toFixed(2)}</span>
+            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+              <span>{totals.vat.toFixed(2)}</span>
+            </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '2px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '2px solid #e2e8f0' }}>
             <span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Grand Total:</span>
-            <span style={{ fontSize: '18px', fontWeight: '800', color: '#002e17' }}>SAR {totals.grand.toFixed(2)}</span>
+            <span style={{ fontSize: '18px', fontWeight: '800', color: '#002e17', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <SaudiRiyalSymbol style={{ width: '17px', height: '17px', color: '#002e17' }} />
+              <span>{totals.grand.toFixed(2)}</span>
+            </span>
           </div>
         </div>
 

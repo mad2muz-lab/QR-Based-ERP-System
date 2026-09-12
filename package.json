@@ -12,6 +12,7 @@
     "backfill-equipment-usage": "tsx scripts/backfillEquipmentUsage.ts"
   },
   "dependencies": {
+    "@abdulrysr/saudi-riyal-new-symbol-font": "^1.0.8",
     "@headlessui/react": "^2.2.5",
     "@supabase/supabase-js": "^2.50.5",
     "@types/qrcode": "^1.5.5",

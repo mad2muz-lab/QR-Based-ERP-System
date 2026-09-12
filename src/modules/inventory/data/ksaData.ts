@@ -66,8 +66,11 @@ export interface MaterialItem {
   status: ItemStatus;
   binLocation?: string;
   batchNumber?: string;
+  lotNumber?: string;
   manufacturingDate?: string;
   expirationDate?: string;
+  expiryDate?: string;
+  manufacturer?: string;
   serialNumber?: string;
 }
 
@@ -136,7 +139,7 @@ function generateItems(warehouse: Warehouse, count: number): MaterialItem[] {
       name: itemName,
       arabicName: itemName,
       category: category.name,
-      type: ['raw', 'spare', 'tool'].includes(category.type) ? category.type as MaterialType : 
+      type: category.id === 'tools' ? 'tool' :
             category.id === 'safety' || category.id === 'electrical' || category.id === 'plumbing' ? 'consumable' : 'raw',
       unit: category.unit,
       quantity,

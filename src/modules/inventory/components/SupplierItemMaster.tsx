@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, X, Building2, Package } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle } from 'lucide-react';
 import { InventoryStorageService } from '../utils/inventoryStorage';
-import { MaterialItem, MaterialCategory, CATEGORIES } from '../data/ksaData';
-import { OfflineDataManager } from '../../../utils/offlineDataManager';
+import { MaterialItem, CATEGORIES } from '../data/ksaData';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const SupplierItemMaster: React.FC = () => {
   const navigate = useNavigate();
@@ -43,14 +43,16 @@ const SupplierItemMaster: React.FC = () => {
           setSuccess('Item updated successfully');
         }
       } else {
-        const newItem = inventoryStorage.addItem({
+        const qty = editingItem.quantity || 0;
+        const reorder = editingItem.reorderLevel || 10;
+        inventoryStorage.addItem({
           ...editingItem,
-          quantity: editingItem.quantity || 0,
+          quantity: qty,
           reserved: editingItem.reserved || 0,
           minStock: editingItem.minStock || 0,
-          reorderLevel: editingItem.reorderLevel || 10,
+          reorderLevel: reorder,
           unitCost: editingItem.unitCost || 0,
-          status: editingItem.quantity === 0 ? 'out_of_stock' : editingItem.quantity <= (editingItem.reorderLevel || 10) ? 'low_stock' : 'in_stock',
+          status: qty === 0 ? 'out_of_stock' : qty <= reorder ? 'low_stock' : 'in_stock',
           location: editingItem.location || 'TBD',
           zoneId: editingItem.zoneId || '',
           warehouseId: editingItem.warehouseId || '',
@@ -193,7 +195,11 @@ const SupplierItemMaster: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit Cost (SAR)</label>
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    <span>Unit Cost (</span>
+                    <SaudiRiyalSymbol size={13} />
+                    <span>)</span>
+                  </label>
                   <input
                     type="number"
                     step="0.01"

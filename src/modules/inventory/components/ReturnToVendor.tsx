@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, X, RotateCcw, FileText, Camera } from 'lucide-react';
+import { ArrowLeft, CheckCircle, X, RotateCcw, Camera } from 'lucide-react';
 import { InventoryStorageService } from '../utils/inventoryStorage';
 import { REGIONS, MaterialItem, Warehouse } from '../data/ksaData';
 import { OfflineDataManager } from '../../../utils/offlineDataManager';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
 
 const ReturnToVendor: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +15,9 @@ const ReturnToVendor: React.FC = () => {
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialItem | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
+  const [vendor, setVendor] = useState('');
   const [reason, setReason] = useState('');
+  const [rmaNumber, setRmaNumber] = useState('');
   const [creditNote, setCreditNote] = useState('');
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
@@ -22,17 +25,28 @@ const ReturnToVendor: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const generateRMA = () => {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `RMA-${year}${month}${day}-${random}`;
+  };
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPhotos(prev => [...prev, event.target?.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+    if (files) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (reader.result) {
+            setPhotos(prev => [...prev, reader.result as string]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
   };
 
   const removePhoto = (index: number) => {
@@ -41,12 +55,13 @@ const ReturnToVendor: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedMaterial || !warehouse || quantity <= 0) {
-      setError('Please select material, warehouse, and quantity');
+    if (!selectedMaterial) {
+      setError('Please select a material');
       return;
     }
+
     if (quantity > selectedMaterial.quantity) {
-      setError(`Insufficient stock. Available: ${selectedMaterial.quantity} ${selectedMaterial.unit}`);
+      setError(`Cannot return more than available quantity (${selectedMaterial.quantity} ${selectedMaterial.unit})`);
       return;
     }
 
@@ -55,8 +70,14 @@ const ReturnToVendor: React.FC = () => {
     setSuccess(null);
 
     try {
-      const returnNotes = `Return to Vendor | Credit Note: ${creditNote || 'N/A'} | Reason: ${reason || 'N/A'} | ${notes} | Photos: ${photos.length}`;
-      
+      const rmaNo = rmaNumber || generateRMA();
+      const updatedMaterial = {
+        ...selectedMaterial,
+        quantity: selectedMaterial.quantity - quantity,
+        lastIssued: new Date().toISOString().split('T')[0]
+      };
+      inventoryStorage.updateItem(selectedMaterial.id, updatedMaterial);
+
       const now = new Date();
       const materialLog = {
         id: `mat-log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -64,32 +85,36 @@ const ReturnToVendor: React.FC = () => {
         materialName: selectedMaterial.name,
         materialType: selectedMaterial.type,
         action: 'material-out' as const,
-        quantity,
+        quantity: quantity,
         date: now.toISOString().split('T')[0],
         time: now.toTimeString().split(' ')[0],
         timestamp: now.toISOString(),
-        site: warehouse.name,
+        site: warehouse?.name || 'Warehouse',
         status: selectedMaterial.status,
-        notes: returnNotes,
+        notes: `Return to Vendor (RMA #${rmaNo}) | Vendor: ${vendor || 'Supplier'} | Reason: ${reason}${notes ? ` | ${notes}` : ''}`,
         oldId: selectedMaterial.id
       };
 
       await OfflineDataManager.createMaterialLog(materialLog);
 
-      const updatedMaterial = {
-        ...selectedMaterial,
-        warehouseId: warehouse.id,
-        quantity: Math.max(0, selectedMaterial.quantity - quantity),
-        lastUpdated: new Date().toISOString()
-      };
-      inventoryStorage.updateItem(selectedMaterial.id, updatedMaterial);
+      inventoryStorage.addMovement({
+        itemId: selectedMaterial.id,
+        itemName: selectedMaterial.name,
+        sku: selectedMaterial.sku,
+        type: 'issued',
+        quantity: quantity,
+        fromLocation: warehouse?.name || 'Warehouse',
+        toLocation: vendor || 'Vendor',
+        reference: rmaNo,
+        performedBy: 'Current User',
+        timestamp: now.toISOString(),
+        notes: `RMA Return: ${reason}`
+      });
 
-      setSuccess(`Return processed: ${quantity} ${selectedMaterial.unit} of ${selectedMaterial.name} returned to vendor from ${warehouse.name}`);
-      setTimeout(() => {
-        navigate('/scan');
-      }, 2000);
+      setSuccess(`Return to vendor processed successfully! RMA: ${rmaNo}`);
+      setTimeout(() => navigate('/scan'), 2000);
     } catch (err: any) {
-      setError(err.message || 'Return failed. Please try again.');
+      setError(err.message || 'Failed to process return');
     } finally {
       setIsSubmitting(false);
     }
@@ -97,9 +122,9 @@ const ReturnToVendor: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-100">
+          <div className="p-6 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={() => navigate('/scan')} className="p-2 rounded-lg hover:bg-gray-100 transition">
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -123,31 +148,41 @@ const ReturnToVendor: React.FC = () => {
             )}
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Material</label>
-                <select value={selectedMaterial?.id || ''} onChange={e => {
-                  const item = inventoryStorage.getItemById(e.target.value);
+              <SearchableSelect
+                label="Material"
+                required
+                placeholder="Select material..."
+                searchPlaceholder="Search available material by name, SKU..."
+                value={selectedMaterial?.id || ''}
+                onChange={val => {
+                  const item = inventoryStorage.getItemById(val);
                   setSelectedMaterial(item || null);
-                }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                  <option value="">Select material</option>
-                  {inventoryStorage.getItems().filter(m => m.quantity > 0).map(m => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.sku}) - Stock: {m.quantity} {m.unit}</option>
-                  ))}
-                </select>
-              </div>
+                }}
+                options={inventoryStorage.getItems().filter(m => m.quantity > 0).map(m => ({
+                  value: m.id,
+                  label: m.name,
+                  sublabel: m.sku,
+                  badge: `${m.quantity} ${m.unit}`
+                }))}
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Warehouse</label>
-                  <select value={warehouse?.id || ''} onChange={e => {
-                    const wh = warehouses.find(w => w.id === e.target.value);
-                    setWarehouse(wh || null);
-                  }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                    <option value="">Select warehouse</option>
-                    {warehouses.map(w => (
-                      <option key={w.id} value={w.id}>{w.name} ({w.code}) - {w.city}</option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    label="Warehouse"
+                    placeholder="Select warehouse..."
+                    searchPlaceholder="Search warehouse..."
+                    value={warehouse?.id || ''}
+                    onChange={val => {
+                      const wh = warehouses.find(w => w.id === val);
+                      setWarehouse(wh || null);
+                    }}
+                    options={warehouses.map(w => ({
+                      value: w.id,
+                      label: w.name,
+                      sublabel: `${w.city} • Code: ${w.code}`
+                    }))}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Quantity to Return *</label>

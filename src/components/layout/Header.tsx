@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Activity, MapPin, QrCode, Users, Shield, LogOut, User, Package, Menu, WifiOff, Wifi, Bell, Settings as SettingsIcon, DollarSign, FileText, Sun, Moon } from 'lucide-react';
+import { Activity, MapPin, QrCode, Shield, LogOut, User, Package, Menu, WifiOff, Wifi, Bell, Settings as SettingsIcon, DollarSign, FileText, Sun, Moon } from 'lucide-react';
 import { AuthManager } from '../../utils/authUtils';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -14,7 +14,6 @@ interface HeaderProps {
 const ALL_NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: Activity },
   { path: '/scan', label: 'QR Scanner', icon: QrCode },
-  { path: '/register', label: 'Register', icon: Users },
   { path: '/inventory', label: 'Inventory', icon: Package },
   { path: '/reports', label: 'Reports', icon: FileText },
   { path: '/accounts', label: 'Accounts', icon: DollarSign },

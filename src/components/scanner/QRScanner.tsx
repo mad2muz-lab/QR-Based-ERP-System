@@ -834,7 +834,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
           } else if (actionId === 'register-material') {
             setSuccess('Redirecting to material registration...');
             setTimeout(() => {
-              navigate('/register?tab=materials');
+              navigate('/admin?tab=materials');
             }, 800);
             return;
           } else if (actionId === 'goods-receipt') {
@@ -1095,7 +1095,7 @@ if (qrData === lastScannedCode && now - lastScanTime < 5000) { // Increased to 5
 
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-6 pb-4 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

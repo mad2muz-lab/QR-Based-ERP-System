@@ -142,15 +142,15 @@ export const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Load
 // Error boundary for lazy-loaded components
 export class LazyComponentErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ReactNode },
-  { hasError: boolean }
+  { hasError: boolean; error: Error | null }
 > {
   constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(): { hasError: boolean } {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): { hasError: boolean; error: Error } {
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -160,16 +160,27 @@ export class LazyComponentErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return this.props.fallback || (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="text-red-500 mb-2">⚠️</div>
-            <p className="text-gray-600 text-sm">Failed to load component. Please refresh the page.</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Refresh Page
-            </button>
+        <div className="flex items-center justify-center min-h-[400px] p-4">
+          <div className="text-center max-w-md bg-white dark:bg-[#131B2A] p-6 rounded-2xl shadow-lg border border-red-200 dark:border-red-900/50">
+            <div className="text-red-500 text-3xl mb-2">⚠️</div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Component Load Issue</h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
+              {this.state.error?.message || 'Failed to load component. Please refresh the page.'}
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition"
+              >
+                Refresh Page
+              </button>
+              <button 
+                onClick={() => window.history.back()} 
+                className="px-4 py-2 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                Go Back
+              </button>
+            </div>
           </div>
         </div>
       );

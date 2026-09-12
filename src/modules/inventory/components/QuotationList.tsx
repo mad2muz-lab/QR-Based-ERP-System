@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Eye, Trash2, CheckCircle, FileText, Search } from 'lucide-react';
 import { Quotation, getQuotations, deleteQuotation, createInvoiceFromQuotation, updateQuotation } from '../../../utils/erpInvoiceService';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const QuotationList: React.FC = () => {
   const navigate = useNavigate();
@@ -67,7 +68,12 @@ const QuotationList: React.FC = () => {
                     <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{q.quotationNumber}</td>
                     <td style={{ padding: '14px 16px', fontSize: '14px', color: '#475569' }}>{q.customerName}</td>
                     <td style={{ padding: '14px 16px', fontSize: '14px', color: '#6b7280' }}>{q.issueDate}</td>
-                    <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#0f172a', textAlign: 'right' }}>SAR {q.grandTotal.toFixed(2)}</td>
+                    <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#0f172a', textAlign: 'right' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                        <SaudiRiyalSymbol style={{ width: '14px', height: '14px', color: '#059669' }} />
+                        <span>{q.grandTotal.toFixed(2)}</span>
+                      </span>
+                    </td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}><span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '700', background: sc.bg, color: sc.color }}>{q.status}</span></td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>

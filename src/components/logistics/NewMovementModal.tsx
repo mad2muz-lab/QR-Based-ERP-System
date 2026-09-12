@@ -3,6 +3,7 @@ import { X, QrCode, Users, Wrench, Package, Truck, MapPin, Clock, DollarSign, Pl
 import QrScanner from 'qr-scanner';
 import { fetchData } from '../../utils/dataProxy';
 import { createMovementRequest } from '../../utils/resourceMovementDataService';
+import { SaudiRiyalSymbol } from '../common/SaudiRiyalSymbol';
 
 interface MovementRequestFormData {
   reference_id: string;
@@ -1028,8 +1029,10 @@ The request has been logged in the system and notifications have been sent to re
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Estimated Cost (SAR)
+                <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                  <span>Estimated Cost (</span>
+                  <SaudiRiyalSymbol size={13} />
+                  <span>)</span>
                 </label>
                 <div className="relative">
                   <input
@@ -1038,7 +1041,9 @@ The request has been logged in the system and notifications have been sent to re
                     onChange={(e) => handleInputChange('estimated_cost', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <DollarSign className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+                  <div className="w-5 h-5 text-gray-400 absolute left-3 top-2.5 flex items-center justify-center pointer-events-none">
+                    <SaudiRiyalSymbol size={15} />
+                  </div>
                 </div>
               </div>
             </div>

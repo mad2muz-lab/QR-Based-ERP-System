@@ -9,6 +9,7 @@ import { Building2, Wrench, Users, Truck, Shield, Settings, Package, Briefcase, 
 import { Material } from '../../types';
 import { MaterialType } from '../../types/constants';
 import { MaterialForm, PRForm, InventoryModal } from '../inventory';
+import { SaudiRiyalSymbol } from '../common/SaudiRiyalSymbol';
 
 // MaterialForm component is now imported from ../inventory
 
@@ -512,7 +513,10 @@ const DepartmentsPage: React.FC = () => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Total Value</p>
-                    <p className="text-2xl font-bold text-green-600">SAR {inventoryStats.totalValue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-green-600 flex items-center gap-1.5">
+                      <SaudiRiyalSymbol size={22} />
+                      {inventoryStats.totalValue.toLocaleString()}
+                    </p>
                   </div>
                 </div>
               </div>

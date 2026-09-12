@@ -6,6 +6,7 @@ import { DataStorage } from '../../../utils/dataStorage';
 import PhotoCapture from '../PhotoCapture';
 // import { generateQRCode } from '../../../utils/qrCodeUtils';
 import { CostProfitCenterService } from '../../../utils/costProfitCenterService';
+import { SaudiRiyalSymbol } from '../../common/SaudiRiyalSymbol';
 
 interface EmployeeFormProps {
   sites: any[];
@@ -485,7 +486,11 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Rate (SAR) *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+              <span>Hourly Rate (</span>
+              <SaudiRiyalSymbol size={13} />
+              <span>) *</span>
+            </label>
             <input
               type="number"
               min={0}
@@ -493,7 +498,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ sites, onSubmit, initialDat
               value={formData.hourlyRate}
               onChange={(e) => setFormData({ ...formData, hourlyRate: parseInt(e.target.value, 10) || 0 })}
               className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-              placeholder="Enter hourly rate in SAR"
+              placeholder="Enter hourly rate"
               required
             />
           </div>

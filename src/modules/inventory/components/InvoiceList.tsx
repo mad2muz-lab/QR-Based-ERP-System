@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Eye, Trash2, DollarSign, Search, AlertCircle } from 'lucide-react';
 import { Invoice, getInvoices, deleteInvoice } from '../../../utils/invoiceService';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const InvoiceList: React.FC = () => {
   const navigate = useNavigate();
@@ -96,7 +97,12 @@ const InvoiceList: React.FC = () => {
                     <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{invoice.invoiceNumber}</td>
                     <td style={{ padding: '14px 16px', fontSize: '14px', color: '#475569' }}>{invoice.customerName}</td>
                     <td style={{ padding: '14px 16px', fontSize: '14px', color: '#6b7280' }}>{invoice.issueDate}</td>
-                    <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#0f172a', textAlign: 'right' }}>SAR {invoice.grandTotal.toFixed(2)}</td>
+                    <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#0f172a', textAlign: 'right' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                        <SaudiRiyalSymbol style={{ width: '14px', height: '14px', color: '#059669' }} />
+                        <span>{invoice.grandTotal.toFixed(2)}</span>
+                      </span>
+                    </td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <span style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '700', background: statusColor.bg, color: statusColor.color }}>
                         {invoice.status}

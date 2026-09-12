@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { InventoryStorageService } from '../utils/inventoryStorage';
 import { MaterialItem } from '../data/ksaData';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
 
 const StockReservation: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const StockReservation: React.FC = () => {
       setError('Please select a material');
       return;
     }
-    const availableQty = selectedMaterial.quantity - (selectedMaterial.reservedQuantity || 0);
+    const availableQty = selectedMaterial.quantity - (selectedMaterial.reserved || 0);
     if (reservedQuantity <= 0 || reservedQuantity > availableQty) {
       setError(`Reserved quantity must be between 1 and ${availableQty}`);
       return;
@@ -40,7 +41,7 @@ const StockReservation: React.FC = () => {
     try {
       const updatedMaterial = {
         ...selectedMaterial,
-        reservedQuantity: (selectedMaterial.reservedQuantity || 0) + reservedQuantity,
+        reserved: (selectedMaterial.reserved || 0) + reservedQuantity,
         lastUpdated: new Date().toISOString()
       };
       inventoryStorage.updateItem(selectedMaterial.id, updatedMaterial);
@@ -62,7 +63,7 @@ const StockReservation: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-100">
             <div className="flex items-center gap-3">
@@ -88,22 +89,27 @@ const StockReservation: React.FC = () => {
             )}
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Material</label>
-                <select value={selectedMaterial?.id || ''} onChange={e => {
-                  const item = inventoryStorage.getItemById(e.target.value);
+              <SearchableSelect
+                label="Select Material"
+                required
+                placeholder="Select material from inventory..."
+                searchPlaceholder="Search material by name, SKU..."
+                value={selectedMaterial?.id || ''}
+                onChange={val => {
+                  const item = inventoryStorage.getItemById(val);
                   setSelectedMaterial(item || null);
                   if (item) setReservedQuantity(0);
-                }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                  <option value="">Select material</option>
-                  {materials.map(m => {
-                    const available = m.quantity - (m.reservedQuantity || 0);
-                    return (
-                      <option key={m.id} value={m.id}>{m.name} ({m.sku}) - Total: {m.quantity} {m.unit}, Available: {available} {m.unit}</option>
-                    );
-                  })}
-                </select>
-              </div>
+                }}
+                options={materials.map(m => {
+                  const available = m.quantity - (m.reserved || 0);
+                  return {
+                    value: m.id,
+                    label: m.name,
+                    sublabel: m.sku,
+                    badge: `Avail: ${available} ${m.unit} / Total: ${m.quantity}`
+                  };
+                })}
+              />
 
               {selectedMaterial && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -111,10 +117,10 @@ const StockReservation: React.FC = () => {
                     <div><span className="font-medium">Material:</span> {selectedMaterial.name}</div>
                     <div><span className="font-medium">SKU:</span> {selectedMaterial.sku}</div>
                     <div><span className="font-medium">Total Stock:</span> {selectedMaterial.quantity} {selectedMaterial.unit}</div>
-                    <div><span className="font-medium">Already Reserved:</span> {selectedMaterial.reservedQuantity || 0} {selectedMaterial.unit}</div>
+                    <div><span className="font-medium">Already Reserved:</span> {selectedMaterial.reserved || 0} {selectedMaterial.unit}</div>
                     <div className="col-span-2">
                       <span className="font-medium">Available to Reserve: </span>
-                      <span className="text-green-700 font-bold">{selectedMaterial.quantity - (selectedMaterial.reservedQuantity || 0)} {selectedMaterial.unit}</span>
+                      <span className="text-green-700 font-bold">{selectedMaterial.quantity - (selectedMaterial.reserved || 0)} {selectedMaterial.unit}</span>
                     </div>
                   </div>
                 </div>
@@ -122,7 +128,7 @@ const StockReservation: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Reserve Quantity *</label>
-                <input type="number" min="1" max={selectedMaterial ? selectedMaterial.quantity - (selectedMaterial.reservedQuantity || 0) : 0} value={reservedQuantity} onChange={e => setReservedQuantity(Number(e.target.value) || 0)}
+                <input type="number" min="1" max={selectedMaterial ? selectedMaterial.quantity - (selectedMaterial.reserved || 0) : 0} value={reservedQuantity} onChange={e => setReservedQuantity(Number(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required />
               </div>
 

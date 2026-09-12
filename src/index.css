@@ -1,5 +1,23 @@
 @import './styles/compatibility.css';
 
+@font-face {
+  font-family: 'SaudiRiyalSymbol';
+  src: url('./assets/fonts/saudiriyalsymbol.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.icon-saudi_riyal {
+  font-family: 'SaudiRiyalSymbol', sans-serif !important;
+}
+
+.saudi-riyal {
+  font-family: 'SaudiRiyalSymbol', sans-serif;
+  font-size: inherit;
+  font-weight: bold;
+}
+
 @keyframes slideIn {
   from {
     transform: translateX(100%);
@@ -19,6 +37,37 @@
   text-size-adjust: 100% !important;
 }
 
+html {
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 17px;
+  }
+}
+
+@media (min-width: 1024px) {
+  html {
+    font-size: 17.5px;
+  }
+}
+
+@media (min-width: 1440px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 18.5px;
+  }
+}
+
 html, body {
   height: 100%;
   margin: 0;
@@ -27,6 +76,22 @@ html, body {
 
 #root {
   height: 100%;
+}
+
+/* Global legibility & touch targets */
+input, select, textarea, button {
+  font-family: inherit;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="tel"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  font-size: 0.9375rem;
 }
 
 @tailwind base;

@@ -56,6 +56,8 @@ export default defineConfig({
     minify: 'esbuild'
   },
   server: {
+    host: true,
+    port: 5173,
     hmr: {
       overlay: false
     }

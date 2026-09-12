@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Eye, Trash2, FileText, Search, AlertCircle } from 'lucide-react';
 import { Quotation, getQuotations, deleteQuotation, createQuotation } from '../../../utils/erpInvoiceService';
 import { InventoryStorageService } from '../utils/inventoryStorage';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const QuotationForm: React.FC = () => {
   const navigate = useNavigate();
@@ -66,9 +67,27 @@ const QuotationForm: React.FC = () => {
           ))}
         </div>
         <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal:</span><span>SAR {totals.sub.toFixed(2)}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>VAT:</span><span>SAR {totals.vat.toFixed(2)}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: '18px', borderTop: '2px solid #e2e8f0', paddingTop: '8px' }}><span>Total:</span><span>SAR {totals.grand.toFixed(2)}</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Subtotal:</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+              <span>{totals.sub.toFixed(2)}</span>
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+            <span>VAT (15%):</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+              <span>{totals.vat.toFixed(2)}</span>
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '700', fontSize: '18px', borderTop: '2px solid #e2e8f0', paddingTop: '8px', marginTop: '6px' }}>
+            <span>Total:</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#002e17' }}>
+              <SaudiRiyalSymbol style={{ width: '17px', height: '17px', color: '#002e17' }} />
+              <span>{totals.grand.toFixed(2)}</span>
+            </span>
+          </div>
         </div>
         <button type="submit" style={{ width: '100%', padding: '14px', background: '#002e17', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: 'pointer' }}>Save Quotation</button>
       </form>

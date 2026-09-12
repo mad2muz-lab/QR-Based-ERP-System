@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, FileText, RotateCcw } from 'lucide-react';
 import { Invoice, getInvoices, getInvoiceById, createInvoice } from '../../../utils/erpInvoiceService';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const CreditDebitNoteForm: React.FC = () => {
   const navigate = useNavigate();
@@ -65,6 +66,7 @@ const CreditDebitNoteForm: React.FC = () => {
         discount: disc,
         vatRate,
         vatAmount,
+        taxableAmount: afterDisc,
         totalAmount: afterDisc + vatAmount,
         supplyType: 'taxable' as const,
       };
@@ -147,7 +149,15 @@ const CreditDebitNoteForm: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {items.map((item, idx) => (
                 <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '12px', alignItems: 'center', padding: '12px', background: '#f8fafc', borderRadius: '10px' }}>
-                  <div><span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{item.description}</span><br /><span style={{ fontSize: '13px', color: '#6b7280' }}>Original: {item.quantity} {item.unit} @ SAR {item.unitPrice}</span></div>
+                  <div>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{item.description}</span>
+                    <br />
+                    <span style={{ fontSize: '13px', color: '#6b7280', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span>Original: {item.quantity} {item.unit} @</span>
+                      <SaudiRiyalSymbol style={{ width: '12px', height: '12px', color: '#6b7280' }} />
+                      <span>{item.unitPrice}</span>
+                    </span>
+                  </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Qty to Return</label>
                     <input type="number" min="0" max={item.quantity} value={item.quantity || 0} onChange={e => updateItem(idx, 'quantity', Number(e.target.value) || 0)} style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
@@ -157,7 +167,10 @@ const CreditDebitNoteForm: React.FC = () => {
                     <input type="text" value={item.reason || ''} onChange={e => updateItem(idx, 'reason', e.target.value)} placeholder="Reason" style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>SAR {((item.quantity || 0) * (item.unitPrice || 0) * 1.15).toFixed(2)}</span>
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                      <SaudiRiyalSymbol style={{ width: '14px', height: '14px', color: '#059669' }} />
+                      <span>{((item.quantity || 0) * (item.unitPrice || 0) * 1.15).toFixed(2)}</span>
+                    </span>
                   </div>
                 </div>
               ))}
@@ -167,9 +180,12 @@ const CreditDebitNoteForm: React.FC = () => {
 
         {selectedInvoice && (
           <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: '700' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '18px', fontWeight: '700' }}>
               <span>Total Note Amount:</span>
-              <span>SAR {calculateTotal().toFixed(2)}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#002e17' }}>
+                <SaudiRiyalSymbol style={{ width: '18px', height: '18px', color: '#002e17' }} />
+                <span>{calculateTotal().toFixed(2)}</span>
+              </span>
             </div>
           </div>
         )}

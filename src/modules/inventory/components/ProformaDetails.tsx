@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer, Download, FileText, CheckCircle } from 'lucide-react';
 import { ProformaInvoice, getProformaById, saveProforma } from '../../../utils/proformaService';
 import { createInvoiceFromProforma } from '../../../utils/invoiceService';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const ProformaDetails: React.FC = () => {
   const navigate = useNavigate();
@@ -28,10 +29,11 @@ const ProformaDetails: React.FC = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    const pNumber = proforma.proformaNumber || proforma.quotationNumber;
     const html = `
       <html>
         <head>
-          <title>Proforma ${proforma.proformaNumber}</title>
+          <title>Proforma ${pNumber}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #002e17; padding-bottom: 20px; }
@@ -58,7 +60,7 @@ const ProformaDetails: React.FC = () => {
             </div>
             <div style="text-align: right;">
               <div class="title">PROFORMA INVOICE</div>
-              <div style="color: #6b7280; margin-top: 4px;">${proforma.proformaNumber}</div>
+              <div style="color: #6b7280; margin-top: 4px;">${pNumber}</div>
             </div>
           </div>
           <div class="info-grid">
@@ -95,19 +97,19 @@ const ProformaDetails: React.FC = () => {
                   <td>${idx + 1}</td>
                   <td>${item.description}</td>
                   <td>${item.quantity} ${item.unit}</td>
-                  <td>SAR ${item.unitPrice.toFixed(2)}</td>
-                  <td>SAR ${item.discount.toFixed(2)}</td>
-                  <td>SAR ${item.vatAmount.toFixed(2)}</td>
-                  <td style="text-align: right; font-weight: 600;">SAR ${item.totalAmount.toFixed(2)}</td>
+                  <td><span class="icon-saudi_riyal">&#xea;</span> ${item.unitPrice.toFixed(2)}</td>
+                  <td><span class="icon-saudi_riyal">&#xea;</span> ${item.discount.toFixed(2)}</td>
+                  <td><span class="icon-saudi_riyal">&#xea;</span> ${item.vatAmount.toFixed(2)}</td>
+                  <td style="text-align: right; font-weight: 600;"><span class="icon-saudi_riyal">&#xea;</span> ${item.totalAmount.toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
           <div class="totals">
-            <div class="total-row"><span>Subtotal:</span><span>SAR ${proforma.subtotal.toFixed(2)}</span></div>
-            <div class="total-row"><span>Discount:</span><span style="color: #dc2626;">- SAR ${proforma.totalDiscount.toFixed(2)}</span></div>
-            <div class="total-row"><span>VAT (15%):</span><span>SAR ${proforma.totalVat.toFixed(2)}</span></div>
-            <div class="total-row grand-total"><span>Grand Total:</span><span>SAR ${proforma.grandTotal.toFixed(2)}</span></div>
+            <div class="total-row"><span>Subtotal:</span><span><span class="icon-saudi_riyal">&#xea;</span> ${proforma.subtotal.toFixed(2)}</span></div>
+            <div class="total-row"><span>Discount:</span><span style="color: #dc2626;">- <span class="icon-saudi_riyal">&#xea;</span> ${proforma.totalDiscount.toFixed(2)}</span></div>
+            <div class="total-row"><span>VAT (15%):</span><span><span class="icon-saudi_riyal">&#xea;</span> ${proforma.totalVat.toFixed(2)}</span></div>
+            <div class="total-row grand-total"><span>Grand Total:</span><span><span class="icon-saudi_riyal">&#xea;</span> ${proforma.grandTotal.toFixed(2)}</span></div>
           </div>
           ${proforma.notes ? `<div class="footer"><strong>Notes:</strong> ${proforma.notes}</div>` : ''}
           <div class="footer" style="text-align: center; margin-top: 20px;">This is a proforma invoice and not a tax invoice.</div>
@@ -151,7 +153,7 @@ const ProformaDetails: React.FC = () => {
             <ArrowLeft style={{ width: '20px', height: '20px', color: '#475569' }} />
           </button>
           <div>
-            <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#0f172a', margin: 0 }}>{proforma.proformaNumber}</h2>
+            <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#0f172a', margin: 0 }}>{proforma.proformaNumber || proforma.quotationNumber}</h2>
             <p style={{ fontSize: '14px', color: '#6b7280', margin: '2px 0 0 0' }}>Proforma Invoice</p>
           </div>
         </div>
@@ -221,21 +223,34 @@ const ProformaDetails: React.FC = () => {
       </table>
 
       <div style={{ width: '300px', marginLeft: 'auto', padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <span style={{ fontSize: '14px', color: '#6b7280' }}>Subtotal:</span>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>SAR {proforma.subtotal.toFixed(2)}</span>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+            <span>{proforma.subtotal.toFixed(2)}</span>
+          </span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <span style={{ fontSize: '14px', color: '#6b7280' }}>Discount:</span>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#dc2626' }}>- SAR {proforma.totalDiscount.toFixed(2)}</span>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span>-</span>
+            <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#dc2626' }} />
+            <span>{proforma.totalDiscount.toFixed(2)}</span>
+          </span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <span style={{ fontSize: '14px', color: '#6b7280' }}>VAT (15%):</span>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>SAR {proforma.totalVat.toFixed(2)}</span>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+            <span>{proforma.totalVat.toFixed(2)}</span>
+          </span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '2px solid #002e17' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '2px solid #002e17' }}>
           <span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Grand Total:</span>
-          <span style={{ fontSize: '18px', fontWeight: '800', color: '#002e17' }}>SAR {proforma.grandTotal.toFixed(2)}</span>
+          <span style={{ fontSize: '18px', fontWeight: '800', color: '#002e17', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <SaudiRiyalSymbol style={{ width: '17px', height: '17px', color: '#002e17' }} />
+            <span>{proforma.grandTotal.toFixed(2)}</span>
+          </span>
         </div>
       </div>
 

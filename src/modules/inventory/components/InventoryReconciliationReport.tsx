@@ -4,6 +4,8 @@ import { ArrowLeft, CheckCircle, AlertTriangle, X, FileText, RefreshCw } from 'l
 import { InventoryStorageService } from '../utils/inventoryStorage';
 import { MaterialItem } from '../data/ksaData';
 import { OfflineDataManager } from '../../../utils/offlineDataManager';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const InventoryReconciliationReport: React.FC = () => {
   const navigate = useNavigate();
@@ -94,7 +96,7 @@ const InventoryReconciliationReport: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-5xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-100">
             <div className="flex items-center gap-3">
@@ -135,7 +137,10 @@ const InventoryReconciliationReport: React.FC = () => {
                 </div>
                 <div className="bg-amber-50 rounded-lg p-4">
                   <div className="text-sm text-amber-600 font-medium">Discrepancy Value</div>
-                  <div className="text-2xl font-bold text-amber-700">SAR {discrepancyValue.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-amber-700 flex items-center gap-1.5 mt-0.5">
+                    <SaudiRiyalSymbol className="w-5 h-5 text-amber-700" />
+                    <span>{discrepancyValue.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -144,17 +149,23 @@ const InventoryReconciliationReport: React.FC = () => {
               <h3 className="font-semibold text-gray-900 mb-4">Add Reconciliation Entry</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Material</label>
-                  <select value={selectedMaterial?.id || ''} onChange={e => {
-                    const item = inventoryStorage.getItemById(e.target.value);
-                    setSelectedMaterial(item || null);
-                    if (item) setCountedQty(item.quantity);
-                  }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select material</option>
-                    {materials.map(m => (
-                      <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    label="Material"
+                    placeholder="Select material..."
+                    searchPlaceholder="Search material by name, SKU..."
+                    value={selectedMaterial?.id || ''}
+                    onChange={val => {
+                      const item = inventoryStorage.getItemById(val);
+                      setSelectedMaterial(item || null);
+                      if (item) setCountedQty(item.quantity);
+                    }}
+                    options={materials.map(m => ({
+                      value: m.id,
+                      label: m.name,
+                      sublabel: m.sku,
+                      badge: `System: ${m.quantity} ${m.unit}`
+                    }))}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Counted Quantity</label>

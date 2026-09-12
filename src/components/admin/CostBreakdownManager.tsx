@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { DataStorage } from '../../utils/dataStorage';
+import { SaudiRiyalSymbol } from '../common/SaudiRiyalSymbol';
 
 interface CostElement {
   id: string;
@@ -479,10 +480,22 @@ const CostBreakdownManager: React.FC<CostBreakdownManagerProps> = ({ onCostBreak
                 <tr className="bg-gray-50">
                   <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Name</th>
                   <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Description</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Cost Price (SAR)</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                    <div className="flex items-center gap-1">
+                      <span>Cost Price (</span>
+                      <SaudiRiyalSymbol size={13} />
+                      <span>)</span>
+                    </div>
+                  </th>
                   <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Markup Type</th>
                   <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Markup Value</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Final Price (SAR)</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                    <div className="flex items-center gap-1">
+                      <span>Final Price (</span>
+                      <SaudiRiyalSymbol size={13} />
+                      <span>)</span>
+                    </div>
+                  </th>
                   <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Actions</th>
                 </tr>
               </thead>
@@ -658,7 +671,11 @@ const CostBreakdownManager: React.FC<CostBreakdownManagerProps> = ({ onCostBreak
                                   className="cursor-pointer hover:bg-blue-50 px-2 py-1 rounded text-sm"
                                 >
                                   {subcategory.markupValue?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                                  {subcategory.markupType === 'percent' ? '%' : ' SAR'}
+                                  {subcategory.markupType === 'percent' ? '%' : (
+                                    <span className="inline-flex items-center gap-0.5 ml-1">
+                                      <SaudiRiyalSymbol size={11} />
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </td>

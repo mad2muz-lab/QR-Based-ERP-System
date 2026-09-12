@@ -1,9 +1,8 @@
 import React, { Suspense } from 'react';
-import { RouteObject } from 'react-router-dom';
+import { RouteObject, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import {
   QRScanner,
-  RegistrationForm,
   MapView,
   AdminPanel,
   DatabaseConnectionTest,
@@ -113,11 +112,7 @@ export const AppRoutes = ({ currentUser }: AppRoutesProps): RouteObject[] => [
   {
     path: '/register',
     element: (
-      <LazyComponentErrorBoundary>
-        <Suspense fallback={<LoadingSpinner message="Loading Registration Form..." />}>
-          <RegistrationForm currentUser={currentUser || undefined} />
-        </Suspense>
-      </LazyComponentErrorBoundary>
+      <Navigate to="/admin?tab=employees" replace />
     ),
   },
     {

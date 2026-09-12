@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import * as XLSX from 'xlsx';
+import { SaudiRiyalSymbol } from '../common/SaudiRiyalSymbol';
 
 interface PMReport {
   id: string;
@@ -438,7 +439,7 @@ const PMReportingAnalytics: React.FC = () => {
               <div class="metric">Enrolled Equipment: ${analytics?.enrolled_equipment || 0}</div>
               <div class="metric">Completion Rate: ${analytics?.completion_rate || 0}%</div>
               <div class="metric">Average Duration: ${analytics?.average_duration || 0} hours</div>
-                             <div class="metric">Total Cost: SAR ${analytics?.total_cost || 0}</div>
+                             <div class="metric">Total Cost: <svg style="display:inline-block;vertical-align:middle;width:14px;height:14px;fill:currentColor;" viewBox="0 0 1124.14 1256.39"><path d="M699.62,1113.02h0c-20.06,44.48-33.32,92.75-38.4,143.37l424.51-90.24c20.06-44.47,33.31-92.75,38.4-143.37l-424.51,90.24Z"/><path d="M1085.73,895.8c20.06-44.47,33.32-92.75,38.4-143.37l-330.68,70.33v-135.2l292.27-62.11c20.06-44.47,33.32-92.75,38.4-143.37l-330.68,70.27V66.13c-50.67,28.45-95.67,66.32-132.25,110.99v403.35l-132.25,28.11V0c-50.67,28.44-95.67,66.32-132.25,110.99v525.69l-295.91,62.88c-20.06,44.47-33.33,92.75-38.42,143.37l334.33-71.05v170.26l-358.3,76.14c-20.06,44.47-33.32,92.75-38.4,143.37l375.04-79.7c30.53-6.35,56.77-24.4,73.83-49.24l68.78-101.97v-.02c7.14-10.55,11.3-23.27,11.3-36.97v-149.98l132.25-28.11v270.4l424.53-90.28Z"/></svg> ${analytics?.total_cost || 0}</div>
               <div class="metric">Overdue/Critical: ${analytics?.overdue_count || 0}/${analytics?.critical_count || 0}</div>
             </div>
           </body>
@@ -511,7 +512,10 @@ const PMReportingAnalytics: React.FC = () => {
               </div>
               <div className="bg-orange-50 p-4 rounded-lg">
                 <div className="text-orange-600 text-sm font-medium">Total Cost</div>
-                                 <div className="text-2xl font-bold text-orange-900">SAR {analytics.total_cost}</div>
+                                <div className="text-2xl font-bold text-orange-900 flex items-center gap-1.5">
+                  <SaudiRiyalSymbol size={20} />
+                  {analytics.total_cost}
+                </div>
                 <div className="text-xs text-orange-600">This period</div>
               </div>
               <div className="bg-red-50 p-4 rounded-lg">
@@ -534,8 +538,9 @@ const PMReportingAnalytics: React.FC = () => {
                       <div className="text-sm text-gray-600">
                         Completed: {trend.completed}/{trend.scheduled}
                       </div>
-                                             <div className="text-sm text-green-600 font-medium">
-                         SAR {trend.cost}
+                                             <div className="text-sm text-green-600 font-medium flex items-center justify-center gap-1">
+                         <SaudiRiyalSymbol size={13} />
+                         {trend.cost}
                        </div>
                       <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                         <div 
@@ -581,7 +586,12 @@ const PMReportingAnalytics: React.FC = () => {
                           </div>
                         </td>
                         <td className="p-3">{equipment.average_duration}h</td>
-                                                 <td className="p-3">SAR {equipment.total_cost}</td>
+                                                 <td className="p-3">
+                          <span className="flex items-center gap-1">
+                            <SaudiRiyalSymbol size={13} />
+                            {equipment.total_cost}
+                          </span>
+                        </td>
                         <td className="p-3">
                           <span className={`px-2 py-1 rounded text-xs ${
                             equipment.completion_rate >= 90 ? 'bg-green-100 text-green-800' :
@@ -664,7 +674,12 @@ const PMReportingAnalytics: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-3">{report.duration_hours}h</td>
-                                             <td className="p-3">SAR {report.cost}</td>
+                                             <td className="p-3">
+                        <span className="flex items-center gap-1">
+                          <SaudiRiyalSymbol size={13} />
+                          {report.cost}
+                        </span>
+                      </td>
                       <td className="p-3">
                         {report.quality_score && (
                           <span className={`px-2 py-1 rounded text-xs ${

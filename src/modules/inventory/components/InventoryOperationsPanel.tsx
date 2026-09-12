@@ -114,7 +114,7 @@ const InventoryOperationsPanel: React.FC<InventoryOperationsPanelProps> = ({ onC
 
   const handleScanResult = async (qrData: string) => {
     try {
-      const parsed = parseQRCode(qrData);
+      const parsed = await parseQRCode(qrData);
       if (parsed.type !== 'material') {
         setError('Invalid material QR code. Please scan a material QR code.');
         return;

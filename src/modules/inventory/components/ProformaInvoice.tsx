@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Save, FileText } from 'lucide-react';
 import { ProformaInvoice, ProformaItem, createProforma, getProformas } from '../../../utils/proformaService';
 import { InventoryStorageService } from '../utils/inventoryStorage';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const ProformaForm: React.FC<{ editId?: string }> = ({ editId }) => {
   const navigate = useNavigate();
@@ -75,7 +76,7 @@ const ProformaForm: React.FC<{ editId?: string }> = ({ editId }) => {
     return { subtotal, vatAmount, total: afterDisc + vatAmount };
   };
 
-  const totals = items.reduce((acc, item) => {
+  const totals = items.reduce<{ subtotal: number; discount: number; vat: number; grand: number }>((acc, item) => {
     const calc = calculateItem(item);
     return {
       subtotal: acc.subtotal + calc.subtotal,
@@ -124,6 +125,7 @@ const ProformaForm: React.FC<{ editId?: string }> = ({ editId }) => {
       totalDiscount: totals.discount,
       totalVat: totals.vat,
       grandTotal: totals.grand,
+      vatRate: 15,
       status: 'draft' as const,
       notes,
       items: proformaItems,
@@ -229,21 +231,34 @@ const ProformaForm: React.FC<{ editId?: string }> = ({ editId }) => {
 
         {/* Totals */}
         <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '2px solid #e2e8f0', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '15px', color: '#475569' }}>Subtotal:</span>
-            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>SAR {totals.subtotal.toFixed(2)}</span>
+            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+              <span>{totals.subtotal.toFixed(2)}</span>
+            </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '15px', color: '#475569' }}>Discount:</span>
-            <span style={{ fontSize: '15px', fontWeight: '600', color: '#dc2626' }}>- SAR {totals.discount.toFixed(2)}</span>
+            <span style={{ fontSize: '15px', fontWeight: '600', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span>-</span>
+              <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#dc2626' }} />
+              <span>{totals.discount.toFixed(2)}</span>
+            </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '15px', color: '#475569' }}>VAT (15%):</span>
-            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>SAR {totals.vat.toFixed(2)}</span>
+            <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#475569' }} />
+              <span>{totals.vat.toFixed(2)}</span>
+            </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '2px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '2px solid #e2e8f0' }}>
             <span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Grand Total:</span>
-            <span style={{ fontSize: '18px', fontWeight: '800', color: '#002e17' }}>SAR {totals.grand.toFixed(2)}</span>
+            <span style={{ fontSize: '18px', fontWeight: '800', color: '#002e17', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <SaudiRiyalSymbol style={{ width: '17px', height: '17px', color: '#002e17' }} />
+              <span>{totals.grand.toFixed(2)}</span>
+            </span>
           </div>
         </div>
 

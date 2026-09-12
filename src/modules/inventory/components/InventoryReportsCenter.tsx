@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { InventoryStorageService } from '../utils/inventoryStorage';
 import { REGIONS, MaterialItem, StockMovement } from '../data/ksaData';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 interface ReportChoice {
   id: string;
@@ -15,7 +16,7 @@ interface ReportChoice {
   description: string;
   icon: React.ElementType;
   color: string;
-  badge: string;
+  badge: React.ReactNode;
   formats: ('CSV' | 'Print' | 'View')[];
   viewPath?: string;
 }
@@ -143,7 +144,12 @@ export const InventoryReportsCenter: React.FC = () => {
       description: 'Total capitalized stock value across facilities with unit cost, category breakdown, and balance sheet valuations.',
       icon: DollarSign,
       color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
-      badge: `SAR ${(totalStockValue / 1000).toFixed(1)}k Total`,
+      badge: (
+        <span className="inline-flex items-center gap-1">
+          <SaudiRiyalSymbol size={11} />
+          {`${(totalStockValue / 1000).toFixed(1)}k Total`}
+        </span>
+      ),
       formats: ['CSV', 'View'],
       viewPath: '/inventory/valuation'
     },
@@ -298,7 +304,10 @@ export const InventoryReportsCenter: React.FC = () => {
             </div>
             <div className="p-3.5 bg-slate-50 dark:bg-[#0B0F17]/70 rounded-xl border border-slate-100 dark:border-slate-800/80">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Valuation Total</span>
-              <p className="text-lg font-black text-slate-900 dark:text-slate-100 mt-0.5">SAR {totalStockValue.toLocaleString()}</p>
+              <p className="text-lg font-black text-slate-900 dark:text-slate-100 mt-0.5 flex items-center gap-1">
+                <SaudiRiyalSymbol className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>{totalStockValue.toLocaleString()}</span>
+              </p>
             </div>
             <div className="p-3.5 bg-slate-50 dark:bg-[#0B0F17]/70 rounded-xl border border-slate-100 dark:border-slate-800/80">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Low Stock Breaches</span>
@@ -463,9 +472,18 @@ export const InventoryReportsCenter: React.FC = () => {
                     </td>
                     <td className="px-5 py-3 text-slate-600 dark:text-slate-300 text-xs font-medium">{item.category}</td>
                     <td className="px-5 py-3 text-slate-600 dark:text-slate-300 text-xs font-semibold">{item.warehouseId}</td>
-                    <td className="px-5 py-3 text-right font-bold text-slate-900 dark:text-slate-100">{item.quantity.toLocaleString()} {item.unit}</td>
-                    <td className="px-5 py-3 text-right text-slate-700 dark:text-slate-300 font-medium">SAR {item.unitCost.toFixed(2)}</td>
-                    <td className="px-5 py-3 text-right font-black text-slate-900 dark:text-white">SAR {(item.quantity * item.unitCost).toLocaleString()}</td>
+                    <td className="px-5 py-3 text-right text-slate-700 dark:text-slate-300 font-medium">
+                      <span className="inline-flex items-center gap-1 justify-end">
+                        <SaudiRiyalSymbol className="w-3 h-3 text-slate-400" />
+                        <span>{item.unitCost.toFixed(2)}</span>
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right font-black text-slate-900 dark:text-white">
+                      <span className="inline-flex items-center gap-1 justify-end">
+                        <SaudiRiyalSymbol className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>{(item.quantity * item.unitCost).toLocaleString()}</span>
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

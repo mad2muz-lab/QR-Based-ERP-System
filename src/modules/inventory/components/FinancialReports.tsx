@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import { getInvoices, getPayments } from '../../../utils/erpInvoiceService';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const FinancialReports: React.FC = () => {
   const [reportType, setReportType] = useState<'revenue' | 'aging' | 'payments'>('revenue');
@@ -42,19 +43,37 @@ const FinancialReports: React.FC = () => {
         <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><DollarSign style={{ width: '20px', height: '20px', color: '#2563eb' }} /></div>
-            <div><p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Total Revenue</p><p style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: 0 }}>SAR {totalRevenue.toFixed(2)}</p></div>
+            <div>
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Total Revenue</p>
+              <p style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <SaudiRiyalSymbol size={20} />
+                {totalRevenue.toFixed(2)}
+              </p>
+            </div>
           </div>
         </div>
         <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><TrendingUp style={{ width: '20px', height: '20px', color: '#059669' }} /></div>
-            <div><p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Collected</p><p style={{ fontSize: '24px', fontWeight: '800', color: '#059669', margin: 0 }}>SAR {totalPaid.toFixed(2)}</p></div>
+            <div>
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Collected</p>
+              <p style={{ fontSize: '24px', fontWeight: '800', color: '#059669', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <SaudiRiyalSymbol size={20} />
+                {totalPaid.toFixed(2)}
+              </p>
+            </div>
           </div>
         </div>
         <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><AlertCircle style={{ width: '20px', height: '20px', color: '#dc2626' }} /></div>
-            <div><p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Outstanding</p><p style={{ fontSize: '24px', fontWeight: '800', color: '#dc2626', margin: 0 }}>SAR {totalOutstanding.toFixed(2)}</p></div>
+            <div>
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Outstanding</p>
+              <p style={{ fontSize: '24px', fontWeight: '800', color: '#dc2626', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <SaudiRiyalSymbol size={20} />
+                {totalOutstanding.toFixed(2)}
+              </p>
+            </div>
           </div>
         </div>
         <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '20px' }}>
@@ -87,7 +106,12 @@ const FinancialReports: React.FC = () => {
                     <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{inv.invoiceNumber}</td>
                     <td style={{ padding: '12px', fontSize: '14px', color: '#475569' }}>{inv.customerName}</td>
                     <td style={{ padding: '12px', fontSize: '14px', color: '#6b7280' }}>{inv.issueDate}</td>
-                    <td style={{ padding: '12px', fontSize: '14px', fontWeight: '700', color: '#0f172a', textAlign: 'right' }}>SAR {inv.grandTotal.toFixed(2)}</td>
+                    <td style={{ padding: '12px', fontSize: '14px', fontWeight: '700', color: '#0f172a', textAlign: 'right' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                        <SaudiRiyalSymbol size={13} />
+                        {inv.grandTotal.toFixed(2)}
+                      </span>
+                    </td>
                     <td style={{ padding: '12px', textAlign: 'center' }}><span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: inv.status === 'paid' ? '#ecfdf5' : '#fef2f2', color: inv.status === 'paid' ? '#059669' : '#dc2626' }}>{inv.status}</span></td>
                   </tr>
                 ))}
@@ -108,7 +132,10 @@ const FinancialReports: React.FC = () => {
               ].map(bucket => (
                 <div key={bucket.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: '#f8fafc', borderRadius: '12px' }}>
                   <div><span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{bucket.label}</span><span style={{ fontSize: '13px', color: '#6b7280', marginLeft: '12px' }}>({bucket.count} invoices)</span></div>
-                  <span style={{ fontSize: '18px', fontWeight: '800', color: bucket.color }}>SAR {bucket.amount.toFixed(2)}</span>
+                  <span style={{ fontSize: '18px', fontWeight: '800', color: bucket.color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <SaudiRiyalSymbol size={15} />
+                    {bucket.amount.toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -130,7 +157,12 @@ const FinancialReports: React.FC = () => {
                       <td style={{ padding: '12px', fontSize: '14px', color: '#475569' }}>{p.invoiceNumber || p.invoiceId}</td>
                       <td style={{ padding: '12px', fontSize: '14px', color: '#6b7280' }}>{p.paymentDate}</td>
                       <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: '#475569' }}>{p.paymentMethod?.replace('_', ' ')}</td>
-                      <td style={{ padding: '12px', fontSize: '14px', fontWeight: '700', color: '#059669', textAlign: 'right' }}>SAR {p.amount.toFixed(2)}</td>
+                      <td style={{ padding: '12px', fontSize: '14px', fontWeight: '700', color: '#059669', textAlign: 'right' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                          <SaudiRiyalSymbol size={13} />
+                          {p.amount.toFixed(2)}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

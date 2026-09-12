@@ -3,6 +3,7 @@ import { Search, Filter, Package, AlertTriangle, ArrowDown, ArrowUp, ChevronDown
 import { MaterialItem, Zone } from '../data/ksaData';
 import { Warehouse } from '../data/ksaData';
 import { useInventory } from '../hooks/useInventory';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 interface WarehouseViewProps {
   warehouse: Warehouse;
@@ -207,7 +208,12 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-sm font-bold text-slate-900 dark:text-slate-100">SAR {item.unitCost.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-sm font-bold text-slate-900 dark:text-slate-100">
+                    <span className="inline-flex items-center gap-1">
+                      <SaudiRiyalSymbol className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>{item.unitCost.toLocaleString()}</span>
+                    </span>
+                  </td>
                   <td className="px-5 py-4">
                     <span className={`px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${statusColors[item.status] || statusColors.in_stock}`}>
                       {item.status.replace('_', ' ')}
@@ -242,7 +248,11 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
 
         <div className="px-5 py-3.5 bg-slate-50 dark:bg-[#0B0F17]/80 border-t border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 flex justify-between items-center">
           <span>{filteredAndSortedItems.length} materials{searchQuery && ` matching "${searchQuery}"`}</span>
-          <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">Total Value: SAR {filteredAndSortedItems.reduce((sum, i) => sum + (i.quantity * i.unitCost), 0).toLocaleString()}</span>
+          <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 inline-flex items-center gap-1">
+            <span>Total Value:</span>
+            <SaudiRiyalSymbol className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{filteredAndSortedItems.reduce((sum, i) => sum + (i.quantity * i.unitCost), 0).toLocaleString()}</span>
+          </span>
         </div>
       </div>
     </div>

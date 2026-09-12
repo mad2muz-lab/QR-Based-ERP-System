@@ -5,6 +5,7 @@ import { fetchData } from '../../../utils/dataProxy';
 import { supabase } from '../../../utils/supabaseClient';
 import { SupabaseDataService } from '../../../utils/supabaseDataService';
 import { exportToCSV } from '../../../utils/csvUtils';
+import { SaudiRiyalSymbol } from '../../common/SaudiRiyalSymbol';
 
 const EquipmentManagement: React.FC = () => {
   const [equipment, setEquipment] = useState<any[]>([]);
@@ -159,13 +160,21 @@ const EquipmentManagement: React.FC = () => {
                   </span>
                 </td>
                 <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900">
-                  {typeof eq.hourly_rate === 'number' ? `SAR ${eq.hourly_rate.toFixed(2)}` : '-'}
+                  {typeof eq.hourly_rate === 'number' ? (
+                    <span className="inline-flex items-center gap-1">
+                      <SaudiRiyalSymbol size={12} />
+                      {eq.hourly_rate.toFixed(2)}
+                    </span>
+                  ) : '-'}
                 </td>
                 <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900">
                   {usageMap[eq.id]?.totalMinutes ? (usageMap[eq.id].totalMinutes / 60).toFixed(2) : '0.00'}
                 </td>
                 <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900">
-                  {usageMap[eq.id]?.totalRevenue ? `SAR ${usageMap[eq.id].totalRevenue.toFixed(2)}` : 'SAR 0.00'}
+                  <span className="inline-flex items-center gap-1">
+                    <SaudiRiyalSymbol size={12} />
+                    {usageMap[eq.id]?.totalRevenue ? usageMap[eq.id].totalRevenue.toFixed(2) : '0.00'}
+                  </span>
                 </td>
                 <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm">
                   <div className="flex space-x-2">

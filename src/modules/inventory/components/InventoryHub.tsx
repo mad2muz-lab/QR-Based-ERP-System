@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Package, Truck, ArrowLeftRight, FileCheck, AlertTriangle, CheckCircle,
-  Settings, Building2, QrCode, DollarSign, Search, Plus, FileText, TrendingUp
+  Settings, Building2, QrCode, DollarSign, Search, Plus, FileText, TrendingUp, ShieldCheck
 } from 'lucide-react';
 
 interface HubCard {
@@ -60,13 +60,14 @@ const CATEGORIES: HubCategory[] = [
   },
   {
     id: 'quality',
-    title: 'Quality',
-    description: 'Counts, quarantine, reconciliation',
+    title: 'Quality & Governance',
+    description: 'Counts, quarantine, reconciliation & sign-off matrices',
     icon: CheckCircle,
     cards: [
       { id: 'cycle-count', label: 'Cycle Count', description: 'Physical stock count & adjustment', icon: CheckCircle, color: 'text-amber-600', bgColor: 'bg-amber-50', borderColor: 'hover:border-amber-300', path: '/inventory/cycle-count' },
       { id: 'quarantine', label: 'Quarantine / Hold', description: 'Flag material for quality review', icon: AlertTriangle, color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'hover:border-yellow-300', path: '/inventory/quarantine' },
-      { id: 'reconciliation', label: 'Reconciliation', description: 'Compare count vs system', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'hover:border-green-300', path: '/inventory/reconciliation' }
+      { id: 'reconciliation', label: 'Reconciliation', description: 'Compare count vs system', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'hover:border-green-300', path: '/inventory/reconciliation' },
+      { id: 'approval-workflows', label: 'Approval Workflows & Matrix', description: 'Authority limits, dual sign-off & thresholds', icon: ShieldCheck, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'hover:border-purple-300', path: '/admin' }
     ]
   },
   {

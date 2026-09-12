@@ -112,7 +112,7 @@ const WorkerActionDashboard: React.FC = () => {
       gradient: 'from-fuchsia-500 via-purple-500 to-indigo-500',
       glow: 'shadow-fuchsia-500/30',
       iconBg: 'bg-fuchsia-500/20 text-fuchsia-600',
-      route: '/register',
+      route: '/admin?tab=materials',
     },
   ];
 

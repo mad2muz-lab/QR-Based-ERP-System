@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Eye, Trash2, FileText, Search, AlertCircle } from 'lucide-react';
 import { ProformaInvoice, getProformas, deleteProforma, saveProforma } from '../../../utils/proformaService';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const ProformaList: React.FC = () => {
   const navigate = useNavigate();
@@ -14,8 +15,9 @@ const ProformaList: React.FC = () => {
   }, []);
 
   const filtered = proformas.filter(p => {
+    const pNumber = p.proformaNumber || p.quotationNumber || '';
     const matchesSearch = p.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.proformaNumber.toLowerCase().includes(searchQuery.toLowerCase());
+      pNumber.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -98,10 +100,15 @@ const ProformaList: React.FC = () => {
                 const statusColor = getStatusColor(p.status);
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{p.proformaNumber}</td>
+                    <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{p.proformaNumber || p.quotationNumber}</td>
                     <td style={{ padding: '14px 16px', fontSize: '14px', color: '#475569' }}>{p.customerName}</td>
                     <td style={{ padding: '14px 16px', fontSize: '14px', color: '#6b7280' }}>{p.issueDate}</td>
-                    <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#0f172a', textAlign: 'right' }}>SAR {p.grandTotal.toFixed(2)}</td>
+                    <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#0f172a', textAlign: 'right' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                        <SaudiRiyalSymbol style={{ width: '14px', height: '14px', color: '#059669' }} />
+                        <span>{p.grandTotal.toFixed(2)}</span>
+                      </span>
+                    </td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <select value={p.status} onChange={e => handleStatusChange(p.id, e.target.value as any)} style={{ padding: '6px 12px', borderRadius: '20px', border: 'none', fontSize: '13px', fontWeight: '700', background: statusColor.bg, color: statusColor.color, cursor: 'pointer' }}>
                         <option value="draft">Draft</option>

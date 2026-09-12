@@ -5,6 +5,7 @@ import { materialCategories } from '../../../data/materialTypes';
 import { CustomMaterialTypeManager } from '../../../utils/customMaterialTypeManager';
 import { sites as defaultMockSites } from '../../../data/mockData';
 import { REGIONS } from '../../../modules/inventory/data/ksaData';
+import { SaudiRiyalSymbol } from '../../common/SaudiRiyalSymbol';
 
 interface MaterialFormProps {
   sites: any[];
@@ -431,8 +432,22 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ sites, onSubmit, initialDat
           </button>
           {expandedSections.pricing && (
             <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Unit Cost (SAR)</label><input type="number" min="0" step="0.01" value={formData.unitCost} onChange={(e) => setFormData({ ...formData, unitCost: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0.00" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Selling Price (SAR)</label><input type="number" min="0" step="0.01" value={formData.sellingPrice} onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0.00" /></div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                  <span>Unit Cost (</span>
+                  <SaudiRiyalSymbol size={13} />
+                  <span>)</span>
+                </label>
+                <input type="number" min="0" step="0.01" value={formData.unitCost} onChange={(e) => setFormData({ ...formData, unitCost: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0.00" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                  <span>Selling Price (</span>
+                  <SaudiRiyalSymbol size={13} />
+                  <span>)</span>
+                </label>
+                <input type="number" min="0" step="0.01" value={formData.sellingPrice} onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0.00" />
+              </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%) <span className="text-xs text-gray-400">(KSA VAT)</span></label><input type="number" min="0" step="0.01" value={formData.taxRate} onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) || 15 })} className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
             </div>
           )}

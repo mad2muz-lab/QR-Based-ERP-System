@@ -66,14 +66,19 @@ export class MaterialSyncFix {
   private static async verifySyncManager(): Promise<void> {
     console.log('🔍 Verifying sync manager...');
     
+    const isSupabaseMode = await AuthManager.shouldUseSupabase();
+    if (!isSupabaseMode) {
+      offlineSyncManager.clearErrors();
+    }
+    
     const status = offlineSyncManager.getStatus();
     console.log(`Sync status - Online: ${status.isOnline}, Pending: ${status.pendingOperations}`);
     
-    if (!status.isOnline) {
-      console.warn('⚠️ Sync manager is offline. Material updates will be queued but not synced immediately.');
+    if (!status.isOnline || !isSupabaseMode) {
+      console.warn('⚠️ Sync manager running in offline/local mode. Material updates will be stored locally.');
     }
     
-    if (status.errors && status.errors.length > 0) {
+    if (isSupabaseMode && status.errors && status.errors.length > 0) {
       console.warn(`⚠️ Found ${status.errors.length} sync errors:`);
       status.errors.forEach((error, index) => {
         console.warn(`  ${index + 1}. ${error.error} (${error.operation.entityType})`);

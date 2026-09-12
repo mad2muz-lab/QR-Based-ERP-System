@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { Equipment } from '../../types';
 import { Plus, Settings, Trash2, Edit } from 'lucide-react';
+import { SaudiRiyalSymbol } from '../common/SaudiRiyalSymbol';
 
 interface PMConfig {
   pm_class: string;
@@ -369,8 +370,13 @@ const EnrollEquipmentInPM: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Est. Cost:</span>
-                  <span className="font-medium text-green-600">
-                    SAR {equipment.pm_cost_estimate ? equipment.pm_cost_estimate.toLocaleString() : 'Not Set'}
+                  <span className="font-medium text-green-600 flex items-center gap-1">
+                    {equipment.pm_cost_estimate ? (
+                      <>
+                        <SaudiRiyalSymbol size={13} />
+                        {equipment.pm_cost_estimate.toLocaleString()}
+                      </>
+                    ) : 'Not Set'}
                   </span>
                 </div>
                 <div className="flex justify-between">

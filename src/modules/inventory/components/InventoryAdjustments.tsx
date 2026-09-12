@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle, X, AlertTriangle, FileText } from 'lucide-react
 import { InventoryStorageService } from '../utils/inventoryStorage';
 import { MaterialItem, Warehouse } from '../data/ksaData';
 import { OfflineDataManager } from '../../../utils/offlineDataManager';
+import { SearchableSelect } from '../../../components/common/SearchableSelect';
 
 const InventoryAdjustments: React.FC = () => {
   const navigate = useNavigate();
@@ -115,7 +116,7 @@ const InventoryAdjustments: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-100">
             <div className="flex items-center gap-3">
@@ -141,19 +142,24 @@ const InventoryAdjustments: React.FC = () => {
             )}
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Material *</label>
-                <select value={selectedMaterial?.id || ''} onChange={e => {
-                  const item = inventoryStorage.getItemById(e.target.value);
+              <SearchableSelect
+                label="Material"
+                required
+                placeholder="Select material from inventory..."
+                searchPlaceholder="Search material by name, SKU..."
+                value={selectedMaterial?.id || ''}
+                onChange={val => {
+                  const item = inventoryStorage.getItemById(val);
                   setSelectedMaterial(item || null);
                   if (item) setQuantity(item.quantity);
-                }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                  <option value="">Select material</option>
-                  {materials.map(m => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.sku}) - Current: {m.quantity} {m.unit}</option>
-                  ))}
-                </select>
-              </div>
+                }}
+                options={materials.map(m => ({
+                  value: m.id,
+                  label: m.name,
+                  sublabel: m.sku,
+                  badge: `${m.quantity} ${m.unit}`
+                }))}
+              />
 
               {selectedMaterial && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

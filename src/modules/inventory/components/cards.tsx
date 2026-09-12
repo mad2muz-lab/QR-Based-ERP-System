@@ -1,6 +1,7 @@
 import React from 'react';
 import { Package, AlertTriangle, TrendingUp, TrendingDown, MapPin, Box, Archive } from 'lucide-react';
 import { Region, Warehouse } from '../data/ksaData';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 interface StatsCardProps {
   title: string;
@@ -126,7 +127,10 @@ export const WarehouseCard: React.FC<{
         </div>
         <div>
           <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Stock Valuation</span>
-          <div className="font-black text-slate-900 dark:text-slate-200 text-xl mt-0.5">SAR {(stats.totalValue / 1000).toFixed(0)}k</div>
+          <div className="font-black text-slate-900 dark:text-slate-200 text-xl mt-0.5 flex items-center gap-1">
+            <SaudiRiyalSymbol className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{(stats.totalValue / 1000).toFixed(0)}k</span>
+          </div>
         </div>
         <div>
           <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Alerts</span>

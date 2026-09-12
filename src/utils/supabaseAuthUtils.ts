@@ -392,14 +392,34 @@ export class SupabaseAuthManager {
     }
   }
 
+  private static lastPingResult: { online: boolean; timestamp: number } | null = null;
+
   // Ping Supabase to check if it's reachable (for online/offline detection)
   static async pingSupabase(): Promise<boolean> {
     try {
       if (!supabase) return false;
-      const { data, error } = await supabase.auth.getSession();
-      if (error) return false;
-      return true;
+      const now = Date.now();
+      if (this.lastPingResult && (now - this.lastPingResult.timestamp < 10000)) {
+        return this.lastPingResult.online;
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+      const res = await fetch(`${supabase.supabaseUrl}/rest/v1/`, {
+        method: 'HEAD',
+        headers: {
+          apikey: supabase.supabaseKey
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      const online = res.status < 500 || res.status === 401;
+      this.lastPingResult = { online, timestamp: now };
+      return online;
     } catch {
+      this.lastPingResult = { online: false, timestamp: Date.now() };
       return false;
     }
   }

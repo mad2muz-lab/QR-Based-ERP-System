@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter } from 'lucide-react';
 import { JournalEntry, getJournalEntries } from '../../../utils/erpInvoiceService';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const GeneralLedger: React.FC = () => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -31,8 +32,16 @@ const GeneralLedger: React.FC = () => {
       <div style={{ padding: '20px 24px', borderBottom: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Filter style={{ width: '22px', height: '22px', color: '#002e17' }} /><h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: 0 }}>General Ledger</h3></div>
         <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
-          <span style={{ color: '#059669', fontWeight: '600' }}>Total Debits: SAR {totalDebits.toFixed(2)}</span>
-          <span style={{ color: '#dc2626', fontWeight: '600' }}>Total Credits: SAR {totalCredits.toFixed(2)}</span>
+          <span style={{ color: '#059669', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span>Total Debits:</span>
+            <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#059669' }} />
+            <span>{totalDebits.toFixed(2)}</span>
+          </span>
+          <span style={{ color: '#dc2626', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span>Total Credits:</span>
+            <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#dc2626' }} />
+            <span>{totalCredits.toFixed(2)}</span>
+          </span>
         </div>
       </div>
 
@@ -59,8 +68,18 @@ const GeneralLedger: React.FC = () => {
                   <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{entry.entryNumber}</td>
                   <td style={{ padding: '14px 16px', fontSize: '14px', color: '#475569' }}>{entry.description}</td>
                   <td style={{ padding: '14px 16px', fontSize: '14px', color: '#6b7280' }}>{entry.reference || '-'}</td>
-                  <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#059669', textAlign: 'right' }}>SAR {entry.amount.toFixed(2)}</td>
-                  <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#dc2626', textAlign: 'right' }}>SAR {entry.amount.toFixed(2)}</td>
+                  <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#059669', textAlign: 'right' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                      <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#059669' }} />
+                      <span>{entry.amount.toFixed(2)}</span>
+                    </span>
+                  </td>
+                  <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: '#dc2626', textAlign: 'right' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                      <SaudiRiyalSymbol style={{ width: '13px', height: '13px', color: '#dc2626' }} />
+                      <span>{entry.amount.toFixed(2)}</span>
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

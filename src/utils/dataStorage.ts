@@ -273,6 +273,26 @@ export class DataStorage {
     return this.loadFromCSV<Material>(this.STORAGE_KEYS.materials);
   }
 
+  static saveMaterial(material: Material): void {
+    const materials = this.loadMaterials();
+    const index = materials.findIndex(m => m.id === material.id);
+    if (index >= 0) {
+      materials[index] = material;
+    } else {
+      materials.push(material);
+    }
+    this.saveMaterials(materials);
+  }
+
+  static addMaterial(material: Material): void {
+    this.saveMaterial(material);
+  }
+
+  static deleteMaterial(materialId: string): void {
+    const materials = this.loadMaterials().filter(m => m.id !== materialId);
+    this.saveMaterials(materials);
+  }
+
   static downloadMaterialsCSV(materials: Material[]): void {
     this.downloadCSV(materials, 'materials.csv');
   }

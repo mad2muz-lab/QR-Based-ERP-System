@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import LogisticsDataService from '../../utils/logisticsDataService';
 import LogisticsAIBot from '../../utils/logisticsAIBot';
+import { SaudiRiyalSymbol } from '../common/SaudiRiyalSymbol';
 import { MaintenanceLogisticsIntegration } from '../../utils/maintenanceLogisticsIntegration';
 import {
   LogisticsDashboardData,
@@ -144,10 +145,12 @@ const LogisticsDashboard: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-SA', {
-      style: 'currency',
-      currency: 'SAR'
-    }).format(amount);
+    return (
+      <span className="inline-flex items-center gap-1">
+        <SaudiRiyalSymbol size={13} />
+        {amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </span>
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -338,8 +341,15 @@ const LogisticsDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-gray-900">
-                    {kpi.kpi_value} {kpi.kpi_unit}
+                  <p className="text-lg font-bold text-gray-900 flex items-center justify-end gap-1">
+                    {kpi.kpi_unit === 'SAR' ? (
+                      <>
+                        <SaudiRiyalSymbol size={15} />
+                        {kpi.kpi_value}
+                      </>
+                    ) : (
+                      `${kpi.kpi_value} ${kpi.kpi_unit}`
+                    )}
                   </p>
                   <p className={`text-sm ${kpi.variance_percentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {kpi.variance_percentage >= 0 ? '+' : ''}{kpi.variance_percentage.toFixed(1)}% vs target

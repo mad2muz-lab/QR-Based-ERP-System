@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, User, Wrench, Package, Building, AlertTriangle, UserPlus, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Clock, User, Wrench, Package, Building, AlertTriangle, UserPlus, ArrowLeft, Search, X } from 'lucide-react';
 import { formatDuration } from '../../utils/timeUtils';
 
 interface UnifiedScanResultProps {
@@ -17,6 +17,32 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
   const [showQuantityInput, setShowQuantityInput] = useState<string | null>(null);
   const [showDestinationSelect, setShowDestinationSelect] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState<any>(null);
+
+  // Search filter states
+  const [actionSearchQuery, setActionSearchQuery] = useState('');
+  const [destinationSearchQuery, setDestinationSearchQuery] = useState('');
+
+  // Filter actions based on query
+  const filteredActions = (scanResult?.actions || []).filter((action: any) => {
+    if (!actionSearchQuery.trim()) return true;
+    const q = actionSearchQuery.toLowerCase();
+    return (
+      action.label?.toLowerCase().includes(q) ||
+      action.description?.toLowerCase().includes(q) ||
+      action.id?.toLowerCase().includes(q)
+    );
+  });
+
+  // Filter destination sites based on query
+  const filteredSites = sites.filter((site: any) => {
+    if (!destinationSearchQuery.trim()) return true;
+    const q = destinationSearchQuery.toLowerCase();
+    return (
+      site.name?.toLowerCase().includes(q) ||
+      site.province?.toLowerCase().includes(q) ||
+      site.address?.toLowerCase().includes(q)
+    );
+  });
 
   useEffect(() => {
     if (isProcessing && showQuantityInput) {
@@ -74,13 +100,13 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
 
   const handleActionClick = (actionId: string) => {
     if (actionId === 'register-employee') {
-      if (navigate) navigate('/register?tab=employees');
-      else window.location.hash = '#register';
+      if (navigate) navigate('/admin?tab=employees');
+      else window.location.hash = '#admin?tab=employees';
       return;
     }
     if (actionId === 'register-material') {
-      if (navigate) navigate('/register?tab=materials');
-      else window.location.hash = '#register';
+      if (navigate) navigate('/admin?tab=materials');
+      else window.location.hash = '#admin?tab=materials';
       return;
     }
     if (actionId === 'transfer-material') {
@@ -264,39 +290,95 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
 
           {/* Actions */}
           <div className="rounded-2xl border border-slate-200/90 dark:border-[#202C3F] bg-white dark:bg-[#131B2A] shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-[#202C3F] bg-slate-50/50 dark:bg-[#182235]/60 flex items-center justify-between">
-              <h4 className="font-bold text-slate-900 dark:text-white text-sm">Available Actions</h4>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                {scanResult.actions?.length || 0} Operational Flows
-              </span>
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-[#202C3F] bg-slate-50/50 dark:bg-[#182235]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="font-bold text-slate-900 dark:text-white text-sm">Available Actions</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Select an operational action for this scanned material</p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {/* Search Bar across all available action items */}
+                {!showDestinationSelect && !showQuantityInput && (
+                  <div className="relative w-full sm:w-64">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                    <input
+                      type="text"
+                      value={actionSearchQuery}
+                      onChange={e => setActionSearchQuery(e.target.value)}
+                      placeholder="Search action items..."
+                      className="w-full pl-9 pr-8 py-1.5 bg-white dark:bg-[#0e1624] border border-slate-200 dark:border-[#202C3F] rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
+                    />
+                    {actionSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setActionSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                <span className="hidden sm:inline-block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                  {filteredActions.length} of {scanResult.actions?.length || 0} Flows
+                </span>
+              </div>
             </div>
             <div className="p-6">
               {showDestinationSelect ? (
                 <div className="rounded-xl border border-slate-200 dark:border-[#202C3F] bg-slate-50 dark:bg-[#0e1624] p-5">
-                  <h5 className="font-semibold text-slate-900 dark:text-white mb-1">Select Destination</h5>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Choose where to transfer this material.</p>
-                  <div className="space-y-2">
-                    {sites.length === 0 ? (
-                      <p className="text-sm text-slate-500">No sites available. Please add sites first.</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h5 className="font-semibold text-slate-900 dark:text-white mb-0.5">Select Destination</h5>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Choose where to transfer this material.</p>
+                    </div>
+                    {/* Destination Search Bar */}
+                    <div className="relative w-full sm:w-64">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                      <input
+                        type="text"
+                        value={destinationSearchQuery}
+                        onChange={e => setDestinationSearchQuery(e.target.value)}
+                        placeholder="Filter sites/warehouses..."
+                        className="w-full pl-9 pr-8 py-1.5 bg-white dark:bg-[#131B2A] border border-slate-200 dark:border-[#202C3F] rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
+                      />
+                      {destinationSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setDestinationSearchQuery('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {filteredSites.length === 0 ? (
+                      <p className="text-sm text-slate-500 py-4 text-center">No destination facilities match your search query.</p>
                     ) : (
-                      sites.map((site: any) => (
+                      filteredSites.map((site: any) => (
                         <button
                           key={site.id}
                           onClick={() => handleDestinationSelect(site)}
-                          className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 dark:border-[#202C3F] bg-white dark:bg-[#131B2A] hover:bg-emerald-50/50 dark:hover:bg-[#182235] transition flex items-center gap-3"
+                          className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 dark:border-[#202C3F] bg-white dark:bg-[#131B2A] hover:bg-emerald-50/50 dark:hover:bg-[#182235] hover:border-emerald-500/40 transition flex items-center gap-3 shadow-sm"
                         >
                           <Building className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                           <div>
-                            <div className="font-medium text-slate-900 dark:text-white">{site.name}</div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">{site.province} • {site.address}</div>
+                            <div className="font-semibold text-slate-900 dark:text-white text-sm">{site.name}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">{site.province} • {site.address || 'Standard Location'}</div>
                           </div>
                         </button>
                       ))
                     )}
                   </div>
                   <button
-                    onClick={() => setShowDestinationSelect(false)}
-                    className="mt-3 px-4 py-2 bg-white dark:bg-[#131B2A] border border-slate-200 dark:border-[#202C3F] text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                    onClick={() => {
+                      setShowDestinationSelect(false);
+                      setDestinationSearchQuery('');
+                    }}
+                    className="mt-4 px-4 py-2 bg-white dark:bg-[#131B2A] border border-slate-200 dark:border-[#202C3F] text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                   >
                     Cancel
                   </button>
@@ -343,9 +425,24 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {scanResult.actions.map((action: any) => {
-                    const isMaterialIn = action.id === 'material-in';
+                <>
+                  {filteredActions.length === 0 ? (
+                    <div className="text-center py-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-[#202C3F]">
+                      <Search className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No matching action items found</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Try typing another keyword (e.g., "Transfer", "Receipt", "Quarantine", "Stock")</p>
+                      <button
+                        type="button"
+                        onClick={() => setActionSearchQuery('')}
+                        className="mt-3 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-bold hover:bg-emerald-100 transition"
+                      >
+                        Clear Search
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {filteredActions.map((action: any) => {
+                        const isMaterialIn = action.id === 'material-in';
                     const isMaterialOut = action.id === 'material-out';
                     const isDisabled = isMaterialOut && scanResult.entity.quantity <= 0;
                     return (
@@ -384,11 +481,13 @@ const UnifiedScanResult: React.FC<UnifiedScanResultProps> = ({ scanResult, onAct
                   })}
                 </div>
               )}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  )}
+</div>
   );
 };
 

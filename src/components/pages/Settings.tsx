@@ -167,6 +167,45 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
+        {/* Approval Workflows & Authority */}
+        <div style={{ background: 'white', borderRadius: '16px', border: '2px solid #e2e8f0', padding: '28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield style={{ width: '22px', height: '22px', color: '#7c3aed' }} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Approval Workflows & Authority</h2>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: '2px 0 0 0' }}>Manage spending thresholds, sign-off hierarchies, and variance limits</p>
+              </div>
+            </div>
+            {isAdmin && (
+              <button
+                onClick={() => navigate('/admin')}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: '10px',
+                  background: '#7c3aed',
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                Configure Matrix &rarr;
+              </button>
+            )}
+          </div>
+          <p style={{ fontSize: '14px', color: '#4b5563', lineHeight: '1.6', margin: 0 }}>
+            Standard approval matrices are active for <strong>Inbound GRN</strong>, <strong>Outbound GDN</strong>, <strong>Stock Transfers</strong>, and <strong>Adjustments / Write-offs</strong>.
+            {isAdmin ? ' Administrators can customize monetary thresholds, dual sign-off requirements, and discrepancy escalation triggers in the Admin Panel.' : ' Contact an administrator to customize your organization’s approval spending tiers.'}
+          </p>
+        </div>
+
         {/* Save Button */}
         <button
           onClick={handleSave}

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { PurchaseRequest } from '../../types';
 import { PurchaseRequestService } from '../../utils/purchaseRequestService';
+import { SaudiRiyalSymbol } from '../common/SaudiRiyalSymbol';
 
 interface PurchaseRequestListProps {
   onClose?: () => void;
@@ -224,9 +225,9 @@ const PurchaseRequestList: React.FC<PurchaseRequestListProps> = ({ onClose }) =>
                       <Building className="w-4 h-4" />
                       <span>{pr.department}</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="w-4 h-4" />
-                      <span>SAR {pr.total_estimated_cost.toFixed(2)}</span>
+                    <div className="flex items-center space-x-1.5">
+                      <SaudiRiyalSymbol size={14} className="text-gray-500" />
+                      <span>{pr.total_estimated_cost.toFixed(2)}</span>
                     </div>
                   </div>
 
@@ -313,7 +314,7 @@ const PurchaseRequestList: React.FC<PurchaseRequestListProps> = ({ onClose }) =>
                       <p><span className="font-medium">Requested By:</span> {selectedPR.requested_by}</p>
                       <p><span className="font-medium">Department:</span> {selectedPR.department}</p>
                       <p><span className="font-medium">Site:</span> {selectedPR.site}</p>
-                      <p><span className="font-medium">Total Cost:</span> SAR {selectedPR.total_estimated_cost.toFixed(2)}</p>
+                      <p className="flex items-center gap-1.5"><span className="font-medium">Total Cost:</span> <SaudiRiyalSymbol size={14} /> {selectedPR.total_estimated_cost.toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
@@ -342,8 +343,9 @@ const PurchaseRequestList: React.FC<PurchaseRequestListProps> = ({ onClose }) =>
                               <div className="font-medium text-gray-900">
                                 {item.quantity_required} {item.unit}
                               </div>
-                              <div className="text-sm text-gray-500">
-                                SAR {item.total_estimated_cost.toFixed(2)}
+                              <div className="text-sm text-gray-500 flex items-center justify-end gap-1">
+                                <SaudiRiyalSymbol size={12} />
+                                <span>{item.total_estimated_cost.toFixed(2)}</span>
                               </div>
                             </div>
                           </div>

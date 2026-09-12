@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { InventoryStorageService } from '../utils/inventoryStorage';
 import { REGIONS, MaterialItem } from '../data/ksaData';
+import { SaudiRiyalSymbol } from '../../../components/common/SaudiRiyalSymbol';
 
 const InventoryValuationReport: React.FC = () => {
   const navigate = useNavigate();
@@ -116,12 +117,18 @@ const InventoryValuationReport: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-blue-50 rounded-lg p-4">
                 <div className="text-sm text-blue-600 font-medium">Total Stock Value</div>
-                <div className="text-2xl font-bold text-blue-700">SAR {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                <div className="text-2xl font-bold text-blue-700 flex items-center gap-1.5 mt-0.5">
+                  <SaudiRiyalSymbol className="w-5 h-5 text-blue-700" />
+                  <span>{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
                 <div className="text-xs text-blue-500 mt-1">{totalItems} items</div>
               </div>
               <div className="bg-green-50 rounded-lg p-4">
                 <div className="text-sm text-green-600 font-medium">Avg Unit Cost</div>
-                <div className="text-2xl font-bold text-green-700">SAR {avgUnitCost.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-green-700 flex items-center gap-1.5 mt-0.5">
+                  <SaudiRiyalSymbol className="w-5 h-5 text-green-700" />
+                  <span>{avgUnitCost.toFixed(2)}</span>
+                </div>
               </div>
               <div className="bg-purple-50 rounded-lg p-4">
                 <div className="text-sm text-purple-600 font-medium">Cost Method</div>
@@ -140,7 +147,10 @@ const InventoryValuationReport: React.FC = () => {
                         <div className="text-xs text-gray-500">{wh.itemCount} items</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-gray-900">SAR {wh.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="font-medium text-gray-900 flex items-center justify-end gap-1">
+                          <SaudiRiyalSymbol className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{wh.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -157,7 +167,10 @@ const InventoryValuationReport: React.FC = () => {
                         <div className="text-xs text-gray-500">{stats.count} items | {stats.quantity.toLocaleString()} units</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-gray-900">SAR {stats.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="font-medium text-gray-900 flex items-center justify-end gap-1">
+                          <SaudiRiyalSymbol className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{stats.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -185,8 +198,18 @@ const InventoryValuationReport: React.FC = () => {
                       <td className="py-3 px-4">{item.name}</td>
                       <td className="py-3 px-4 text-gray-600">{item.category}</td>
                       <td className="py-3 px-4">{item.quantity} {item.unit}</td>
-                      <td className="py-3 px-4 text-gray-600">SAR {item.unitCost.toFixed(2)}</td>
-                      <td className="py-3 px-4 font-medium">SAR {(item.quantity * item.unitCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="py-3 px-4 text-gray-600">
+                        <span className="inline-flex items-center gap-1">
+                          <SaudiRiyalSymbol className="w-3 h-3 text-slate-500" />
+                          <span>{item.unitCost.toFixed(2)}</span>
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-medium">
+                        <span className="inline-flex items-center gap-1">
+                          <SaudiRiyalSymbol className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{(item.quantity * item.unitCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </span>
+                      </td>
                       <td className="py-3 px-4 text-gray-600">{item.warehouseId}</td>
                     </tr>
                   ))}

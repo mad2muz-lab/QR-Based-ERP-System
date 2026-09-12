@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Search, Filter, Calendar, MapPin, Package, User } from 'lucide-react';
+import { ArrowLeft, Search, Calendar, MapPin, Package, User, FileText } from 'lucide-react';
 import { DataStorage } from '../../../utils/dataStorage';
-import { MaterialLog } from '../../types';
+import { MaterialLog } from '../../../types';
 
 type FilterType = 'all' | 'material-in' | 'material-out' | 'transfer';
 
